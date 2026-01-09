@@ -1,0 +1,53 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\WebController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\AdminCotroller;
+use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\PermisionController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\PesilatController;
+
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "web" middleware group. Make something great!
+|
+*/
+
+Route::get('/', [WebController::class, 'index']);
+Route::get('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/login', [AuthController::class, 'procLogin'])->name('proc.login');
+Route::post('/register/newpassword', [UserManagementController::class, 'newPassword'])->name('newpassword');
+Route::post('/forgot/password', [UserManagementController::class, 'procForgotPassword'])->name('proc.forgot.password');
+Route::get('/forgot/password', [UserManagementController::class, 'forgotPassword'])->name('forgot.password');
+
+Route::group(['middleware' => ['auth']], function () {
+    Route::get('/dashboard', [AdminCotroller::class, 'dashboard'])->name('dashboard');
+    Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::resource('roles', RoleController::class);
+    
+    Route::resource('pesilat', PesilatController::class);
+    Route::post('/pesilat/filter', [PesilatController::class, 'applyFilter'])->name('pesilat.filter');
+    Route::get('/pesilat/filter/reset', [PesilatController::class, 'applyFilter'])->name('pesilat.filter.reset');
+
+
+    Route::resource('users', UserManagementController::class);
+    Route::resource('permissions', PermisionController::class);
+    Route::get('/register/resend/link/{token}', [UserManagementController::class, 'resendActivationLink'])->name('users.resend.activation.link');
+    /*
+        GET           /users                      index   users.index
+        GET           /users/create               create  users.create
+        POST          /users                      store   users.store
+        GET           /users/{user}               show    users.show
+        GET           /users/{user}/edit          edit    users.edit
+        PUT|PATCH     /users/{user}               update  users.update
+        DELETE        /users/{user}               destroy users.destroy
+     */
+    
+});
