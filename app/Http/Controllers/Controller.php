@@ -133,6 +133,21 @@ class Controller extends BaseController
                     ],
                 ],
             ],
+            [
+                "id"=>"3",
+                "icon"=>"fas fa-calendar-check",
+                "name"=>"Manajemen Absensi",
+                "src"=>"#",
+                "permision"=>["attendance-coach_list"],
+                "children"=>[
+                    [
+                        "icon"=>"fas fa-user",
+                        "name"=>"Absensi Pelatih",
+                        "permision"=>["attendance-coach_list"],
+                        "src"=>"attendance.coach.index"
+                    ],
+                ],
+            ],
         ];
         return $menu;
     }

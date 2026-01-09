@@ -8,6 +8,7 @@ use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\PermisionController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\PesilatController;
+use App\Http\Controllers\AttendanceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -36,6 +37,9 @@ Route::group(['middleware' => ['auth']], function () {
     Route::post('/pesilat/filter', [PesilatController::class, 'applyFilter'])->name('pesilat.filter');
     Route::get('/pesilat/filter/reset', [PesilatController::class, 'applyFilter'])->name('pesilat.filter.reset');
 
+    Route::get('attendance/coach', [AttendanceController::class, 'index'])->name('attendance.coach.index');
+    Route::post('attendance/coach', [AttendanceController::class, 'store'])->name('attendance.coach.store');
+    Route::put('attendance/coach', [AttendanceController::class, 'store'])->name('attendance.coach.update');
 
     Route::resource('users', UserManagementController::class);
     Route::resource('permissions', PermisionController::class);

@@ -11,7 +11,21 @@ return new class extends Migration
      */
     public function up(): void
     {
-        //
+        Schema::create('attendances', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->uuid('unit_id');
+            $table->enum('attendance_status', ['training', 'cancelled', 'school_holiday', 'ramadhan_break']);
+            $table->date('attendance_date');
+            $table->integer('new_member_cnt');
+            $table->integer('old_member_cnt');
+            $table->uuid('report_maker_id');
+            $table->string('attendance_image')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+            $table->uuid('created_by');
+            $table->uuid('updated_by')->nullable();
+            $table->uuid('deleted_by')->nullable();
+        });
     }
 
     /**
@@ -19,6 +33,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        //
+        Schema::dropIfExists('attendances');
     }
 };

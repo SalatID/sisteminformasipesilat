@@ -11,7 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        //
+        Schema::table('attendance_details', function (Blueprint $table) {
+            $table->uuid('updated_by')->nullable()->change();
+        });
     }
 
     /**
@@ -19,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        //
+        Schema::table('attendance_details', function (Blueprint $table) {
+            $table->uuid('updated_by')->nullable(false)->change();
+        });
     }
 };

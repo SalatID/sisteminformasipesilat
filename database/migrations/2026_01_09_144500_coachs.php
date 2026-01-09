@@ -11,9 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('attendance_details', function (Blueprint $table) {
+        Schema::create('coachs', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('coach_id');
+            $table->string('name');
+            $table->uuid('ts_id');
+            $table->date('coach_exam_date');
+            $table->string('coach_exam_at');
             $table->timestamps();
             $table->softDeletes();
             $table->uuid('created_by');
@@ -27,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('attendance_details');
+        Schema::dropIfExists('coachs');
     }
 };
