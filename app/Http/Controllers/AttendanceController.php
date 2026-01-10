@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Attendance;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Artisan;
 
 class AttendanceController extends Controller
 {
@@ -49,5 +50,20 @@ class AttendanceController extends Controller
         }
 
         return response()->json(["error"=>false,"message"=>"Hapus Absensi Berhasil"]);
+    }
+    public function syncAttendance()
+    {
+        Artisan::call('attendance:import');
+
+        return redirect()->back()->with(["error"=>false,"message"=>"Sync Berjalan Di Latar Belakang, Mohon Cek Berkala"]);
+    }
+
+    public function resendNotif($id)
+    {
+        Artisan::call('attendance:notify', [
+            'attendance_id' => $id,
+        ]);
+
+        return redirect()->back()->with(["error"=>false,"message"=>"Pengiriman Ulang Notifikasi Berjalan Di Latar Belakang, Mohon Cek Berkala"]);
     }
 }

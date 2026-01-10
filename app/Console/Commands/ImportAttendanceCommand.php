@@ -57,9 +57,9 @@ class ImportAttendanceCommand extends Command
 
                 $row = array_combine($headers, $data);
                 // Map columns
-                $unit = Unit::where('name', $row['Nama Unit '])->first();
+                $unit = Unit::where('name', $row['Nama Unit'])->first();
                 if (!$unit) {
-                    $this->warn("Unit not found: {$row['Nama Unit ']}");
+                    $this->warn("Unit not found: {$row['Nama Unit']}");
                     continue;
                 }
 
@@ -107,7 +107,7 @@ class ImportAttendanceCommand extends Command
                     }
                 }
 
-                $this->info("Imported attendance for unit: {$row['Nama Unit ']}");
+                $this->info("Imported attendance for unit: {$row['Nama Unit']}");
             }
 
             $this->info('Import completed successfully.');

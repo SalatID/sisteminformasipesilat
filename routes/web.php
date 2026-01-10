@@ -38,6 +38,8 @@ Route::group(['middleware' => ['auth']], function () {
     // Route::get('/pesilat/filter/reset', [PesilatController::class, 'applyFilter'])->name('pesilat.filter.reset');
 
     Route::get('attendance/coach', [AttendanceController::class, 'index'])->name('attendance.coach.index');
+    Route::get('attendance/coach/sync', [AttendanceController::class, 'syncAttendance'])->name('attendance.coach.sync');
+    Route::get('attendance/coach/resend-notif/{id}', [AttendanceController::class, 'resendNotif'])->name('attendance.coach.resend.notif');
     Route::post('attendance/coach', [AttendanceController::class, 'store'])->name('attendance.coach.store');
     Route::put('attendance/coach/{id}', [AttendanceController::class, 'store'])->name('attendance.coach.update');
     Route::delete('attendance/coach/{id}', [AttendanceController::class, 'destroy'])->name('attendance.coach.destroy');

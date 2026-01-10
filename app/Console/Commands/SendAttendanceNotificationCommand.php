@@ -15,7 +15,7 @@ class SendAttendanceNotificationCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'attendance:notify';
+    protected $signature = 'attendance:notify {attendance_id? : ID attendance yang ingin dikirim}';
 
     /**
      * The console command description.
@@ -29,17 +29,22 @@ class SendAttendanceNotificationCommand extends Command
      */
     public function handle()
     {
+        $attendanceId = $this->argument('attendance_id');
         $now = Carbon::now();
-        // 1. Send existing attendance notifications
-        $this->sendExistingNotifications();
+        
+        if ($attendanceId) {
+            return $this->sendSingleAttendanceNotification($attendanceId);
+        } else {
+            // 1. Send existing attendance notifications
+            $this->sendExistingNotifications();
+            // 2. Send reminders for today's training without attendance
+            $this->sendTodaysTrainingReminders();
 
-        // 2. Send reminders for today's training without attendance
-        $this->sendTodaysTrainingReminders();
-
-        // 3. Send reminders for overdue trainings
-        if ($now->hour === 19) {
-            $this->sendOverdueTrainingReminders();
-        }
+            // 3. Send reminders for overdue trainings
+            if ($now->hour === 19) {
+                $this->sendOverdueTrainingReminders();
+            }
+        }        
 
         // 4. Add Separator
         $this->sendEndOffProcessMessage();
@@ -72,6 +77,35 @@ class SendAttendanceNotificationCommand extends Command
             }
         }
     }
+
+    private function sendSingleAttendanceNotification($attendanceId)
+    {
+        $attendance = Attendance::with(['unit', 'reportMaker', 'attendanceDetails.coach.ts'])
+            ->where('id', $attendanceId)
+            ->first();
+
+        if (!$attendance) {
+            $this->error("Attendance ID {$attendanceId} tidak ditemukan.");
+            Log::channel('cron')->error("Attendance ID {$attendanceId} tidak ditemukan.");
+            return Command::FAILURE;
+        }
+
+        if ($attendance->is_notif_send) {
+            $this->warn("Attendance ID {$attendanceId} sudah pernah dikirim.");
+            return Command::SUCCESS;
+        }
+
+        $message = $this->buildAttendanceMessage($attendance);
+        $this->sendTelegramMessage($message);
+
+        $attendance->update(['is_notif_send' => true]);
+
+        $this->info("Attendance notification sent for ID: {$attendanceId}");
+        Log::channel('cron')->info("Attendance notification sent for ID: {$attendanceId}");
+
+        return Command::SUCCESS;
+    }
+
 
     /**
      * Send reminders for units with training today but no attendance.
@@ -177,8 +211,9 @@ class SendAttendanceNotificationCommand extends Command
         try {
             $response = Http::post("https://api.telegram.org/bot{$botToken}/sendMessage", [
                 'chat_id' => $chatId,
-                'text' => $this->escapeMarkdown($message),
-                'parse_mode' => 'MarkdownV2',
+                // 'text' => $this->escapeMarkdown($message),
+                'text' => $message,
+                'parse_mode' => 'html',
             ]);
 
             if (!$response->successful()) {

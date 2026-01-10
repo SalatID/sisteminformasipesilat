@@ -11,6 +11,8 @@
     <div class="row">
         @can('permission_create')
             <div class=" col-12 d-flex justify-content-end mb-3">
+                <a class="btn btn-primary btn-sm" href="{{ route('attendance.coach.sync') }}"> <i
+                        class="fas fa-plus"></i> Sync Data</a>
                 <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#addPermissionModal"> <i
                         class="fas fa-plus"></i> Tambah Absensi</button>
             </div>
@@ -61,6 +63,7 @@
                                     'params' => $item->id,
                                     'target' => 'attendance.coach',
                                 ])
+                                <a href="{{route('attendance.coach.resend.notif', $item->id)}}"><i class="fab fa-telegram"></i></a>
                             </td>
                         </tr>
                     @endforeach
