@@ -8,8 +8,10 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Attendance;
 use Carbon\Carbon;
 
+
 class SendAttendanceNotificationCommand extends Command
 {
+    private $notif_send = false;
     /**
      * The name and signature of the console command.
      *
@@ -45,10 +47,16 @@ class SendAttendanceNotificationCommand extends Command
                 $this->sendOverdueTrainingReminders();
             }
         }        
-
-        // 4. Add Separator
-        $this->sendEndOffProcessMessage();
-
+        if ($this->notif_send) {
+            // 4. Add Separator
+            $this->sendEndOffProcessMessage();
+            Log::channel('cron')->info('Attendance notification process completed.');
+            $this->info('Attendance notification process completed.');
+        } else {
+            Log::channel('cron')->info('No attendance notifications were sent.');
+            $this->info('No attendance notifications were sent.');
+        }
+    
         Log::channel('cron')->info('All notification processes completed.');
         $this->info('All notification processes completed.');
     }
@@ -97,7 +105,6 @@ class SendAttendanceNotificationCommand extends Command
 
         $this->info("Attendance notification sent for ID: {$attendanceId}");
         Log::channel('cron')->info("Attendance notification sent for ID: {$attendanceId}");
-
         return Command::SUCCESS;
     }
 
@@ -216,6 +223,7 @@ class SendAttendanceNotificationCommand extends Command
                 $this->error('Telegram send failed: ' . $response->body());
                 Log::channel('cron')->error('Telegram send failed: ' . $response->body());
             }
+            $this->notif_send = true;
         } catch (\Exception $e) {
             $this->error('Error sending Telegram message: ' . $e->getMessage());
             Log::channel('cron')->error('SendAttendanceNotificationCommand error: ' . $e->getMessage());
