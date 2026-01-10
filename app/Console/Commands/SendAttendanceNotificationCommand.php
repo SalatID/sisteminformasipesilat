@@ -38,6 +38,7 @@ class SendAttendanceNotificationCommand extends Command
         // 3. Send reminders for overdue trainings
         $this->sendOverdueTrainingReminders();
 
+        Log::channel('cron')->info('All notification processes completed.');
         $this->info('All notification processes completed.');
     }
 
@@ -46,18 +47,21 @@ class SendAttendanceNotificationCommand extends Command
      */
     private function sendExistingNotifications()
     {
+         Log::channel('cron')->info('Send attendance notifications...');
          $this->info('Send attendance notifications...');
         $attendances = Attendance::with(['unit', 'reportMaker', 'attendanceDetails.coach.ts'])
             ->where('is_notif_send', false)->where('attendance_status','training')
             ->get();
 
         if ($attendances->isEmpty()) {
+            Log::channel('cron')->info('No unsent attendance notifications found.');
             $this->info('No unsent attendance notifications found.');
         }else{
             foreach ($attendances as $attendance) {
                 $message = $this->buildAttendanceMessage($attendance);
                 $this->sendTelegramMessage($message);
                 $attendance->update(['is_notif_send' => true]);
+                Log::channel('cron')->info("Attendance notification sent for ID: {$attendance->id}");
                 $this->info("Attendance notification sent for ID: {$attendance->id}");
             }
         }
@@ -68,6 +72,7 @@ class SendAttendanceNotificationCommand extends Command
      */
     private function sendTodaysTrainingReminders()
     {
+        Log::channel('cron')->info('Send attendance reminder...');
         $this->info('Send attendance reminder...');
         $today = Carbon::today();
         $todayName = $today->format('l'); // e.g., 'Monday'
@@ -88,6 +93,7 @@ class SendAttendanceNotificationCommand extends Command
             if (!$hasAttendance) {
                 $message = $this->buildReminderMessage($unit, $today, 'today');
                 $this->sendTelegramMessage($message);
+                Log::channel('cron')->info("Today's training reminder sent for unit: {$unit->name}");
                 $this->info("Today's training reminder sent for unit: {$unit->name}");
             }
         }
@@ -98,6 +104,7 @@ class SendAttendanceNotificationCommand extends Command
      */
     private function sendOverdueTrainingReminders()
     {
+        Log::channel('cron')->info('Send attendance overdue reminder...');
         $this->info('Send attendance overdue reminder...');
 
         $units = \App\Models\Unit::all();
@@ -113,6 +120,7 @@ class SendAttendanceNotificationCommand extends Command
                 if (!$hasAttendance) {
                     $message = $this->buildReminderMessage($unit, $lastTrainingDate, 'overdue');
                     $this->sendTelegramMessage($message);
+                    Log::channel('cron')->info("Overdue training reminder sent for unit: {$unit->name} on {$lastTrainingDate->toDateString()}");
                     $this->info("Overdue training reminder sent for unit: {$unit->name} on {$lastTrainingDate->toDateString()}");
                 }
             }
@@ -209,6 +217,8 @@ class SendAttendanceNotificationCommand extends Command
                "*Tanggal Absen*: {$createdAt}\n" .
                "*Keterlambatan Absen*: {$delayDays} hari\n" .
                "*Pembuat Laporan*: {$reportMaker}\n" .
+               "*Anggota Lama*: {$attendance->old_member_cnt}\n" .
+               "*Anggota Baru*: {$attendance->new_member_cnt}\n\n" .
                "*Pelatih*:\n{$coachesList}\n" .
                "*Foto Latihan*:\n{$photoLinks}";
     }
