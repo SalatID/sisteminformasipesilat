@@ -7,7 +7,7 @@ use App\Http\Controllers\AdminCotroller;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\PermisionController;
 use App\Http\Controllers\RoleController;
-use App\Http\Controllers\PesilatController;
+// use App\Http\Controllers\PesilatController;
 use App\Http\Controllers\AttendanceController;
 
 /*
@@ -33,13 +33,14 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::resource('roles', RoleController::class);
     
-    Route::resource('pesilat', PesilatController::class);
-    Route::post('/pesilat/filter', [PesilatController::class, 'applyFilter'])->name('pesilat.filter');
-    Route::get('/pesilat/filter/reset', [PesilatController::class, 'applyFilter'])->name('pesilat.filter.reset');
+    // Route::resource('pesilat', PesilatController::class);
+    // Route::post('/pesilat/filter', [PesilatController::class, 'applyFilter'])->name('pesilat.filter');
+    // Route::get('/pesilat/filter/reset', [PesilatController::class, 'applyFilter'])->name('pesilat.filter.reset');
 
     Route::get('attendance/coach', [AttendanceController::class, 'index'])->name('attendance.coach.index');
     Route::post('attendance/coach', [AttendanceController::class, 'store'])->name('attendance.coach.store');
-    Route::put('attendance/coach', [AttendanceController::class, 'store'])->name('attendance.coach.update');
+    Route::put('attendance/coach/{id}', [AttendanceController::class, 'store'])->name('attendance.coach.update');
+    Route::delete('attendance/coach/{id}', [AttendanceController::class, 'destroy'])->name('attendance.coach.destroy');
 
     Route::resource('users', UserManagementController::class);
     Route::resource('permissions', PermisionController::class);

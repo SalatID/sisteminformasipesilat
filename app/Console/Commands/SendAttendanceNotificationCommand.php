@@ -29,6 +29,7 @@ class SendAttendanceNotificationCommand extends Command
      */
     public function handle()
     {
+        $now = Carbon::now();
         // 1. Send existing attendance notifications
         $this->sendExistingNotifications();
 
@@ -36,7 +37,9 @@ class SendAttendanceNotificationCommand extends Command
         $this->sendTodaysTrainingReminders();
 
         // 3. Send reminders for overdue trainings
-        $this->sendOverdueTrainingReminders();
+        if ($now->hour === 19) {
+            $this->sendOverdueTrainingReminders();
+        }
 
         Log::channel('cron')->info('All notification processes completed.');
         $this->info('All notification processes completed.');

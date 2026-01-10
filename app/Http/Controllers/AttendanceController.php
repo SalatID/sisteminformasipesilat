@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Attendance;
+use Illuminate\Support\Facades\Crypt;
 
 class AttendanceController extends Controller
 {
@@ -16,10 +17,37 @@ class AttendanceController extends Controller
 
     public function store(Request $request)
     {
-        $attendanceIds = $request->input('attendance_ids', []);
-        if (!empty($attendanceIds)) {
-            Attendance::whereIn('id', $attendanceIds)->update(['is_notif_send' => true]);
+        $validatedData = $request->validate([
+            'unit_id' => 'required|uuid|exists:units,id',
+            'attendance_date' => 'required|date',
+            'attendance_status' => 'required|in:training,cancelled,school_holiday,ramadhan_break',
+        ]);
+
+        // Additional fields can be set here
+        $validatedData['report_maker_id'] = auth()->user()->id; // Assuming the logged-in user is the report maker
+        $validatedData['new_member_cnt'] = 0; // Default value, can be modified as needed
+        $validatedData['old_member_cnt'] = 0; // Default value, can be modified as needed
+        $validatedData['created_by'] = auth()->user()->id;
+
+        $ins = Attendance::create($validatedData);
+        if (!$ins){
+            return redirect()->route('attendance.coach.index')->with(["error"=>true,"message"=>"Tambah Absensi Gagal"]);
         }
-        return redirect()->route('attendance.coach.index')->with('success', 'Selected attendances marked as notified.');
+
+        return redirect()->route('attendance.coach.index')->with(["error"=>false,"message"=>"Tambah Absensi Berhasil"]);
+    }
+    public function destroy($id)
+    {
+        $id = Crypt::decryptString($id);
+        $attendance = Attendance::findOrFail($id);
+        $attendance->deleted_by = auth()->user()->id;
+        $attendance->save();
+        $delete = $attendance->delete();
+
+        if (!$delete){
+            return response()->json(["error"=>true,"message"=>"Hapus Absensi Gagal"]);
+        }
+
+        return response()->json(["error"=>false,"message"=>"Hapus Absensi Berhasil"]);
     }
 }

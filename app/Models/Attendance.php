@@ -32,6 +32,13 @@ class Attendance extends Model
         'old_member_cnt' => 'integer',
     ];
 
+    public static $attendanceStatusMap = [
+        'training' => 'Latihan',
+        'cancelled' => 'Diliburkan Pelatih',
+        'school_holiday' => 'Diliburkan Sekolah',
+        'ramadhan_break' => 'Libur Ramadhan',
+    ];
+
     // Relations
     public function unit()
     {
@@ -46,5 +53,21 @@ class Attendance extends Model
     public function reportMaker()
     {
         return $this->belongsTo(Coach::class, 'report_maker_id');
+    }
+    public static function mapAttendanceStatus($status)
+    {
+        return self::$attendanceStatusMap[$status] ?? 'Unknown';
+    }
+
+    public static function mapAttendanceStatusToClass($status)
+    {
+        $statusClassMap = [
+            'training' => 'badge-success',
+            'cancelled' => 'badge-danger',
+            'school_holiday' => 'badge-warning',
+            'ramadhan_break' => 'badge-info',
+        ];
+
+        return $statusClassMap[$status] ?? 'badge-secondary';
     }
 }
