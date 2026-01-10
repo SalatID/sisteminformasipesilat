@@ -236,6 +236,11 @@ class SendAttendanceNotificationCommand extends Command
     private function buildAttendanceMessage($attendance)
     {
         $unitName = $attendance->unit ? $attendance->unit->name : 'Unknown';
+        if($attendance->unit){
+            $trainingTime = $attendance->unit->training_hours_start && $attendance->unit->training_hours_end
+                ? $attendance->unit->training_hours_start->format('H:i') . ' - ' . $attendance->unit->training_hours_end->format('H:i')
+                : 'Unknown';
+        }
         $pjUnit = $attendance->unit && $attendance->unit->pj ? $attendance->unit->pj->name : 'Unknown';
         $trainingDate = $attendance->attendance_date ? Carbon::parse($attendance->attendance_date)->format('d/m/Y') : 'Unknown';
         $createdAt = $attendance->created_at ? Carbon::parse($attendance->created_at)->format('d/m/Y') : 'Unknown';
@@ -272,6 +277,7 @@ class SendAttendanceNotificationCommand extends Command
                "*Tanggal Latihan*: {$trainingDate}\n" .
                "*Tanggal Absen*: {$createdAt}\n" .
                "*Keterlambatan Absen*: {$delayDays} hari\n" .
+               "*Jam Latihan*: {$trainingTime}\n" .
                "*Pembuat Laporan*: {$reportMaker}\n" .
                "*Anggota Lama*: {$attendance->old_member_cnt}\n" .
                "*Anggota Baru*: {$attendance->new_member_cnt}\n\n" .

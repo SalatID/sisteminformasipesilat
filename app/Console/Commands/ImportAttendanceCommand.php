@@ -66,6 +66,10 @@ class ImportAttendanceCommand extends Command
                 // Assume pembuat laporan is user name, but since no user table linked, use name or skip
                 // For now, set report_maker_id to null or find user
                 $reportMaker = Coach::where('name', $this->cleanCoachName($row['Pembuat Laporan']))->first(); // TODO: find user by name
+                if (!$reportMaker) {
+                    $this->warn("Report maker not found: {$row['Pembuat Laporan']}");
+                    continue;
+                }
 
                 $attendance = Attendance::updateOrCreate(
                     [
