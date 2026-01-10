@@ -41,6 +41,9 @@ class SendAttendanceNotificationCommand extends Command
             $this->sendOverdueTrainingReminders();
         }
 
+        // 4. Add Separator
+        $this->sendEndOffProcessMessage();
+
         Log::channel('cron')->info('All notification processes completed.');
         $this->info('All notification processes completed.');
     }
@@ -130,6 +133,17 @@ class SendAttendanceNotificationCommand extends Command
         }
     }
 
+    private function sendEndOffProcessMessage()
+    {
+        $now = Carbon::now();
+        $separatorMessage = "----------------------------------------\n" .
+                            "End of Attendance Notification Process {$now}\n" .
+                            "----------------------------------------";
+        $this->sendTelegramMessage($separatorMessage);
+        Log::channel('cron')->info('End of Attendance Notification Process message sent.');
+        $this->info('End of Attendance Notification Process message sent.');
+    }
+
     /**
      * Get the date of the last training day.
      */
@@ -163,17 +177,18 @@ class SendAttendanceNotificationCommand extends Command
         try {
             $response = Http::post("https://api.telegram.org/bot{$botToken}/sendMessage", [
                 'chat_id' => $chatId,
-                'text' => $message,
-                'parse_mode' => 'HTML',
+                'text' => $this->escapeMarkdown($message),
+                'parse_mode' => 'MarkdownV2',
             ]);
 
             if (!$response->successful()) {
                 $this->error('Failed to send Telegram message.');
-                Log::error('Telegram send failed: ' . $response->body());
+                $this->error('Telegram send failed: ' . $response->body());
+                Log::channel('cron')->error('Telegram send failed: ' . $response->body());
             }
         } catch (\Exception $e) {
             $this->error('Error sending Telegram message: ' . $e->getMessage());
-            Log::error('SendAttendanceNotificationCommand error: ' . $e->getMessage());
+            Log::channel('cron')->error('SendAttendanceNotificationCommand error: ' . $e->getMessage());
         }
     }
 
@@ -251,5 +266,11 @@ class SendAttendanceNotificationCommand extends Command
                "*Unit*: {$unitName}\n" .
                "*PJ Unit*: {$pjUnit}\n" .
                "{$message}";
+    }
+
+    private function escapeMarkdown($text)
+    {
+        $specialChars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
+        return str_replace($specialChars, array_map(fn($c) => '\\'.$c, $specialChars), $text);
     }
 }
