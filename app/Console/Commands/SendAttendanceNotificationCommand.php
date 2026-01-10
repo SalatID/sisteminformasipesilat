@@ -33,7 +33,7 @@ class SendAttendanceNotificationCommand extends Command
         $now = Carbon::now();
         
         if ($attendanceId) {
-            return $this->sendSingleAttendanceNotification($attendanceId);
+            $this->sendSingleAttendanceNotification($attendanceId);
         } else {
             // 1. Send existing attendance notifications
             $this->sendExistingNotifications();
@@ -88,11 +88,6 @@ class SendAttendanceNotificationCommand extends Command
             $this->error("Attendance ID {$attendanceId} tidak ditemukan.");
             Log::channel('cron')->error("Attendance ID {$attendanceId} tidak ditemukan.");
             return Command::FAILURE;
-        }
-
-        if ($attendance->is_notif_send) {
-            $this->warn("Attendance ID {$attendanceId} sudah pernah dikirim.");
-            return Command::SUCCESS;
         }
 
         $message = $this->buildAttendanceMessage($attendance);
