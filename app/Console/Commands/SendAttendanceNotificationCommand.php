@@ -96,12 +96,12 @@ class SendAttendanceNotificationCommand extends Command
             $this->error("Attendance ID {$attendanceId} tidak ditemukan.");
             Log::channel('cron')->error("Attendance ID {$attendanceId} tidak ditemukan.");
             return Command::FAILURE;
+
+             $attendance->update(['is_notif_send' => true]);
         }
 
         $message = $this->buildAttendanceMessage($attendance);
         $this->sendTelegramMessage($message);
-
-        $attendance->update(['is_notif_send' => true]);
 
         $this->info("Attendance notification sent for ID: {$attendanceId}");
         Log::channel('cron')->info("Attendance notification sent for ID: {$attendanceId}");

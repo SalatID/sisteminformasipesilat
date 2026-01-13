@@ -47,6 +47,8 @@ Route::group(['middleware' => ['auth']], function () {
 
     Route::get('report/unit-attendance', [AttendanceController::class, 'unitAttendanceReport'])->name('report.unit.attendance.index');
 
+    Route::get('receipt/contribution-unit', [AttendanceController::class, 'contributionReceiptUnit'])->name('receipt.contribution.unit.index');
+
     Route::resource('users', UserManagementController::class);
     Route::resource('permissions', PermisionController::class);
     Route::get('/register/resend/link/{token}', [UserManagementController::class, 'resendActivationLink'])->name('users.resend.activation.link');

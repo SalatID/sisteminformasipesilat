@@ -184,4 +184,166 @@ class AttendanceController extends Controller
             'currentWeek' => $currentWeek
         ]);
     }
+
+    public function contributionReceiptUnit(Request $request){
+        $month = $request->get('month', Carbon::now()->month);
+        $year  = $request->get('year', Carbon::now()->year);
+        $unitId = $request->get('unit_id');
+        $contributionAmount = $request->get('contribution_amount');
+
+        $startDate = Carbon::create($year, $month, 1)->startOfMonth();
+        $endDate   = Carbon::create($year, $month, 1)->endOfMonth();
+
+        // Get all units for filter
+        $units = \App\Models\Unit::all();
+        
+        // If no unit selected, return view with units list
+        if (!$unitId) {
+            return view('pages.admin.attendance.receipt.contribution-unit', [
+                'units' => $units,
+                'month' => $month,
+                'year' => $year,
+                'unitData' => null,
+                'contributionAmount' => $contributionAmount
+            ]);
+        }
+
+        // Get selected unit
+        $unit = \App\Models\Unit::findOrFail($unitId);
+
+        // Get attendances for the unit in selected month
+        $attendances = Attendance::with(['unit', 'attendanceDetails.coach.ts'])
+            ->where('unit_id', $unitId)
+            ->whereBetween('attendance_date', [$startDate, $endDate])
+            ->whereNull('deleted_at')
+            ->orderBy('attendance_date')
+            ->get();
+
+        // Define week ranges
+        $weekRanges = [
+            1 => [1, 3],
+            2 => [4, 10],
+            3 => [11, 17],
+            4 => [18, 24],
+            5 => [25, 31],
+        ];
+
+        // Get all coaches who attended in this month
+        $coachIds = $attendances->pluck('attendanceDetails')->flatten()->pluck('coach_id')->unique();
+        $coaches = \App\Models\Coach::with('ts')->whereIn('id', $coachIds)->get();
+
+        // Build attendance report per coach
+        $coachAttendance = [];
+        foreach ($coaches as $coach) {
+            $coachAttendance[$coach->id] = [
+                'coach' => $coach,
+                'weeks' => [1 => [], 2 => [], 3 => [], 4 => [], 5 => []],
+                'total_attendance' => 0
+            ];
+        }
+
+        // Fill attendance dates
+        foreach ($attendances as $attendance) {
+            $date = Carbon::parse($attendance->attendance_date);
+            $dayOfMonth = $date->day;
+            
+            // Calculate week number
+            if ($dayOfMonth <= 3) {
+                $week = 1;
+            } elseif ($dayOfMonth <= 10) {
+                $week = 2;
+            } elseif ($dayOfMonth <= 17) {
+                $week = 3;
+            } elseif ($dayOfMonth <= 24) {
+                $week = 4;
+            } else {
+                $week = 5;
+            }
+
+            // Only count training attendance for contribution calculation
+            $isTraining = $attendance->attendance_status == 'training';
+            
+            if ($isTraining) {
+                foreach ($attendance->attendanceDetails as $detail) {
+                    if (isset($coachAttendance[$detail->coach_id])) {
+                        $coachAttendance[$detail->coach_id]['weeks'][$week][] = [
+                            'date' => $date->toDateString(),
+                            'status' => $attendance->attendance_status,
+                            'reason' => $attendance->reason
+                        ];
+                        $coachAttendance[$detail->coach_id]['total_attendance']++;
+                    }
+                }
+            } else {
+                // For non-training, add to all coaches
+                foreach ($coachAttendance as $coachId => &$coachData) {
+                    $coachData['weeks'][$week][] = [
+                        'date' => $date->toDateString(),
+                        'status' => $attendance->attendance_status,
+                        'reason' => $attendance->reason
+                    ];
+                }
+            }
+        }
+
+        // Calculate contributions
+        // First pass: calculate all final values
+        $totalFinalValue = 0;
+
+         
+        // Calculate totals summary
+        $totalAttendance = 0;
+        
+        foreach ($coachAttendance as &$data) {
+            $coach = $data['coach'];
+            $attendance = $data['total_attendance'];
+            $multiplier = (int) ($coach->ts->multiplier ?? 1);
+            $isPJ = ($unit->pj_id == $coach->id) ? 1 : 0;
+            
+            $finalValue = $attendance * $multiplier + $isPJ;
+            
+            $data['multiplier'] = $multiplier;
+            $data['is_pj'] = $isPJ;
+            $data['final_value'] = $finalValue;
+            
+            $totalFinalValue += $finalValue;
+            $totalAttendance += $data['total_attendance'];
+            }
+            
+            // Calculate nominal per meeting from contribution amount
+            $pjShare = $contributionAmount * 0.65;
+            $kasShare = $contributionAmount * 0.20;
+            $savingsShare = $contributionAmount * 0.15;
+            $nominalPerMeeting = $totalFinalValue > 0 ? ($pjShare / $totalFinalValue) : 0;
+            $nominalPerMeeting = round($nominalPerMeeting, -2); // Round to 2 decimal places
+            $totalContribution = 0;
+        
+        // Second pass: calculate amounts
+        foreach ($coachAttendance as &$data) {
+            $totalAmount = $data['final_value'] * $nominalPerMeeting;
+            $data['total_amount'] = $totalAmount;
+            $totalContribution += $totalAmount;
+        }
+        // Calculate distribution
+        $totalPaid = $pjShare + $kasShare + $savingsShare;
+        $difference = $pjShare - $totalContribution;
+
+        return view('pages.admin.attendance.receipt.contribution-unit', [
+            'units' => $units,
+            'unit' => $unit,
+            'month' => $month,
+            'year' => $year,
+            'coachAttendance' => $coachAttendance,
+            'nominalPerMeeting' => $nominalPerMeeting,
+            'totalContribution' => $totalContribution,
+            'pjShare' => $pjShare,
+            'kasShare' => $kasShare,
+            'savingsShare' => $savingsShare,
+            'difference' => $difference,
+            'unitData' => true,
+            'contributionAmount' => $contributionAmount,
+            'totalAttendance' => $totalAttendance,
+            'totalFinalValue' => $totalFinalValue
+        ]);
+    }
 }
