@@ -150,10 +150,35 @@ class AttendanceController extends Controller
             // Store attendance data for view formatting
             $report[$unitId]['weeks'][$week] = $attendance;
         }
+
+        // Determine which weeks have passed
+        $currentDate = Carbon::now();
+        $currentWeek = 0;
+        
+        if ($year == $currentDate->year && $month == $currentDate->month) {
+            $dayOfMonth = $currentDate->day;
+            if ($dayOfMonth <= 3) {
+                $currentWeek = 1;
+            } elseif ($dayOfMonth <= 10) {
+                $currentWeek = 2;
+            } elseif ($dayOfMonth <= 17) {
+                $currentWeek = 3;
+            } elseif ($dayOfMonth <= 24) {
+                $currentWeek = 4;
+            } else {
+                $currentWeek = 5;
+            }
+        } elseif ($year < $currentDate->year || ($year == $currentDate->year && $month < $currentDate->month)) {
+            // Past month, all weeks have passed
+            $currentWeek = 5;
+        }
+        // If future month, currentWeek stays 0 (no weeks have passed)
+
         return view('pages.admin.attendance.report.monthly-unit', [
             'report' => $report,
             'month' => $month,
-            'year' => $year
+            'year' => $year,
+            'currentWeek' => $currentWeek
         ]);
     }
 }

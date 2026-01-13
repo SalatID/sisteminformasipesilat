@@ -67,11 +67,11 @@
                     <tr class="text-center">
                         <th>#</th>
                         <th>Nama Unit</th>
-                        <th>Week 1</th>
-                        <th>Week 2</th>
-                        <th>Week 3</th>
-                        <th>Week 4</th>
-                        <th>Week 5</th>
+                        <th width="150">Week 1</th>
+                        <th width="150">Week 2</th>
+                        <th width="150">Week 3</th>
+                        <th width="150">Week 4</th>
+                        <th width="150">Week 5</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -83,6 +83,8 @@
                                 <td class="text-center">
                                     @if (is_object($week))
                                         @if ($week->attendance_status != 'training')
+                                            {{ \Carbon\Carbon::parse($week->attendance_date)->toDateString() }}
+                                            <br>
                                             <span class="badge {{ App\Models\Attendance::mapAttendanceStatusToClass($week->attendance_status) }}">
                                                 {{ App\Models\Attendance::mapAttendanceStatus($week->attendance_status) }}
                                             </span>
