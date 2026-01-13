@@ -8,6 +8,7 @@
     <title>{{env('APP_NAME')}}</title>
     <meta content="" name="description">
     <meta content="" name="keywords">
+    @include('partials.style')
     @yield('style')
 </head>
 
