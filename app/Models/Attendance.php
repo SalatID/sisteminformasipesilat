@@ -24,6 +24,7 @@ class Attendance extends Model
         'created_by',
         'updated_by',
         'deleted_by',
+        'reason',
     ];
 
     protected $casts = [

@@ -45,6 +45,8 @@ Route::group(['middleware' => ['auth']], function () {
     Route::put('attendance/coach/{id}', [AttendanceController::class, 'store'])->name('attendance.coach.update');
     Route::delete('attendance/coach/{id}', [AttendanceController::class, 'destroy'])->name('attendance.coach.destroy');
 
+    Route::get('report/unit-attendance', [AttendanceController::class, 'unitAttendanceReport'])->name('report.unit.attendance.index');
+
     Route::resource('users', UserManagementController::class);
     Route::resource('permissions', PermisionController::class);
     Route::get('/register/resend/link/{token}', [UserManagementController::class, 'resendActivationLink'])->name('users.resend.activation.link');

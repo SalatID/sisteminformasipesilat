@@ -34,8 +34,8 @@
                             
                             <!-- Status Latihan -->
                             <div class="col-md-4 mb-3">
-                                <label for="attendance_status" class="form-label">Status Latihan</label>
-                                <select class="form-control" id="attendance_status" name="attendance_status">
+                                <label for="attendance_status_filter" class="form-label">Status Latihan</label>
+                                <select class="form-control" id="attendance_status_filter" name="attendance_status">
                                     <option value="">Semua Status</option>
                                     @foreach (App\Models\Attendance::$attendanceStatusMap as $key => $value)
                                         <option value="{{ $key }}" {{ request('attendance_status') == $key ? 'selected' : '' }}>
@@ -47,8 +47,8 @@
 
                             <!-- Nama Unit -->
                             <div class="col-md-4 mb-3">
-                                <label for="unit_id" class="form-label">Nama Unit</label>
-                                <select class="form-control" id="unit_id" name="unit_id">
+                                <label for="unit_id_filter" class="form-label">Nama Unit</label>
+                                <select class="form-control" id="unit_id_filter" name="unit_id">
                                     <option value="">Semua Unit</option>
                                     @foreach (App\Models\Unit::all() as $unit)
                                         <option value="{{ $unit->id }}" {{ request('unit_id') == $unit->id ? 'selected' : '' }}>
@@ -108,7 +108,12 @@
                             <td class="text-center">{{ date('Y-m-d', strtotime($item->attendance_date)) }}</td>
                             <td class="text-center">
                                 <span style="font-size:100%"
-                                    class="badge {{ App\Models\Attendance::mapAttendanceStatusToClass($item->attendance_status) }}">{{ App\Models\Attendance::mapAttendanceStatus($item->attendance_status) }}</span>
+                                    class="badge {{ App\Models\Attendance::mapAttendanceStatusToClass($item->attendance_status) }}">
+                                    {{ App\Models\Attendance::mapAttendanceStatus($item->attendance_status) }}
+                                </span>
+                                @if($item->attendance_status != 'training' && $item->reason)
+                                        <br><small>({{ $item->reason }})</small>
+                                @endif
                             </td>
                             <td class="text-center">{{ $item->new_member_cnt }}</td>
                             <td class="text-center">{{ $item->old_member_cnt }}</td>
@@ -155,7 +160,7 @@
                     <div class="modal-body">
                         <div class="form-group">
                             <label class="required" for="unit_id">Nama Unit</label>
-                            <select class="form-control" name="unit_id" id="unit_id">
+                            <select class="form-control" name="unit_id" id="unit_id" required>
                                 <option value="">Pilih Nama Unit</option>
                                 @foreach (App\Models\Unit::all() as $unit)
                                     <option value="{{ $unit->id }}">{{ $unit->name }}</option>
@@ -168,14 +173,14 @@
                         </div>
                         <div class="form-group">
                             <label class="required" for="attendance_date">Tanggal Latihan</label>
-                            <input class="form-control" type="date" name="attendance_date" id="attendance_date">
+                            <input class="form-control" type="date" name="attendance_date" id="attendance_date" required>
                             @if ($errors->has('attendance_date'))
                                 <span class="text-danger">{{ $errors->first('attendance_date') }}</span>
                             @endif
                         </div>
                         <div class="form-group">
-                            <label class="required" for="unit_id">Status Latihan</label>
-                            <select class="form-control" name="attendance_status" id="attendance_status">
+                            <label class="required" for="attendance_status">Status Latihan</label>
+                            <select class="form-control" name="attendance_status" id="attendance_status" required>
                                 <option value="">Pilih Status Latihan</option>
                                 @foreach (App\Models\Attendance::$attendanceStatusMap as $key => $value)
                                     <option value="{{ $key }}">{{ $value }}</option>
@@ -186,40 +191,16 @@
                             @endif
                             {{-- <span class="help-block">{{ trans('cruds.role.fields.title_helper') }}</span> --}}
                         </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary">Save changes</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
-    <div class="modal fade" id="editPermissionModal" tabindex="-1" role="dialog"
-        aria-labelledby="editPermissionModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <form action="{{ route('attendance.coach.update', [0]) }}" id="editPermissionForm" method="POST">
-                    @csrf
-                    @method('PUT')
-                    <input type="hidden" name="id">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="editPermissionModalLabel">Edit Permission</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label class="required" for="name">Name</label>
-                            <input class="form-control {{ $errors->has('name') ? 'is-invalid' : '' }}" type="text"
-                                name="name" id="name" placeholder="Permission Name" required>
-                            @if ($errors->has('name'))
-                                <span class="text-danger">{{ $errors->first('name') }}</span>
+                        <div class="form-group" id="reasonFormGroup" style="display: none;">
+                            <label for="reason">Alasan</label>
+                            <input class="form-control" type="text" name="reason" id="reason" placeholder="Masukkan alasan">
+                            @if ($errors->has('reason'))
+                                <span class="text-danger">{{ $errors->first('reason') }}</span>
                             @endif
-                            {{-- <span class="help-block">{{ trans('cruds.role.fields.title_helper') }}</span> --}}
                         </div>
+
+                        
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -236,6 +217,17 @@
             pageLength: 25
         });
 
+        // Show/hide reason field based on attendance_status
+        $('#attendance_status').change(function() {
+            var selectedValue = $(this).val();
+            if (selectedValue && selectedValue != 'training') {
+                $('#reasonFormGroup').show();
+            } else {
+                $('#reasonFormGroup').hide();
+                $('#reason').val(''); // Clear the reason field when hiding
+            }
+        });
+
         function editData(e) {
             console.log($(e).data('target'))
             $.get($(e).data('target'), function(data) {
@@ -246,5 +238,6 @@
                 $('#editPermissionModal').modal('show')
             })
         }
+
     </script>
 @endsection

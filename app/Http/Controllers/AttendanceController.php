@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Attendance;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Artisan;
+use Carbon\Carbon;
+
 
 class AttendanceController extends Controller
 {
@@ -46,6 +48,7 @@ class AttendanceController extends Controller
             'unit_id' => 'required|uuid|exists:units,id',
             'attendance_date' => 'required|date',
             'attendance_status' => 'required|in:training,cancelled,school_holiday,ramadhan_break',
+            'reason' => 'required_unless:attendance_status,training|nullable|string|max:255',
         ]);
 
         // Additional fields can be set here
@@ -89,5 +92,51 @@ class AttendanceController extends Controller
         ]);
 
         return redirect()->back()->with(["error"=>false,"message"=>"Pengiriman Ulang Notifikasi Berjalan Di Latar Belakang, Mohon Cek Berkala"]);
+    }
+
+    public function unitAttendanceReport(Request $request)
+    {
+       // Bulan & tahun (default bulan ini)
+        $month = $request->get('month', Carbon::now()->month);
+        $year  = $request->get('year', Carbon::now()->year);
+
+        $startDate = Carbon::create($year, $month, 1)->startOfMonth();
+        $endDate   = Carbon::create($year, $month, 1)->endOfMonth();
+
+        // Initialize report with all units
+        $allUnits = \App\Models\Unit::all();
+        $report = [];
+        
+        foreach ($allUnits as $unit) {
+            $report[$unit->id] = [
+                'unit_name' => $unit->name,
+                'weeks' => [
+                    1 => '-',
+                    2 => '-',
+                    3 => '-',
+                    4 => '-',
+                    5 => '-',
+                ]
+            ];
+        }
+
+        // Ambil attendance dalam bulan tsb
+        $attendances = Attendance::with('unit')
+            ->whereBetween('attendance_date', [$startDate, $endDate])
+            ->whereNull('deleted_at')
+            ->get();
+
+        foreach ($attendances as $attendance) {
+            $unitId = $attendance->unit_id;
+            $week   = Carbon::parse($attendance->attendance_date)->weekOfMonth;
+
+            // Store attendance data for view formatting
+            $report[$unitId]['weeks'][$week] = $attendance;
+        }
+        return view('pages.admin.attendance.report.monthly-unit', [
+            'report' => $report,
+            'month' => $month,
+            'year' => $year
+        ]);
     }
 }
