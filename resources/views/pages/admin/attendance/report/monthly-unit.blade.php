@@ -67,11 +67,11 @@
                     <tr class="text-center">
                         <th>#</th>
                         <th>Nama Unit</th>
-                        <th width="150">Week 1</th>
-                        <th width="150">Week 2</th>
-                        <th width="150">Week 3</th>
-                        <th width="150">Week 4</th>
-                        <th width="150">Week 5</th>
+                        <th width="200">Week 1</th>
+                        <th width="200">Week 2</th>
+                        <th width="200">Week 3</th>
+                        <th width="200">Week 4</th>
+                        <th width="200">Week 5</th>
                     </tr>
                 </thead>
                 <tbody>
