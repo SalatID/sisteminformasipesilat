@@ -111,11 +111,11 @@ class AttendanceController extends Controller
             $report[$unit->id] = [
                 'unit_name' => $unit->name,
                 'weeks' => [
-                    1 => '-',
-                    2 => '-',
-                    3 => '-',
-                    4 => '-',
-                    5 => '-',
+                    1 => [],
+                    2 => [],
+                    3 => [],
+                    4 => [],
+                    5 => [],
                 ]
             ];
         }
@@ -147,8 +147,11 @@ class AttendanceController extends Controller
                 $week = 5;
             }
 
-            // Store attendance data for view formatting
-            $report[$unitId]['weeks'][$week] = $attendance;
+            // Store attendance data for view formatting (support multiple per week)
+            if (!isset($report[$unitId])) {
+                continue; // Skip if unit not in report
+            }
+            $report[$unitId]['weeks'][$week][] = $attendance;
         }
 
         // Determine which weeks have passed

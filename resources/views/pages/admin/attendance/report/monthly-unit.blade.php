@@ -79,23 +79,36 @@
                         <tr>
                             <td class="text-center">{{ $loop->iteration }}</td>
                             <td class="text-left">{{ $row['unit_name'] }}</td>
-                            @foreach ($row['weeks'] as $week)
-                                <td class="text-center">
-                                    @if (is_object($week))
-                                        @if ($week->attendance_status != 'training')
-                                            {{ \Carbon\Carbon::parse($week->attendance_date)->toDateString() }}
-                                            <br>
-                                            <span class="badge {{ App\Models\Attendance::mapAttendanceStatusToClass($week->attendance_status) }}">
-                                                {{ App\Models\Attendance::mapAttendanceStatus($week->attendance_status) }}
-                                            </span>
-                                            @if ($week->reason)
-                                                <br><small>({{ $week->reason }})</small>
-                                            @endif
+                            @foreach ($row['weeks'] as $weekNum => $weekData)
+                                @php
+                                    $isEmpty = empty($weekData);
+                                    $shouldShowRed = $isEmpty && isset($weekStatus[$weekNum]) && $weekStatus[$weekNum]['should_check'];
+                                @endphp
+                                <td class="text-center" style="{{ $shouldShowRed ? 'background-color: #f8d7da; color: #721c24;' : '' }}">
+                                    @if ($isEmpty)
+                                        @if ($shouldShowRed)
+                                            <strong>Belum Absensi</strong>
                                         @else
-                                            {{ \Carbon\Carbon::parse($week->attendance_date)->toDateString() }}
+                                            -
                                         @endif
                                     @else
-                                        {{ $week }}
+                                        @foreach ($weekData as $attendance)
+                                            @if ($attendance->attendance_status != 'training')
+                                                {{ \Carbon\Carbon::parse($attendance->attendance_date)->toDateString() }}
+                                                <br>
+                                                <span class="badge {{ App\Models\Attendance::mapAttendanceStatusToClass($attendance->attendance_status) }}">
+                                                    {{ App\Models\Attendance::mapAttendanceStatus($attendance->attendance_status) }}
+                                                </span>
+                                                @if ($attendance->reason)
+                                                    <br><small>({{ $attendance->reason }})</small>
+                                                @endif
+                                            @else
+                                                {{ \Carbon\Carbon::parse($attendance->attendance_date)->toDateString() }}
+                                            @endif
+                                            @if (!$loop->last)
+                                                <hr style="margin: 5px 0;">
+                                            @endif
+                                        @endforeach
                                     @endif
                                 </td>
                             @endforeach
