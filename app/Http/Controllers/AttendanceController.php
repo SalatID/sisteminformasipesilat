@@ -315,7 +315,7 @@ class AttendanceController extends Controller
             $kasShare = $contributionAmount * 0.20;
             $savingsShare = $contributionAmount * 0.15;
             $nominalPerMeeting = $totalFinalValue > 0 ? ($pjShare / $totalFinalValue) : 0;
-            $nominalPerMeeting = round($nominalPerMeeting, -2); // Round to 2 decimal places
+            $nominalPerMeeting = floor($nominalPerMeeting / 100) * 100; // Round down to nearest 10
             $totalContribution = 0;
         
         // Second pass: calculate amounts
