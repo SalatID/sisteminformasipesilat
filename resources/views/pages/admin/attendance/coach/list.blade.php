@@ -8,12 +8,78 @@
     </ol>
 @endsection
 @section('content')
+
+    <!-- Filter Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-sm">
+                <div class="card-body">
+                    <form id="filterForm" method="GET" action="{{ route('attendance.coach.index') }}">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="start_date" class="form-label">Tanggal Latihan</label>
+                                        <input type="date" class="form-control" id="start_date" name="start_date" 
+                                            value="{{ request('start_date') }}" placeholder="Pilih tanggal mulai">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="end_date" class="form-label">&nbsp</label>
+                                        <input type="date" class="form-control" id="end_date" name="end_date" 
+                                            value="{{ request('end_date') }}" placeholder="Pilih tanggal akhir">
+                                    </div>
+                                </div>
+
+                            </div>
+                            
+                            <!-- Status Latihan -->
+                            <div class="col-md-4 mb-3">
+                                <label for="attendance_status" class="form-label">Status Latihan</label>
+                                <select class="form-control" id="attendance_status" name="attendance_status">
+                                    <option value="">Semua Status</option>
+                                    @foreach (App\Models\Attendance::$attendanceStatusMap as $key => $value)
+                                        <option value="{{ $key }}" {{ request('attendance_status') == $key ? 'selected' : '' }}>
+                                            {{ $value }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <!-- Nama Unit -->
+                            <div class="col-md-4 mb-3">
+                                <label for="unit_id" class="form-label">Nama Unit</label>
+                                <select class="form-control" id="unit_id" name="unit_id">
+                                    <option value="">Semua Unit</option>
+                                    @foreach (App\Models\Unit::all() as $unit)
+                                        <option value="{{ $unit->id }}" {{ request('unit_id') == $unit->id ? 'selected' : '' }}>
+                                            {{ $unit->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <!-- Filter Buttons -->
+                            <div class="col-md-8 mb-3 d-flex align-items-end">
+                                <button type="submit" class="btn btn-sm btn-primary mr-2">
+                                    <i class="fas fa-search"></i> Cari
+                                </button>
+                                <a href="{{ route('attendance.coach.index') }}" class="btn btn-sm btn-secondary">
+                                    <i class="fas fa-redo"></i> Reset
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
-        @can('permission_create')
+        @can('attendance-coach_create')
             <div class=" col-12 d-flex justify-content-end mb-3">
                 <a class="btn btn-primary btn-sm mr-2" href="{{ route('attendance.coach.sync') }}"> <i
                         class="fas fa-plus"></i> Sync Data</a>
-                <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#addPermissionModal"> <i
+                <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#addAttendanceModal"> <i
                         class="fas fa-plus"></i> Tambah Absensi</button>
             </div>
         @endcan
@@ -63,7 +129,9 @@
                                     'params' => $item->id,
                                     'target' => 'attendance.coach',
                                 ])
+                                @can('attendance-coach_notify')
                                 <a href="{{route('attendance.coach.resend.notif', $item->id)}}"><i class="fab fa-telegram"></i></a>
+                                @endcan
                             </td>
                         </tr>
                     @endforeach
@@ -72,14 +140,14 @@
         </div>
     </div>
     <!-- Modal -->
-    <div class="modal fade" id="addPermissionModal" tabindex="-1" role="dialog" aria-labelledby="addPermissionModalLabel"
+    <div class="modal fade" id="addAttendanceModal" tabindex="-1" role="dialog" aria-labelledby="addAttendanceModalLabel"
         aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <form action="{{ route('attendance.coach.store') }}" method="POST">
                     @csrf
                     <div class="modal-header">
-                        <h5 class="modal-title" id="addPermissionModalLabel">Tambah Absensi</h5>
+                        <h5 class="modal-title" id="addAttendanceModalLabel">Tambah Absensi</h5>
                         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                             <span aria-hidden="true">&times;</span>
                         </button>
@@ -164,7 +232,9 @@
 @endsection
 @section('script')
     <script>
-        $('#attendancesTable').DataTable();
+        $('#attendancesTable').DataTable({
+            pageLength: 25
+        });
 
         function editData(e) {
             console.log($(e).data('target'))

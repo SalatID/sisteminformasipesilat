@@ -9,11 +9,35 @@ use Illuminate\Support\Facades\Artisan;
 
 class AttendanceController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-         $attendances = Attendance::with(['unit', 'reportMaker', 'attendanceDetails.coach.ts'])
-         ->get();
-            return view('pages.admin.attendance.coach.list', compact('attendances'));
+        $user = auth()->user();
+        $userRoles = $user->getRoleNames();
+        
+        $attendances = Attendance::with(['unit', 'reportMaker', 'attendanceDetails.coach.ts'])
+            ->when(!$userRoles->contains('super-admin') && $userRoles->contains('pj-unit'), function ($query) use ($user) {
+                $unitIds = \App\Models\Unit::where('pj_id', $user->coach_id)->pluck('id');
+                return $query->whereIn('unit_id', $unitIds);
+            })
+            ->when($request->filled('start_date'), function ($query) use ($request) {
+                return $query->where('attendance_date', '>=', $request->start_date);
+            })
+            ->when($request->filled('end_date'), function ($query) use ($request) {
+                return $query->where('attendance_date', '<=', $request->end_date);
+            })
+            ->when($request->filled('attendance_status'), function ($query) use ($request) {
+                return $query->where('attendance_status', $request->attendance_status);
+            })
+            ->when($request->filled('unit_id'), function ($query) use ($request) {
+                return $query->where('unit_id', $request->unit_id);
+            })
+            ->when(!$request->hasAny(['start_date', 'end_date']), function ($query) {
+                return $query->where('attendance_date', '>=', now()->subMonths(2));
+            })
+            ->orderBy('attendance_date', 'desc')
+            ->get();
+            
+        return view('pages.admin.attendance.coach.list', compact('attendances'));
     }
 
     public function store(Request $request)

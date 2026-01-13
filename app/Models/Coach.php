@@ -37,4 +37,9 @@ class Coach extends Model
     {
         return $this->belongsTo(Ts::class, 'ts_id');
     }
+
+    public function coachs()
+    {
+        return $this->belongsTo(Coach::class);
+    }
 }

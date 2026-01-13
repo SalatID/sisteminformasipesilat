@@ -25,6 +25,7 @@ Route::get('/', [WebController::class, 'index']);
 Route::get('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/login', [AuthController::class, 'procLogin'])->name('proc.login');
 Route::post('/register/newpassword', [UserManagementController::class, 'newPassword'])->name('newpassword');
+Route::get('/register/validate/{token}', [UserManagementController::class, 'emailValidation'])->name('email.validation');
 Route::post('/forgot/password', [UserManagementController::class, 'procForgotPassword'])->name('proc.forgot.password');
 Route::get('/forgot/password', [UserManagementController::class, 'forgotPassword'])->name('forgot.password');
 

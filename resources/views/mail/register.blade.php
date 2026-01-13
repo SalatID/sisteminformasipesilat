@@ -48,18 +48,18 @@
                                        <tr>
                                           <td style="padding-top:16px;padding-bottom:16px;color:#443!important">
                                              <p>
-                                                To verify your email address and finish setting up your Deal Dulu Accout, please go to:
+                                                To verify your email address and finish setting up your Sistem Informasi Pesilat Account, please go to:
                                              </p>
                                              <p>
                                                 <a href="{{$link}}" target="_blank" >Verification Email</a>
                                              </p>
                                              <p>
-                                                This link will expire in 30 minutes and can be used only once.If you did not sign up for an account with Deal Dulu, you can disregard this email.
+                                                This link will expire in 30 minutes and can be used only once.If you did not sign up for an account with Sistem Informasi Pesilat, you can disregard this email.
                                              </p>
                                           </td>
                                        </tr>
                                        <tr>
-                                          <td>Best Regards<br>Deal Dulu Admin</td>
+                                          <td>Best Regards<br>Sistem Informasi Pesilat Admin</td>
                                        </tr>
                                     </tbody>
                                  </table>
@@ -73,7 +73,7 @@
                                     <tbody>
                                        <tr>
                                           <td align="left" valign="top" style="padding:8px">Deal Dulu<br>
-                                             <a href="https://dealdulu.com/" style="color:#bba" target="_blank">https://dealdulu.com/</a><br>
+                                             <a href="https://sip.smijakartabarat.org" style="color:#bba" target="_blank">https://sip.smijakartabarat.org</a><br>
                                           </td>
                                        </tr>
                                     </tbody>

@@ -1,4 +1,5 @@
 
+@extends('layout.index_auth')
 @section('title',$title)
 @section('content')
 <div class="card-body login-card-body">
@@ -10,7 +11,6 @@
     </div>
     @endif
     <p class="login-box-msg">{{$title}}</p>
-
     <form action="{{route('newpassword')}}" method="post">
       @csrf
       <input type="hidden" name="validator" value="{{$email}}">

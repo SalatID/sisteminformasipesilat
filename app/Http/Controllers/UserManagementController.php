@@ -30,8 +30,9 @@ class UserManagementController extends Controller
             'fullname'=>['required'],
             'role'=>['required'],
             'email' => ['required', 'email','unique:users,email'],
+            'coach_id' => ['required','uuid','exists:coachs,id'],
         ]);
-        $users = User::create($credentials);
+        $user = User::create($credentials);
         if($user){
             $role = Role::where(['name' =>  $user->role])->first();
             $user->assignRole([$role->id]);
@@ -59,7 +60,7 @@ class UserManagementController extends Controller
         try{
             $decrypted = Crypt::decryptString($id);
             $params = array_filter(request()->all(),function($key){
-                return in_array($key,["fullname","email","role"])!==false;
+                return in_array($key,["fullname","email","role","coach_id"])!==false;
             },ARRAY_FILTER_USE_KEY);
             // $params['updated_user']=auth()->user()->id;
             $users = User::find($decrypted);

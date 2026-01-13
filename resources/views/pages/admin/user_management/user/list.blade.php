@@ -22,6 +22,7 @@
                     <th class="text-center">Full Name</th>
                     <th class="text-center">Email</th>
                     <th class="text-center">Role</th>
+                    <th class="text-center">Nama Pelatih</th>
                     <th class="text-center">Email Verified Date</th>
                     <th class="text-center">Created Date</th>
                     <th class="text-center">Action</th>
@@ -35,10 +36,14 @@
                     <td class="text-center">{{$item->fullname}}</td>
                     <td class="text-center">{{$item->email}}</td>
                     <td class="text-center">{{$item->role}}</td>
+                    <td class="text-center">{{$item->coach->name??''}}</td>
                     <td class="text-center">{{$item->email_verified_at}}</td>
                     <td class="text-center">{{$item->created_at}}</td>
                     <td class="text-center">
-                       @include('partials.button_action',["permision"=>"user","target"=>"users"])
+                       @include('partials.button_action',[
+                        "permision"=>"user",
+                        "params" => $item->id,
+                        "target"=>"users"])
                        @can("user_activation_link")
                             @if ( $item->email_verified_at==null)
                                 <a href="{{route('users.resend.activation.link',[\Illuminate\Support\Facades\Crypt::encryptString($item->id??'')])}}"><i class="fas fa-envelope text-secondary"></i></a>
@@ -93,6 +98,18 @@
                     @endif
                     {{-- <span class="help-block">{{ trans('cruds.role.fields.title_helper') }}</span> --}}
                 </div>
+                <div class="form-group">
+                    <label for="coach_id">Coach</label>
+                    <select class="form-control {{ $errors->has('coach_id') ? 'is-invalid' : '' }}" name="coach_id" id="coach_id">
+                        <option value="">Choose Coach</option>
+                        @foreach(App\Models\Coach::orderBy('name')->get() as $coach)
+                            <option value="{{ $coach->id }}">{{ $coach->name }}</option>
+                        @endforeach
+                    </select>
+                    @if($errors->has('coach_id'))
+                        <span class="text-danger">{{ $errors->first('coach_id') }}</span>
+                    @endif
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -146,6 +163,18 @@
                     @endif
                     {{-- <span class="help-block">{{ trans('cruds.role.fields.title_helper') }}</span> --}}
                 </div>
+                <div class="form-group">
+                    <label for="coach_id">Coach</label>
+                    <select class="form-control {{ $errors->has('coach_id') ? 'is-invalid' : '' }}" name="coach_id" id="coach_id">
+                        <option value="">Choose Coach</option>
+                        @foreach(App\Models\Coach::orderBy('name')->get() as $coach)
+                            <option value="{{ $coach->id }}">{{ $coach->name }}</option>
+                        @endforeach
+                    </select>
+                    @if($errors->has('coach_id'))
+                        <span class="text-danger">{{ $errors->first('coach_id') }}</span>
+                    @endif
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -168,6 +197,7 @@
                 $('select[name="role"]',$('#editUserModal')).val(data.role)
                 action = $('#editUserForm').attr('action')
                 $('#editUserForm').attr('action',action.substring(0, (action.length-1))+id)
+                $('select[name="coach_id"]',$('#editUserModal')).val(data.coach_id)
                 $('#editUserModal').modal('show')
             })
         }

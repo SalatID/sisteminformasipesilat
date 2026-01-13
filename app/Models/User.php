@@ -8,6 +8,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use App\Models\Coach;
 
 class User extends Authenticatable
 {
@@ -23,7 +24,8 @@ class User extends Authenticatable
         'email',
         'role',
         'password',
-        'email_verified_at'
+        'email_verified_at',
+        'coach_id'
     ];
 
     /**
@@ -44,4 +46,8 @@ class User extends Authenticatable
     // protected $casts = [
     //     'email_verified_at' => 'datetime',
     // ];
+    public function coach()
+    {
+        return $this->belongsTo(Coach::class);
+    }
 }
