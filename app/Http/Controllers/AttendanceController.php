@@ -128,7 +128,24 @@ class AttendanceController extends Controller
 
         foreach ($attendances as $attendance) {
             $unitId = $attendance->unit_id;
-            $week   = Carbon::parse($attendance->attendance_date)->weekOfMonth;
+            $date = Carbon::parse($attendance->attendance_date);
+            
+            // Calculate week number: Week 1 = 1-3 Jan, Week 2 = 4-10 Jan, etc.
+            // Get the day of month (1-31)
+            $dayOfMonth = $date->day;
+            
+            // Week 1: days 1-3, Week 2: days 4-10, Week 3: days 11-17, Week 4: days 18-24, Week 5: days 25-31
+            if ($dayOfMonth <= 3) {
+                $week = 1;
+            } elseif ($dayOfMonth <= 10) {
+                $week = 2;
+            } elseif ($dayOfMonth <= 17) {
+                $week = 3;
+            } elseif ($dayOfMonth <= 24) {
+                $week = 4;
+            } else {
+                $week = 5;
+            }
 
             // Store attendance data for view formatting
             $report[$unitId]['weeks'][$week] = $attendance;
