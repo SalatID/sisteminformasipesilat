@@ -179,7 +179,7 @@
                                         <th class="text-center">{{ $totalAttendance }}</th>
                                         <th class="text-center"></th>
                                         <th class="text-center"></th>
-                                        <th class="text-center">{{ number_format($totalFinalValue, 1) }}</th>
+                                        <th class="text-center">{{ number_format($totalFinalValue, 0) }}</th>
                                         <th></th>
                                         <th class="text-right">
                                             <strong>Rp {{ number_format($totalContribution, 0, ',', '.') }}</strong>
