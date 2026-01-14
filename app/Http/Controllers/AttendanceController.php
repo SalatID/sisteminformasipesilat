@@ -42,6 +42,15 @@ class AttendanceController extends Controller
         return view('pages.admin.attendance.coach.list', compact('attendances'));
     }
 
+    public function show($id)
+    {
+        $id = Crypt::decryptString($id);
+        $attendance = Attendance::with(['unit', 'reportMaker', 'attendanceDetails.coach.ts'])
+            ->findOrFail($id);
+
+        return view('pages.admin.attendance.coach.detail', compact('attendance'));
+    }
+
     public function store(Request $request)
     {
         $validatedData = $request->validate([

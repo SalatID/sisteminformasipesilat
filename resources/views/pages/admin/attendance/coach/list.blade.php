@@ -133,6 +133,7 @@
                                     'permision' => 'attendance-coach',
                                     'params' => $item->id,
                                     'target' => 'attendance.coach',
+                                    'src' => 'attendance.coach',
                                 ])
                                 @can('attendance-coach_notify')
                                 <a href="{{route('attendance.coach.resend.notif', $item->id)}}"><i class="fab fa-telegram"></i></a>

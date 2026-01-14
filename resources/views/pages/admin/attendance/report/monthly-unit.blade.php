@@ -94,7 +94,9 @@
                                     @else
                                         @foreach ($weekData as $attendance)
                                             @if ($attendance->attendance_status != 'training')
-                                                {{ \Carbon\Carbon::parse($attendance->attendance_date)->toDateString() }}
+                                                <a href="{{ route('attendance.coach.show', \Illuminate\Support\Facades\Crypt::encryptString($attendance->id)) }}">
+                                                    {{ \Carbon\Carbon::parse($attendance->attendance_date)->toDateString() }}
+                                                </a>
                                                 <br>
                                                 <span class="badge {{ App\Models\Attendance::mapAttendanceStatusToClass($attendance->attendance_status) }}">
                                                     {{ App\Models\Attendance::mapAttendanceStatus($attendance->attendance_status) }}
@@ -103,7 +105,9 @@
                                                     <br><small>({{ $attendance->reason }})</small>
                                                 @endif
                                             @else
-                                                {{ \Carbon\Carbon::parse($attendance->attendance_date)->toDateString() }}
+                                                <a href="{{ route('attendance.coach.show', \Illuminate\Support\Facades\Crypt::encryptString($attendance->id)) }}">
+                                                    {{ \Carbon\Carbon::parse($attendance->attendance_date)->toDateString() }}
+                                                </a>
                                             @endif
                                             @if (!$loop->last)
                                                 <hr style="margin: 5px 0;">
