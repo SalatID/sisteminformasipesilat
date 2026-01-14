@@ -99,16 +99,18 @@
                                         <th width="150">Week 3</th>
                                         <th width="150">Week 4</th>
                                         <th width="150">Week 5</th>
+                                        <th width="80">Total</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @php($i = 1)
+                                    @php($weekTotals = [1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0])
                                     @foreach ($coachAttendance as $data)
                                         <tr>
                                             <td class="text-center">{{ $i++ }}</td>
                                             <td>{{ $data['coach']->name }}</td>
                                             <td class="text-center">{{ $data['coach']->ts->alias ?? '-' }}</td>
-                                            @foreach ($data['weeks'] as $weekData)
+                                            @foreach ($data['weeks'] as $weekNum => $weekData)
                                                 <td class="text-center">
                                                     @if(count($weekData) > 0)
                                                         @foreach ($weekData as $attendanceData)
@@ -122,6 +124,7 @@
                                                                 @endif
                                                             @else
                                                                 {{ $attendanceData['date'] }}
+                                                                @php($weekTotals[$weekNum]++)
                                                             @endif
                                                             @if (!$loop->last)
                                                                 <hr style="margin: 5px 0;">
@@ -132,9 +135,19 @@
                                                     @endif
                                                 </td>
                                             @endforeach
+                                            <td class="text-center"><strong>{{ $data['total_attendance'] }}</strong></td>
                                         </tr>
                                     @endforeach
                                 </tbody>
+                                <tfoot class="thead-light">
+                                    <tr class="text-center">
+                                        <th colspan="3" class="text-right">Total per Week:</th>
+                                        @foreach ([1, 2, 3, 4, 5] as $weekNum)
+                                            <th>{{ $weekTotals[$weekNum] }}</th>
+                                        @endforeach
+                                        <th>{{ $totalAttendance }}</th>
+                                    </tr>
+                                </tfoot>
                             </table>
                         </div>
                     </div>
@@ -166,7 +179,7 @@
                                             <td class="text-center">{{ $data['coach']->ts->alias ?? '-' }}</td>
                                             <td class="text-center">{{ $data['total_attendance'] }}</td>
                                             <td class="text-center">{{ $data['multiplier'] }}</td>
-                                            <td class="text-center">{{ $data['is_pj'] }}</td>
+                                            <td class="text-center">{{ $data['is_pj']=="0" ? '' : $data['is_pj'] }}</td>
                                             <td class="text-center">{{ number_format($data['final_value'], 0) }}</td>
                                             <td class="text-right">Rp {{ number_format($nominalPerMeeting, 0, ',', '.') }}</td>
                                             <td class="text-right">Rp {{ number_format($data['total_amount'], 0, ',', '.') }}</td>
@@ -190,6 +203,28 @@
                         </div>
                     </div>
 
+                    <!-- Save Button -->
+                    <div class="row mb-3">
+                        <div class="col-12 text-right">
+                            <form action="{{ route('receipt.contribution.unit.save') }}" method="POST" id="saveContributionForm">
+                                @csrf
+                                <input type="hidden" name="unit_id" value="{{ $unit->id }}">
+                                <input type="hidden" name="month" value="{{ $month }}">
+                                <input type="hidden" name="year" value="{{ $year }}">
+                                <input type="hidden" name="contribution_amount" value="{{ $contributionAmount }}">
+                                <input type="hidden" name="pj_share" value="{{ $pjShare }}">
+                                <input type="hidden" name="kas_share" value="{{ $kasShare }}">
+                                <input type="hidden" name="saving_share" value="{{ $savingsShare }}">
+                                <input type="hidden" name="difference" value="{{ $difference }}">
+                                <input type="hidden" name="nominal_per_meeting" value="{{ $nominalPerMeeting }}">
+                                <input type="hidden" name="coach_data" value="{{ json_encode($coachAttendance) }}">
+                                <button type="submit" class="btn {{ $existingContribution ? 'btn-primary' : 'btn-success' }}">
+                                    <i class="fas fa-save"></i> {{ $existingContribution ? 'Update Data Kontribusi' : 'Simpan Data Kontribusi' }}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
                     <!-- Summary -->
                     <div class="row">
                         <div class="col-md-6">
@@ -203,7 +238,7 @@
                             <table class="table table-sm">
                                 <tr>
                                     <td><strong>Uang Kontribusi:</strong></td>
-                                    <td class="text-right"><strong>Rp {{ number_format($totalContribution, 0, ',', '.') }}</strong></td>
+                                    <td class="text-right"><strong>Rp {{ number_format($contributionAmount, 0, ',', '.') }}</strong></td>
                                 </tr>
                                 <tr>
                                     <td>65% PJ:</td>

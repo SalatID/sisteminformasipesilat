@@ -48,6 +48,7 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('report/unit-attendance', [AttendanceController::class, 'unitAttendanceReport'])->name('report.unit.attendance.index');
 
     Route::get('receipt/contribution-unit', [AttendanceController::class, 'contributionReceiptUnit'])->name('receipt.contribution.unit.index');
+    Route::post('receipt/contribution-unit/save', [AttendanceController::class, 'saveContributionReceipt'])->name('receipt.contribution.unit.save');
 
     Route::resource('users', UserManagementController::class);
     Route::resource('permissions', PermisionController::class);

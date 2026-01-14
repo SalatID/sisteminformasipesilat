@@ -7,7 +7,7 @@ use App\Models\Attendance;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Artisan;
 use Carbon\Carbon;
-
+use \App\Models\Contribution;
 
 class AttendanceController extends Controller
 {
@@ -230,7 +230,13 @@ class AttendanceController extends Controller
 
         // Get all coaches who attended in this month
         $coachIds = $attendances->pluck('attendanceDetails')->flatten()->pluck('coach_id')->unique();
-        $coaches = \App\Models\Coach::with('ts')->whereIn('id', $coachIds)->get();
+        $coaches = \App\Models\Coach::with('ts')
+            ->join('ts', 'coachs.ts_id', '=', 'ts.id')
+            ->whereIn('coachs.id', $coachIds)
+            ->orderBy('ts.ts_seq', 'desc')
+            ->orderBy('coachs.name', 'asc')
+            ->select('coachs.*')
+            ->get();
 
         // Build attendance report per coach
         $coachAttendance = [];
@@ -328,6 +334,12 @@ class AttendanceController extends Controller
         $totalPaid = $pjShare + $kasShare + $savingsShare;
         $difference = $pjShare - $totalContribution;
 
+        // Check if contribution data already exists
+        $periode = sprintf('%04d-%02d', $year, $month);
+        $existingContribution = \App\Models\Contribution::where('unit_id', $unitId)
+            ->where('periode', $periode)
+            ->first();
+
         return view('pages.admin.attendance.receipt.contribution-unit', [
             'units' => $units,
             'unit' => $unit,
@@ -343,7 +355,90 @@ class AttendanceController extends Controller
             'unitData' => true,
             'contributionAmount' => $contributionAmount,
             'totalAttendance' => $totalAttendance,
-            'totalFinalValue' => $totalFinalValue
+            'totalFinalValue' => $totalFinalValue,
+            'existingContribution' => $existingContribution
         ]);
+    }
+
+    public function saveContributionReceipt(Request $request)
+    {
+        $validatedData = $request->validate([
+            'unit_id' => 'required|uuid|exists:units,id',
+            'month' => 'required|integer|min:1|max:12',
+            'year' => 'required|integer',
+            'contribution_amount' => 'required|numeric',
+            'pj_share' => 'required|numeric',
+            'kas_share' => 'required|numeric',
+            'saving_share' => 'required|numeric',
+            'difference' => 'required|numeric',
+            'nominal_per_meeting' => 'required|numeric',
+            'coach_data' => 'required|json',
+        ]);
+
+        $periode = sprintf('%04d-%02d', $validatedData['year'], $validatedData['month']);
+        $coachData = json_decode($validatedData['coach_data'], true);
+
+        try {
+            \DB::beginTransaction();
+
+            // Check if contribution already exists
+            $contribution = Contribution::where('unit_id', $validatedData['unit_id'])
+                ->where('periode', $periode)
+                ->first();
+
+            $contribution = Contribution::updateOrCreate(
+                [
+                    'unit_id' => $validatedData['unit_id'],
+                    'periode' => $periode,
+                ],
+                [
+                    'contribution_amount' => $validatedData['contribution_amount'],
+                    'pj_share' => $validatedData['pj_share'],
+                    'pj_percentage' => 65.00,
+                    'kas_share' => $validatedData['kas_share'],
+                    'kas_percentage' => 20.00,
+                    'saving_share' => $validatedData['saving_share'],
+                    'saving_percentage' => 15.00,
+                    'difference' => $validatedData['difference'],
+                    'revision_count' => \DB::raw('COALESCE(revision_count, 0) + 1'),
+                    'updated_by' => auth()->user()->id,
+                    'created_by' => \DB::raw('COALESCE(created_by, ' . auth()->user()->id . ')'),
+                ]
+            );
+
+            // Delete old details if updating
+            if (!$contribution->wasRecentlyCreated) {
+                ContributionDetail::where('contribution_id', $contribution->id)->delete();
+            }
+
+            // Create contribution details
+            foreach ($coachData as $data) {
+                ContributionDetail::create([
+                    'contribution_id' => $contribution->id,
+                    'coach_id' => $data['coach']['id'],
+                    'multiplier' => $data['multiplier'],
+                    'attendance' => $data['total_attendance'],
+                    'is_pj' => $data['is_pj'],
+                    'final_value' => $data['final_value'],
+                    'amount_per_attendance' => $validatedData['nominal_per_meeting'],
+                    'total' => $data['total_amount'],
+                    'created_by' => auth()->user()->id,
+                    'updated_by' => auth()->user()->id,
+                ]);
+            }
+
+            \DB::commit();
+
+            return redirect()->route('receipt.contribution.unit.index', [
+                'unit_id' => $validatedData['unit_id'],
+                'month' => $validatedData['month'],
+                'year' => $validatedData['year'],
+                'contribution_amount' => $validatedData['contribution_amount']
+            ])->with(['error' => false, 'message' => 'Data kontribusi berhasil disimpan']);
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return redirect()->back()->with(['error' => true, 'message' => 'Gagal menyimpan data kontribusi: ' . $e->getMessage()]);
+        }
     }
 }
