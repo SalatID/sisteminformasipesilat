@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Artisan;
 use Carbon\Carbon;
 use \App\Models\Contribution;
+use \App\Models\ContributionDetail;
 
 class AttendanceController extends Controller
 {
