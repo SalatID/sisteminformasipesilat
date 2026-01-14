@@ -6,9 +6,9 @@
   </ol>
 @endsection
 @section('content')
-    
+    <h5>Selamat Datang {{ auth()->user()->fullname }}, di {{env('APP_NAME')}}</h5>
 <!-- Small boxes (Stat box) -->
- <div class="row">
+ {{-- <div class="row">
     <div class="col-lg-3 col-6">
       <!-- small box -->
       <div class="small-box bg-info">
@@ -583,5 +583,5 @@
     </section>
     <!-- right col -->
   </div>
-  <!-- /.row (main row) -->
+  <!-- /.row (main row) --> --}}
 @endsection

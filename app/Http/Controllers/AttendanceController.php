@@ -17,26 +17,29 @@ class AttendanceController extends Controller
         $userRoles = $user->getRoleNames();
         
         $attendances = Attendance::with(['unit', 'reportMaker', 'attendanceDetails.coach.ts'])
+            ->join('units', 'attendances.unit_id', '=', 'units.id')
             ->when(!$userRoles->contains('super-admin') && $userRoles->contains('pj-unit'), function ($query) use ($user) {
                 $unitIds = \App\Models\Unit::where('pj_id', $user->coach_id)->pluck('id');
-                return $query->whereIn('unit_id', $unitIds);
+                return $query->whereIn('attendances.unit_id', $unitIds);
             })
             ->when($request->filled('start_date'), function ($query) use ($request) {
-                return $query->where('attendance_date', '>=', $request->start_date);
+                return $query->where('attendances.attendance_date', '>=', $request->start_date);
             })
             ->when($request->filled('end_date'), function ($query) use ($request) {
-                return $query->where('attendance_date', '<=', $request->end_date);
+                return $query->where('attendances.attendance_date', '<=', $request->end_date);
             })
             ->when($request->filled('attendance_status'), function ($query) use ($request) {
-                return $query->where('attendance_status', $request->attendance_status);
+                return $query->where('attendances.attendance_status', $request->attendance_status);
             })
             ->when($request->filled('unit_id'), function ($query) use ($request) {
-                return $query->where('unit_id', $request->unit_id);
+                return $query->where('attendances.unit_id', $request->unit_id);
             })
             ->when(!$request->hasAny(['start_date', 'end_date']), function ($query) {
-                return $query->where('attendance_date', '>=', now()->subMonths(2));
+                return $query->where('attendances.attendance_date', '>=', now()->subMonths(2));
             })
-            ->orderBy('attendance_date', 'desc')
+            ->orderBy('units.name', 'asc')
+            ->orderBy('attendances.attendance_date', 'desc')
+            ->select('attendances.*')
             ->get();
             
         return view('pages.admin.attendance.coach.list', compact('attendances'));
@@ -112,8 +115,16 @@ class AttendanceController extends Controller
         $startDate = Carbon::create($year, $month, 1)->startOfMonth();
         $endDate   = Carbon::create($year, $month, 1)->endOfMonth();
 
-        // Initialize report with all units
-        $allUnits = \App\Models\Unit::all();
+        // Get user and roles
+        $user = auth()->user();
+        $userRoles = $user->getRoleNames();
+
+        // Initialize report with all units (filtered by role)
+        $allUnits = \App\Models\Unit::when(!$userRoles->intersect(['super-admin', 'pengurus-komwil', 'korps-pelatih'])->isNotEmpty() && $userRoles->contains('pj-unit'), function ($query) use ($user) {
+                return $query->where('pj_id', $user->coach_id);
+            })
+            ->orderBy('name', 'asc')
+            ->get();
         $report = [];
         
         foreach ($allUnits as $unit) {

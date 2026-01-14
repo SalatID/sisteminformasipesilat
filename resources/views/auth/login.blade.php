@@ -25,23 +25,24 @@
                     @endif
                 </div>
                 <div class="form-group">
-                    <label for="inputPassword">Password</label>
-                    <input type="password" name="password"
-                        class="form-control {{ $errors->has('password') ? 'is-invalid' : '' }}" placeholder="Password"
-                        aria-describedby="inputPassword-error" aria-invalid="true">
-                    @if ($errors->has('password'))
-                        <span id="inputPassword-error"
-                            class="error invalid-feedback">{{ $errors->first('password') }}</span>
+                    <label for="inputRetypePassword">Retype Password</label>
+                    <div class="input-group">
+                    <input type="password" id="password" name="password" class="form-control {{$errors->has('password')?'is-invalid':''}}" placeholder="Retype Password" aria-describedby="inputRetypePassword-error" aria-invalid="true">
+                    <div class="input-group-append">
+                        <span class="input-group-text" style="cursor: pointer;" onclick="togglePassword('password', 'togglePassword2')">
+                        <i class="fas fa-eye" id="togglePassword2"></i>
+                        </span>
+                    </div>
+                    @if($errors->has('password'))
+                        <span id="inputRetypePassword-error" class="error invalid-feedback d-block">{{ $errors->first('password') }}</span>
                     @endif
+                    </div>
                 </div>
                 <div class="row">
                     <div class="col-8">
-                        <div class="icheck-primary">
-                            <input type="checkbox" id="remember">
-                            <label for="remember">
-                                Remember Me
-                            </label>
-                        </div>
+                        <p class="mb-1">
+                            <a href="{{ route('forgot.password') }}">I forgot my password</a>
+                        </p>
                     </div>
                     <!-- /.col -->
                     <div class="col-4">
@@ -50,24 +51,6 @@
                     <!-- /.col -->
                 </div>
             </form>
-
-            {{-- <div class="social-auth-links text-center mb-3">
-        <p>- OR -</p>
-        <a href="#" class="btn btn-block btn-primary">
-          <i class="fab fa-facebook mr-2"></i> Sign in using Facebook
-        </a>
-        <a href="#" class="btn btn-block btn-danger">
-          <i class="fab fa-google-plus mr-2"></i> Sign in using Google+
-        </a>
-      </div> --}}
-            <!-- /.social-auth-links -->
-
-            <p class="mb-1">
-                <a href="{{ route('forgot.password') }}">I forgot my password</a>
-            </p>
-            {{-- <p class="mb-0">
-        <a href="register.html" class="text-center">Register a new membership</a>
-      </p> --}}
         </div>
     </div>
 @endsection

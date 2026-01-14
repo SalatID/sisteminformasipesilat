@@ -50,4 +50,21 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Coach::class);
     }
+
+    /**
+     * Map role names to readable text
+     */
+    public static function mapRoleToText($role)
+    {
+        $roleMap = [
+            'super-admin' => 'Super Admin',
+            'pengurus-komwil' => 'Pengurus Komwil',
+            'korps-pelatih' => 'Korps Pelatih',
+            'pj-unit' => 'Penanggung Jawab Unit',
+            'admin' => 'Administrator',
+        ];
+
+        return $roleMap[$role] ?? ucwords(str_replace('-', ' ', $role));
+    }
+
 }
