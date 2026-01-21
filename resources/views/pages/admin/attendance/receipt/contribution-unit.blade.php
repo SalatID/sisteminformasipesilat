@@ -219,7 +219,7 @@
                             @if(isset($existingContribution) && $existingContribution && $existingContribution->contribution_receipt_img)
                                 <div class="mb-3">
                                     <strong>Tanda Terima Kontribusi:</strong><br>
-                                    <img src="{{ Storage::url($existingContribution->contribution_receipt_img) }}" 
+                                    <img src="{{ asset($existingContribution->contribution_receipt_img) }}"
                                         alt="Tanda Terima Kontribusi" 
                                         class="img-fluid img-thumbnail mt-2" 
                                         style="max-width: 400px;">

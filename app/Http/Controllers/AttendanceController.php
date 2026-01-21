@@ -365,8 +365,15 @@ class AttendanceController extends Controller
                         return redirect()->back()->with(['error' => true, 'message' => 'File yang diupload bukan gambar yang valid']);
                     }
                     
+                    // Move to public directory
+                    $dir = public_path('contribution_receipts/');
+                    if (!file_exists($dir)) {
+                        mkdir($dir, 0755, true);
+                    }
+                    
                     $imageName = 'receipt_' . $unitId . '_' . $periode . '_' . time() . '.' . $image->getClientOriginalExtension();
-                    $imagePath = $image->storeAs('contribution_receipts', $imageName, 'public');
+                    $image->move($dir, $imageName);
+                    $imagePath = 'contribution_receipts/' . $imageName;
                 }
 
                 // Check if contribution exists
