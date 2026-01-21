@@ -48,8 +48,10 @@ Route::group(['middleware' => ['auth']], function () {
 
     Route::get('report/unit-attendance', [AttendanceController::class, 'unitAttendanceReport'])->name('report.unit.attendance.index');
 
-    Route::get('receipt/contribution-unit', [AttendanceController::class, 'contributionReceiptUnit'])->name('receipt.contribution.unit.index');
-    Route::post('receipt/contribution-unit/save', [AttendanceController::class, 'saveContributionReceipt'])->name('receipt.contribution.unit.save');
+    Route::match(['get', 'post'], 'receipt/contribution-unit', [AttendanceController::class, 'contributionReceiptUnit'])->name('receipt.contribution.unit.index');
+    // Route::post('receipt/contribution-unit/save', [AttendanceController::class, 'saveContributionReceipt'])->name('receipt.contribution.unit.save');
+    Route::get('receipt/contribution-history', [AttendanceController::class, 'contributionHistory'])->name('receipt.contribution.history');
+    Route::delete('receipt/contribution/{id}', [AttendanceController::class, 'deleteContribution'])->name('receipt.contribution.delete');
 
     Route::resource('users', UserManagementController::class);
     Route::resource('permissions', PermisionController::class);

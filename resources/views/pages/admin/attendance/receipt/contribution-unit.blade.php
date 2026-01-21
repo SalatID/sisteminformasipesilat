@@ -13,9 +13,10 @@
         <div class="col-12">
             <div class="card card-sm">
                 <div class="card-body">
-                    <form id="filterForm" method="GET" action="{{ route('receipt.contribution.unit.index') }}">
+                    <form id="filterForm" method="POST" action="{{ route('receipt.contribution.unit.index') }}" enctype="multipart/form-data">
+                        @csrf
                         <div class="row">
-                            <div class="col-md-3 mb-3">
+                            <div class="col-md-2 mb-3">
                                 <label for="unit_id" class="form-label">Unit</label>
                                 <select class="form-control" id="unit_id" name="unit_id" required>
                                     <option value="">Pilih Unit</option>
@@ -26,11 +27,11 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-3 mb-3">
+                            <div class="col-md-2 mb-3">
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label for="month" class="form-label">Bulan</label>
-                                        <select class="form-control" id="month" name="month">
+                                        <select class="form-control" id="month" name="month" required>
                                             @for ($m = 1; $m <= 12; $m++)
                                                 <option value="{{ $m }}" {{ $month == $m ? 'selected' : '' }}>
                                                     {{ \Carbon\Carbon::create()->month($m)->format('F') }}
@@ -41,7 +42,7 @@
 
                                     <div class="col-md-6 mb-3">
                                         <label for="year" class="form-label">Tahun</label>
-                                        <select class="form-control" id="year" name="year">
+                                        <select class="form-control" id="year" name="year" required>
                                             @for ($y = date('Y') - 2; $y <= date('Y') + 1; $y++)
                                                 <option value="{{ $y }}" {{ $year == $y ? 'selected' : '' }}>
                                                     {{ $y }}
@@ -53,18 +54,29 @@
 
                             </div>
                             
-                            <div class="col-md-3 mb-3">
+                            <div class="col-md-2 mb-3">
                                 <label for="contribution_amount" class="form-label">Uang Kontribusi</label>
-                                <input type="number" class="form-control" id="contribution_amount" name="contribution_amount" value="{{ request('contribution_amount') }}">
+                                <input type="number" class="form-control" id="contribution_amount" name="contribution_amount" value="{{ request('contribution_amount') ?? $contributionAmount }}" required>
                             </div>
+
+                            <!-- Image Upload Field -->
+                            <div class="col-md-3 mb-3">
+                                <label for="contribution_receipt_img" class="form-label">Tanda Terima Kontribusi</label>
+                                <input type="file" class="form-control" id="contribution_receipt_img" name="contribution_receipt_img" accept="image/*" required>
+                                <small class="form-text text-muted">Format: JPG, PNG, GIF (Max: 2MB)</small>
+                            </div>
+                            
                             <!-- Filter Buttons -->
                             <div class="col-md-3 mb-3 d-flex align-items-end">
                                 <button type="submit" class="btn btn-sm btn-primary mr-2">
-                                    <i class="fas fa-search"></i> Lihat
+                                    <i class="fas fa-search"></i> Hitung
                                 </button>
-                                <a href="{{ route('receipt.contribution.unit.index') }}" class="btn btn-sm btn-secondary">
+                                <a href="{{ route('receipt.contribution.unit.index') }}" class="btn btn-sm btn-secondary  mr-2">
                                     <i class="fas fa-redo"></i> Reset
                                 </a>
+                                <button type="button" class="btn btn-success btn-sm" id="exportToImage">
+                                    <i class="fas fa-image"></i> Export ke Gambar
+                                </button>
                             </div>
                         </div>
                     </form>
@@ -76,8 +88,8 @@
     @if($unitData)
     <div class="row">
         <div class="col-12">
-            <div class="card">
-                <div class="card-body" id="receiptContainer">
+            <div class="card" id="receiptContainer">
+                <div class="card-body" >
                     <!-- Header -->
                     <div class="mb-4">
                         <h4><strong>Bulan:</strong> {{ \Carbon\Carbon::create()->month($month)->locale('id')->translatedFormat('F') }} {{ $year }}</h4>
@@ -119,9 +131,7 @@
                                                                 <span class="badge {{ App\Models\Attendance::mapAttendanceStatusToClass($attendanceData['status']) }}" style="font-size: 90%;">
                                                                     {{ App\Models\Attendance::mapAttendanceStatus($attendanceData['status']) }}
                                                                 </span>
-                                                                @if($attendanceData['reason'])
-                                                                    <br><small>({{ $attendanceData['reason'] }})</small>
-                                                                @endif
+                                                                <br><small>({{ $attendanceData['reason'] ?? 'Tidak ada keterangan' }})</small>
                                                             @else
                                                                 {{ $attendanceData['date'] }}
                                                                 @php($weekTotals[$weekNum]++)
@@ -203,31 +213,18 @@
                         </div>
                     </div>
 
-                    <!-- Save Button -->
-                    <div class="row mb-3">
-                        <div class="col-12 text-right">
-                            <form action="{{ route('receipt.contribution.unit.save') }}" method="POST" id="saveContributionForm">
-                                @csrf
-                                <input type="hidden" name="unit_id" value="{{ $unit->id }}">
-                                <input type="hidden" name="month" value="{{ $month }}">
-                                <input type="hidden" name="year" value="{{ $year }}">
-                                <input type="hidden" name="contribution_amount" value="{{ $contributionAmount }}">
-                                <input type="hidden" name="pj_share" value="{{ $pjShare }}">
-                                <input type="hidden" name="kas_share" value="{{ $kasShare }}">
-                                <input type="hidden" name="saving_share" value="{{ $savingsShare }}">
-                                <input type="hidden" name="difference" value="{{ $difference }}">
-                                <input type="hidden" name="nominal_per_meeting" value="{{ $nominalPerMeeting }}">
-                                <input type="hidden" name="coach_data" value="{{ json_encode($coachAttendance) }}">
-                                <button type="submit" class="btn {{ $existingContribution ? 'btn-primary' : 'btn-success' }}">
-                                    <i class="fas fa-save"></i> {{ $existingContribution ? 'Update Data Kontribusi' : 'Simpan Data Kontribusi' }}
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-
                     <!-- Summary -->
                     <div class="row">
                         <div class="col-md-6">
+                            @if(isset($existingContribution) && $existingContribution && $existingContribution->contribution_receipt_img)
+                                <div class="mb-3">
+                                    <strong>Tanda Terima Kontribusi:</strong><br>
+                                    <img src="{{ asset('storage/' . $existingContribution->contribution_receipt_img) }}" 
+                                         alt="Tanda Terima Kontribusi" 
+                                         class="img-fluid img-thumbnail mt-2" 
+                                         style="max-width: 400px;">
+                                </div>
+                            @endif
                             <p>
                                 35% Kas Komwil Dapat Di Transfer Ke Rekeing<br>
                                 Bank BNI a.n Mursalat Asyidiq<br>
@@ -251,6 +248,10 @@
                                 <tr>
                                     <td>15% Tabungan:</td>
                                     <td class="text-right">Rp {{ number_format($savingsShare, 0, ',', '.') }}</td>
+                                </tr>
+                                 <tr class="bg-success">
+                                    <td><strong>Total Transfer Ke Komwil:</strong></td>
+                                    <td class="text-right"><strong>Rp {{ number_format($savingsShare + $kasShare, 0, ',', '.') }}</strong></td>
                                 </tr>
                                 <tr>
                                     <td><strong>Nominal Pertemuan:</strong></td>
@@ -279,7 +280,73 @@
 
 @endsection
 @section('script')
+    <!-- html2canvas library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
     <script>
-        // You can add print functionality or export to PDF here if needed
+        // Export div to image
+        document.getElementById('exportToImage')?.addEventListener('click', function() {
+            const button = this;
+            const originalText = button.innerHTML;
+            
+            // Show loading state
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+            
+            const element = document.getElementById('receiptContainer');
+            
+            // Store original width and set fixed width for export
+            const originalWidth = element.style.width;
+            const originalMaxWidth = element.style.maxWidth;
+            element.style.width = '1200px';
+            element.style.maxWidth = '1200px';
+            
+            // Wait a bit for the layout to adjust
+            setTimeout(() => {
+                html2canvas(element, {
+                    scale: 2, // Higher quality
+                    logging: false,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff',
+                    width: 1200,
+                    windowWidth: 1200
+                }).then(canvas => {
+                    // Restore original width
+                    element.style.width = originalWidth;
+                    element.style.maxWidth = originalMaxWidth;
+                    
+                    // Convert canvas to blob
+                    canvas.toBlob(function(blob) {
+                        // Create download link
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        const fileName = 'Tanda_Terima_Kontribusi_{{ $unit->name??'' }}_{{ \Carbon\Carbon::create()->month($month)->format("F") }}_{{ $year }}.png';
+                        
+                        link.download = fileName;
+                        link.href = url;
+                        link.click();
+                        
+                        // Cleanup
+                        URL.revokeObjectURL(url);
+                        
+                        // Restore button state
+                        button.disabled = false;
+                        button.innerHTML = originalText;
+                    }, 'image/png');
+                }).catch(error => {
+                    // Restore original width on error
+                    element.style.width = originalWidth;
+                    element.style.maxWidth = originalMaxWidth;
+                    
+                    console.error('Error exporting image:', error);
+                    alert('Gagal mengexport gambar. Silakan coba lagi.');
+                    
+                    // Restore button state
+                    button.disabled = false;
+                    button.innerHTML = originalText;
+                });
+            }, 100);
+        });
     </script>
 @endsection

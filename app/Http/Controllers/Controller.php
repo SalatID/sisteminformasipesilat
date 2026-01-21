@@ -15,6 +15,17 @@ class Controller extends BaseController
 {
     use AuthorizesRequests, ValidatesRequests;
 
+    public static function GetUnitList(){
+        $user = auth()->user();
+        $userRoles = $user->getRoleNames();
+        $units = \App\Models\Unit::when(!$userRoles->intersect(['super-admin', 'pengurus-komwil', 'korps-pelatih'])->isNotEmpty() && $userRoles->contains('pj-unit'), function ($query) use ($user) {
+                return $query->where('pj_id', $user->coach_id);
+            })
+            ->orderBy('name', 'asc')
+            ->get();
+        return $units;
+    }
+
     public static function createJwt($payloadData)
     {
         /*
@@ -156,7 +167,7 @@ class Controller extends BaseController
                         "icon"=>"fas fa-money-bill",
                         "name"=>"Tanda Terima Kontribusi",
                         "permision"=>["receipt-contribution-unit_list"],
-                        "src"=>"receipt.contribution.unit.index"
+                        "src"=>"receipt.contribution.history"
                     ],
                 ],
             ],

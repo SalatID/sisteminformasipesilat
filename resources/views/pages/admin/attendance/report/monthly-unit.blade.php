@@ -140,7 +140,7 @@
         });
 
         // Function to export table to image
-        function exportTableToImage() {
+        function exportTableToImage(identifier) {
             const tableContainer = document.getElementById('tableContainer');
             const button = document.getElementById('exportToImageBtn');
             const table = document.getElementById('attendanceReportTable');

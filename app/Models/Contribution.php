@@ -13,6 +13,7 @@ class Contribution extends Model
 
     protected $fillable = [
         'unit_id',
+        'contribution_receipt_img',
         'periode',
         'contribution_amount',
         'pj_share',
