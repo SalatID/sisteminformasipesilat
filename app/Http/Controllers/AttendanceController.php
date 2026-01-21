@@ -220,6 +220,15 @@ class AttendanceController extends Controller
         
         // Handle form submission with image upload
         if ($request->isMethod('post') && $unitId && $contributionAmount) {
+            // Now save to database
+            $validatedData = $request->validate([
+                'unit_id' => 'required|uuid|exists:units,id',
+                'month' => 'required|integer|min:1|max:12',
+                'year' => 'required|integer',
+                'contribution_amount' => 'required|numeric',
+                'contribution_receipt_img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            ]);
+
             // First, calculate all the data
             $unit = \App\Models\Unit::findOrFail($unitId);
             
@@ -246,6 +255,14 @@ class AttendanceController extends Controller
             foreach ($coaches as $coach) {
                 $coachAttendance[$coach->id] = [
                     'coach' => $coach,
+                    'weeks' => [1 => [], 2 => [], 3 => [], 4 => [], 5 => []],
+                    'total_attendance' => 0
+                ];
+            }
+            if(!isset($coachAttendance[$unit->pj_id])){
+                // Ensure PJ is included even if no attendance
+                $coachAttendance[$unit->pj_id] = [
+                    'coach' => \App\Models\Coach::with('ts')->where('id', $unit->pj_id)->first(),
                     'weeks' => [1 => [], 2 => [], 3 => [], 4 => [], 5 => []],
                     'total_attendance' => 0
                 ];
@@ -292,17 +309,16 @@ class AttendanceController extends Controller
                     }
                 }
             }
-
+           
             // Calculate contributions
             $totalFinalValue = 0;
             $totalAttendance = 0;
-            
             foreach ($coachAttendance as &$data) {
                 $coach = $data['coach'];
                 $attendance = $data['total_attendance'];
                 $multiplier = (int) ($coach->ts->multiplier ?? 1);
                 $isPJ = ($unit->pj_id == $coach->id) ? 1 : 0;
-                
+
                 $finalValue = $attendance * $multiplier + $isPJ;
                 
                 $data['multiplier'] = $multiplier;
@@ -312,7 +328,6 @@ class AttendanceController extends Controller
                 $totalFinalValue += $finalValue;
                 $totalAttendance += $data['total_attendance'];
             }
-                
             // Calculate nominal per meeting from contribution amount
             $pjShare = $contributionAmount * 0.65;
             $kasShare = $contributionAmount * 0.20;
@@ -327,17 +342,7 @@ class AttendanceController extends Controller
                 $data['total_amount'] = $totalAmount;
                 $totalContribution += $totalAmount;
             }
-            
             $difference = $pjShare - $totalContribution;
-
-            // Now save to database
-            $validatedData = $request->validate([
-                'unit_id' => 'required|uuid|exists:units,id',
-                'month' => 'required|integer|min:1|max:12',
-                'year' => 'required|integer',
-                'contribution_amount' => 'required|numeric',
-                'contribution_receipt_img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            ]);
 
             $periode = sprintf('%04d-%02d', $validatedData['year'], $validatedData['month']);
 
@@ -420,9 +425,9 @@ class AttendanceController extends Controller
                     ],
                     $contributionData
                 );
-
+                
                 // Create or update contribution details
-                foreach ($coachAttendance as $data) {
+                foreach ($coachAttendance as &$data) {
                     // Check if detail exists
                     $existingDetail = ContributionDetail::where('contribution_id', $contribution->id)
                         ->where('coach_id', $data['coach']->id)
@@ -442,6 +447,7 @@ class AttendanceController extends Controller
                     if (!$existingDetail) {
                         $detailData['created_by'] = auth()->user()->id;
                     }
+                    // print_r($detailData);
 
                     ContributionDetail::updateOrCreate(
                         [
@@ -453,7 +459,6 @@ class AttendanceController extends Controller
                 }
 
                 \DB::commit();
-
                 // After saving, redirect to GET request to show data from database
                 return redirect()->route('receipt.contribution.unit.index', [
                     'unit_id' => $validatedData['unit_id'],
