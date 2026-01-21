@@ -221,8 +221,8 @@
                                     <strong>Tanda Terima Kontribusi:</strong><br>
                                     <img src="{{ asset($existingContribution->contribution_receipt_img) }}"
                                         alt="Tanda Terima Kontribusi" 
-                                        class="img-fluid img-thumbnail mt-2" 
-                                        style="max-width: 400px;">
+                                        class="img-fluid img-thumbnail mt-2 w-100" 
+                                        style="max-width: 100%; height: auto;">
                                 </div>
                             @endif
                             <p>
