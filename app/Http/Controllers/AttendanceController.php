@@ -365,8 +365,15 @@ class AttendanceController extends Controller
                         return redirect()->back()->with(['error' => true, 'message' => 'File yang diupload bukan gambar yang valid']);
                     }
                     
-                    // Move to public directory
-                    $dir = public_path('contribution_receipts/');
+                    // Move to appropriate directory based on environment
+                    if (app()->environment('production')) {
+                        // Production: public_html structure
+                        $dir = base_path('../public_html/sip/contribution_receipts/');
+                    } else {
+                        // Local development: standard public folder
+                        $dir = public_path('contribution_receipts/');
+                    }
+                    
                     if (!file_exists($dir)) {
                         mkdir($dir, 0755, true);
                     }
