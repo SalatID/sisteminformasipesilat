@@ -119,7 +119,7 @@
                                         </a>
                                         @endcan
                                         @can("receipt-contribution-unit_delete")
-                                        <a href="#" onclick="deleteContribution({{ $contribution->id }})" title="Hapus Kontribusi">
+                                        <a href="#" data-id="{{ $contribution->id }}" onclick="deleteContribution(this)" title="Hapus Kontribusi">
                                             <i class="fas fa-trash text-danger"></i>
                                         </a>
                                         @endcan
@@ -144,8 +144,9 @@
 
 @section('script')
     <script>
-        function deleteContribution(id) {
+        function deleteContribution(t) {
             if (confirm('Apakah Anda yakin ingin menghapus data kontribusi ini?')) {
+                id = $(t).data('id');
                 // Implement delete functionality
                 $.ajax({
                     url: '/receipt/contribution/' + id,
