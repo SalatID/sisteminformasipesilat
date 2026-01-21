@@ -368,7 +368,7 @@ class AttendanceController extends Controller
                     // Move to appropriate directory based on environment
                     if (app()->environment('production')) {
                         // Production: public_html structure
-                        $dir = base_path('../public_html/sip/contribution_receipts/');
+                        $dir = base_path('../../public_html/sip/contribution_receipts/');
                     } else {
                         // Local development: standard public folder
                         $dir = public_path('contribution_receipts/');
