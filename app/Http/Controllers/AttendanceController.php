@@ -778,43 +778,53 @@ class AttendanceController extends Controller
         
         // Execute raw SQL query
         $results = \DB::select("
-            SELECT 
-                DATE_FORMAT(a.attendance_date, '%Y-%m') AS periode, 
-                u.name AS nama_pelatih, 
-                ts.name AS tingkatan_sabuk, 
-                SUM(
-                    CASE WHEN CAST(
-                        a.unit_id AS BINARY(16)
-                    ) <> CAST(
-                        ? AS BINARY(16)
-                    ) THEN 1 ELSE 0 END
-                ) AS kehadiran_di_unit, 
-                SUM(
-                    CASE WHEN CAST(
-                        a.unit_id AS BINARY(16)
-                    ) = CAST(
-                        ? AS BINARY(16)
-                    ) THEN 1 ELSE 0 END
-                ) AS kehadiran_di_kalideres 
-            FROM 
-                attendances a 
-                JOIN attendance_details ad ON ad.attendance_id = a.id 
-                JOIN coachs u ON u.id = ad.coach_id 
-                JOIN ts ts ON ts.id = u.ts_id
-            WHERE 
-                a.deleted_at IS NULL 
-                AND ad.deleted_at IS NULL 
-                AND a.attendance_status = 'training' 
+            SELECT
+                DATE_FORMAT(a.attendance_date, '%Y-%m') AS periode,
+                u.name AS nama_pelatih,
+                ts.name AS tingkatan_sabuk,
+
+                /* Kehadiran di semua unit selain Kalideres */
+                COALESCE(SUM(
+                    CASE
+                    WHEN a.id IS NOT NULL
+                    AND CAST(a.unit_id AS BINARY(16)) <> CAST(? AS BINARY(16))
+                    THEN 1 ELSE 0
+                    END
+                ), 0) AS kehadiran_di_unit,
+
+                /* Kehadiran di unit Kalideres */
+                COALESCE(SUM(
+                    CASE
+                    WHEN a.id IS NOT NULL
+                    AND CAST(a.unit_id AS BINARY(16)) = CAST(? AS BINARY(16))
+                    THEN 1 ELSE 0
+                    END
+                ), 0) AS kehadiran_di_kalideres
+
+                FROM coachs u
+                JOIN ts ON ts.id = u.ts_id
+
+                LEFT JOIN attendance_details ad
+                ON ad.coach_id = u.id
+                AND ad.deleted_at IS NULL
+
+                LEFT JOIN attendances a
+                ON a.id = ad.attendance_id
+                AND a.deleted_at IS NULL
+                AND a.attendance_status = 'training'
                 AND a.attendance_date BETWEEN ? AND ?
-                " . ($tsFilter ? " AND u.ts_id = ?" : "") . "
-            GROUP BY 
-                periode, 
-                u.id, 
-                u.name, 
-                ts.name 
-            ORDER BY 
-                periode ASC, 
-                u.name ASC
+
+                WHERE 1 = 1
+                /* filter sabuk tetap di sini */
+                /* ". ($tsFilter ? " AND u.ts_id = ?" : "") . " */
+
+                GROUP BY
+                periode, u.id, u.name, ts.name
+
+                ORDER BY
+                periode ASC,
+                u.name ASC;
+
         ", array_merge(
             [
                 $kalideresUnitId, $kalideresUnitId,

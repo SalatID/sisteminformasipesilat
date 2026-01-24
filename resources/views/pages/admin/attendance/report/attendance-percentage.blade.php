@@ -74,6 +74,8 @@
                                     @foreach ($months as $month)
                                         <th colspan="3" style="min-width: 240px;">{{ \Carbon\Carbon::parse($month . '-01')->locale('id')->translatedFormat('F Y') }}</th>
                                     @endforeach
+                                    <th rowspan="2" class="text-white" style="vertical-align: middle; min-width: 80px;">Total Unit</th>
+                                    <th rowspan="2" class="text-white" style="vertical-align: middle; min-width: 80px;">Total Almaka</th>
                                     <th rowspan="2" class="bg-success text-white" style="vertical-align: middle; min-width: 80px;">Total</th>
                                 </tr>
                                 <tr class="text-center bg-light">
@@ -104,7 +106,9 @@
                                                 <td class="text-center text-muted bg-warning">-</td>
                                             @endif
                                         @endforeach
-                                        <td class="text-center bg-success"><strong>{{ array_sum(array_map(fn($m) => ($m['kehadiran_di_unit'] ?? 0) + ($m['kehadiran_di_kalideres'] ?? 0), $coach['months'])) }}</strong></td>
+                                        <td class="text-center "><strong>{{ array_sum(array_map(fn($m) => ($m['kehadiran_di_unit'] ?? 0), $coach['months']))==0?"-":array_sum(array_map(fn($m) => ($m['kehadiran_di_unit'] ?? 0), $coach['months'])) }}</strong></td>
+                                        <td class="text-center "><strong>{{ array_sum(array_map(fn($m) => ($m['kehadiran_di_kalideres'] ?? 0), $coach['months']))==0?"-":array_sum(array_map(fn($m) => ($m['kehadiran_di_kalideres'] ?? 0), $coach['months'])) }}</strong></td>
+                                        <td class="text-center bg-success"><strong>{{ array_sum(array_map(fn($m) => ($m['kehadiran_di_unit'] ?? 0) + ($m['kehadiran_di_kalideres'] ?? 0), $coach['months']))==0?"-":array_sum(array_map(fn($m) => ($m['kehadiran_di_unit'] ?? 0) + ($m['kehadiran_di_kalideres'] ?? 0), $coach['months'])) }}</strong></td>
                                     </tr>
                                 @empty
                                     <tr>
