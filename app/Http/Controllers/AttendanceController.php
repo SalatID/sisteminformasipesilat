@@ -852,6 +852,12 @@ class AttendanceController extends Controller
             ];
         }
         
+        // Convert to indexed array and sort by coach name
+        $coaches = array_values($coaches);
+        usort($coaches, function($a, $b) {
+            return strcmp($a['nama_pelatih'], $b['nama_pelatih']);
+        });
+        
         return view('pages.admin.attendance.report.attendance-percentage', [
             'coaches' => $coaches,
             'months' => $months,
