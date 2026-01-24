@@ -79,7 +79,7 @@
                                 <tr class="text-center bg-light">
                                     @foreach ($months as $month)
                                         <th style="min-width: 80px;">Kehadiran Unit</th>
-                                        <th style="min-width: 80px;">Kehadiran Kalideres</th>
+                                        <th style="min-width: 80px;">Kehadiran Almaka</th>
                                         <th style="min-width: 80px;">Total Hadir</th>
                                     @endforeach
                                 </tr>
