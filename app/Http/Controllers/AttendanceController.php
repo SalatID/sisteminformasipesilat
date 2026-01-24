@@ -758,4 +758,107 @@ class AttendanceController extends Controller
             ], 500);
         }
     }
+
+    public function attendancePercentageReport(Request $request)
+    {
+        // Handle month picker format (YYYY-MM)
+        $startPeriod = $request->get('start_period', date('Y') . '-01');
+        $endPeriod = $request->get('end_period', date('Y') . '-12');
+        $tsFilter = $request->get('ts_id');
+        
+        // Extract year and month from period
+        $startDate = Carbon::parse($startPeriod . '-01');
+        $endDate = Carbon::parse($endPeriod . '-01')->endOfMonth();
+        
+        // Get all belt levels for filter
+        $tsList = \App\Models\Ts::orderBy('name', 'asc')->get();
+        
+        // Get Kalideres unit ID
+        $kalideresUnitId = 'a0cc1baa-2345-4c29-b2e9-5cb47b770f2b';
+        
+        // Execute raw SQL query
+        $results = \DB::select("
+            SELECT 
+                DATE_FORMAT(a.attendance_date, '%Y-%m') AS periode, 
+                u.name AS nama_pelatih, 
+                ts.name AS tingkatan_sabuk, 
+                SUM(
+                    CASE WHEN CAST(
+                        a.unit_id AS BINARY(16)
+                    ) <> CAST(
+                        ? AS BINARY(16)
+                    ) THEN 1 ELSE 0 END
+                ) AS kehadiran_di_unit, 
+                SUM(
+                    CASE WHEN CAST(
+                        a.unit_id AS BINARY(16)
+                    ) = CAST(
+                        ? AS BINARY(16)
+                    ) THEN 1 ELSE 0 END
+                ) AS kehadiran_di_kalideres 
+            FROM 
+                attendances a 
+                JOIN attendance_details ad ON ad.attendance_id = a.id 
+                JOIN coachs u ON u.id = ad.coach_id 
+                JOIN ts ts ON ts.id = u.ts_id
+            WHERE 
+                a.deleted_at IS NULL 
+                AND ad.deleted_at IS NULL 
+                AND a.attendance_status = 'training' 
+                AND a.attendance_date BETWEEN ? AND ?
+                " . ($tsFilter ? " AND u.ts_id = ?" : "") . "
+            GROUP BY 
+                periode, 
+                u.id, 
+                u.name, 
+                u.ts_id 
+            ORDER BY 
+                periode ASC, 
+                u.name ASC
+        ", array_merge(
+            [
+                $kalideresUnitId, $kalideresUnitId,
+                $startDate->toDateString(), $endDate->toDateString()
+            ],
+            $tsFilter ? [$tsFilter] : []
+        ));
+        
+        // Generate all months in the selected range
+        $months = [];
+        $current = $startDate->copy();
+        while ($current->lte($endDate)) {
+            $months[] = $current->format('Y-m');
+            $current->addMonth();
+        }
+        
+        // Transform data: Group by coach and pivot by month
+        $coaches = [];
+        
+        foreach ($results as $row) {
+            $coachKey = $row->nama_pelatih;
+            
+            if (!isset($coaches[$coachKey])) {
+                $coaches[$coachKey] = [
+                    'nama_pelatih' => $row->nama_pelatih,
+                    'tingkatan_sabuk' => $row->tingkatan_sabuk,
+                    'months' => []
+                ];
+            }
+            
+            // Add monthly data
+            $coaches[$coachKey]['months'][$row->periode] = [
+                'kehadiran_di_unit' => $row->kehadiran_di_unit,
+                'kehadiran_di_kalideres' => $row->kehadiran_di_kalideres
+            ];
+        }
+        
+        return view('pages.admin.attendance.report.attendance-percentage', [
+            'coaches' => $coaches,
+            'months' => $months,
+            'startPeriod' => $startPeriod,
+            'endPeriod' => $endPeriod,
+            'tsFilter' => $tsFilter,
+            'tsList' => $tsList
+        ]);
+    }
 }

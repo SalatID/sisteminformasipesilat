@@ -47,6 +47,7 @@ Route::group(['middleware' => ['auth']], function () {
     Route::delete('attendance/coach/{id}', [AttendanceController::class, 'destroy'])->name('attendance.coach.destroy');
 
     Route::get('report/unit-attendance', [AttendanceController::class, 'unitAttendanceReport'])->name('report.unit.attendance.index');
+    Route::get('report/attendance-percentage', [AttendanceController::class, 'attendancePercentageReport'])->name('report.attendance.percentage.index');
 
     Route::match(['get', 'post'], 'receipt/contribution-unit', [AttendanceController::class, 'contributionReceiptUnit'])->name('receipt.contribution.unit.index');
     // Route::post('receipt/contribution-unit/save', [AttendanceController::class, 'saveContributionReceipt'])->name('receipt.contribution.unit.save');

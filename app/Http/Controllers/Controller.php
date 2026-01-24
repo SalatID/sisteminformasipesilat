@@ -149,7 +149,7 @@ class Controller extends BaseController
                 "icon"=>"fas fa-calendar-check",
                 "name"=>"Manajemen Absensi",
                 "src"=>"#",
-                "permision"=>["attendance-coach_list","report-attendance-unit_list","receipt-contribution-unit_list"],
+                "permision"=>["attendance-coach_list","report-attendance-unit_list","report-attendance-percentage_list","receipt-contribution-unit_list"],
                 "children"=>[
                     [
                         "icon"=>"fas fa-user",
@@ -162,6 +162,12 @@ class Controller extends BaseController
                         "name"=>"Rekap Kehadiran Unit",
                         "permision"=>["report-attendance-unit_list"],
                         "src"=>"report.unit.attendance.index"
+                    ],
+                    [
+                        "icon"=>"fas fa-chart-line",
+                        "name"=>"Presentase Kehadiran",
+                        "permision"=>["report-attendance-percentage_list"],
+                        "src"=>"report.attendance.percentage.index"
                     ],
                     [
                         "icon"=>"fas fa-money-bill",
