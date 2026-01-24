@@ -811,7 +811,7 @@ class AttendanceController extends Controller
                 periode, 
                 u.id, 
                 u.name, 
-                u.ts_id 
+                ts.name 
             ORDER BY 
                 periode ASC, 
                 u.name ASC
