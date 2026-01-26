@@ -74,9 +74,7 @@
                                 <a href="{{ route('receipt.contribution.unit.index') }}" class="btn btn-sm btn-secondary  mr-2">
                                     <i class="fas fa-redo"></i> Reset
                                 </a>
-                                <button type="button" class="btn btn-success btn-sm" id="exportToImage">
-                                    <i class="fas fa-image"></i> Export ke Gambar
-                                </button>
+                                
                             </div>
                         </div>
                     </form>
@@ -88,7 +86,13 @@
 
     @if($unitData)
     <div class="row">
+        <div class="col-md-6 pb-4">
+                <button type="button" class="btn btn-success btn-sm" id="exportToImage">
+                    <i class="fas fa-image"></i> Export ke Gambar
+                </button>
+        </div>
         <div class="col-12">
+            
             <div class="card" id="receiptContainer">
                 <div class="card-body" >
                     <!-- Header -->
