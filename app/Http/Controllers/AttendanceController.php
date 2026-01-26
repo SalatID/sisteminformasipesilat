@@ -55,6 +55,29 @@ class AttendanceController extends Controller
         return view('pages.admin.attendance.coach.detail', compact('attendance'));
     }
 
+    public function edit($id)
+    {
+        $id = Crypt::decryptString($id);
+        $attendance = Attendance::findOrFail($id);
+
+        return view('pages.admin.attendance.coach.edit', compact('attendance'));
+    }
+
+    public function update($id){
+        $validatedData = request()->validate([
+            'unit_id' => 'required|uuid|exists:units,id',
+            'attendance_date' => 'required|date',
+            'attendance_status' => 'required|in:training,cancelled,school_holiday,ramadhan_break',
+            'reason' => 'required_unless:attendance_status,training|nullable|string|max:255',
+        ]);
+
+        $upd = Attendance::where('id', $id)->update($validatedData);
+        if (!$upd){
+            return redirect()->route('attendance.coach.index')->with(["error"=>true,"message"=>"Update Absensi Gagal"]);
+        }
+        return redirect()->route('attendance.coach.index')->with(["error"=>false,"message"=>"Update Absensi Berhasil"]);
+    }
+
     public function store(Request $request)
     {
         $validatedData = $request->validate([
@@ -876,5 +899,20 @@ class AttendanceController extends Controller
             'tsFilter' => $tsFilter,
             'tsList' => $tsList
         ]);
+    }
+
+    public function contributionApprove($id){
+        $contribution = Contribution::where('id',$id);
+        if ($contribution->update(['is_transfer' => true])) {
+            return redirect()->back()->with([
+                'error' => false,
+                'message' => 'Kontribusi berhasil disetujui.'
+            ]);
+        }
+
+        return redirect()->back()->with([
+                'error' => true,
+                'message' => 'Kontribusi gagal disetujui.'
+            ]);
     }
 }

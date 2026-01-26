@@ -7,7 +7,7 @@
     </ol>
 @endsection
 @section('content')
-
+    @if((!$existingContribution->is_transfer && ($existingContribution->created_by == auth()->user()->id) )||  auth()->user()->hasRole('super-admin'))
     <!-- Filter Section -->
     <div class="row mb-4">
         <div class="col-12">
@@ -84,6 +84,7 @@
             </div>
         </div>
     </div>
+    @endif
 
     @if($unitData)
     <div class="row">

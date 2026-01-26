@@ -42,8 +42,9 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('attendance/coach/sync', [AttendanceController::class, 'syncAttendance'])->name('attendance.coach.sync');
     Route::get('attendance/coach/resend-notif/{id}', [AttendanceController::class, 'resendNotif'])->name('attendance.coach.resend.notif');
     Route::get('attendance/coach/{id}', [AttendanceController::class, 'show'])->name('attendance.coach.show');
+    Route::get('attendance/coach/edit/{id}', [AttendanceController::class, 'edit'])->name('attendance.coach.edit');
     Route::post('attendance/coach', [AttendanceController::class, 'store'])->name('attendance.coach.store');
-    Route::put('attendance/coach/{id}', [AttendanceController::class, 'store'])->name('attendance.coach.update');
+    Route::put('attendance/coach/{id}', [AttendanceController::class, 'update'])->name('attendance.coach.update');
     Route::delete('attendance/coach/{id}', [AttendanceController::class, 'destroy'])->name('attendance.coach.destroy');
 
     Route::get('report/unit-attendance', [AttendanceController::class, 'unitAttendanceReport'])->name('report.unit.attendance.index');
@@ -53,6 +54,7 @@ Route::group(['middleware' => ['auth']], function () {
     // Route::post('receipt/contribution-unit/save', [AttendanceController::class, 'saveContributionReceipt'])->name('receipt.contribution.unit.save');
     Route::get('receipt/contribution-history', [AttendanceController::class, 'contributionHistory'])->name('receipt.contribution.history');
     Route::delete('receipt/contribution/{id}', [AttendanceController::class, 'deleteContribution'])->name('receipt.contribution.delete');
+      Route::get('receipt/contribution/approve/{id}', [AttendanceController::class, 'contributionApprove'])->name('receipt.contribution.unit.approve');
 
     Route::resource('users', UserManagementController::class);
     Route::resource('permissions', PermisionController::class);

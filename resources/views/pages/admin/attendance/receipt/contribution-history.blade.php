@@ -93,7 +93,11 @@
                                     <td class="text-right">Rp {{ number_format($contribution->kas_share, 0, ',', '.') }}</td>
                                     <td class="text-right">Rp {{ number_format($contribution->saving_share, 0, ',', '.') }}</td>
                                     <td class="text-center">
+                                        @if($contribution->is_transfer)
+                                        <span class="badge badge-success">Approved</span>
+                                        @else
                                         <span class="badge badge-secondary">{{ $contribution->revision_count ?? 0 }}</span>
+                                        @endif
                                     </td>
                                     <td class="text-center">
                                         @if($contribution->contribution_receipt_img)
@@ -122,6 +126,13 @@
                                         <a href="#" data-id="{{ $contribution->id }}" onclick="deleteContribution(this)" title="Hapus Kontribusi">
                                             <i class="fas fa-trash text-danger"></i>
                                         </a>
+                                        @endcan
+                                        @can("receipt-contribution-unit_approve")
+                                            @if(!$contribution->is_transfer)
+                                            <a href="{{ route('receipt.contribution.unit.approve', $contribution->id) }}">
+                                                <i class="fas fa-check text-primary"></i>
+                                            </a>
+                                            @endif
                                         @endcan
                                     </td>
                                 </tr>
