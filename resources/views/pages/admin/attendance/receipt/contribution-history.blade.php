@@ -101,7 +101,7 @@
                                     </td>
                                     <td class="text-center">
                                         @if($contribution->contribution_receipt_img)
-                                            <a href="{{ asset('storage/' . $contribution->contribution_receipt_img) }}" target="_blank" class="btn btn-xs btn-info">
+                                            <a href="{{ asset( $contribution->contribution_receipt_img) }}" target="_blank" class="btn btn-xs btn-info">
                                                 <i class="fas fa-image"></i>
                                             </a>
                                         @else
