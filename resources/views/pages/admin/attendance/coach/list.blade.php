@@ -60,8 +60,11 @@
 
                             <!-- Filter Buttons -->
                             <div class="col-md-8 mb-3 d-flex align-items-end">
-                                <button type="submit" class="btn btn-sm btn-primary mr-2">
+                                <button type="submit" name="filter" value="filter" class="btn btn-sm btn-primary mr-2">
                                     <i class="fas fa-search"></i> Cari
+                                </button>
+                                <button type="submit" name="export" value="json" class="btn btn-sm btn-success mr-2">
+                                    <i class="fas fa-file-export"></i> Export JSON
                                 </button>
                                 <a href="{{ route('attendance.coach.index') }}" class="btn btn-sm btn-secondary">
                                     <i class="fas fa-redo"></i> Reset

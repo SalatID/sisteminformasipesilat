@@ -42,9 +42,22 @@ class AttendanceController extends Controller
             ->orderBy('attendances.attendance_date', 'desc')
             ->select('attendances.*')
             ->get();
+
+        if ($request->get('export') === 'json') {
+            $json = $attendances->toJson(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            $filename = 'attendances_' . now()->format('Ymd_His') . '.json';
+    
+            return response()->streamDownload(function () use ($json) {
+                echo $json;
+            }, $filename, [
+                'Content-Type' => 'application/json',
+                'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            ]);
+        }
             
         return view('pages.admin.attendance.coach.list', compact('attendances'));
     }
+    
 
     public function show($id)
     {
