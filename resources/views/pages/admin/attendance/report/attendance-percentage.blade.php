@@ -69,8 +69,8 @@
                             <thead>
                                 <tr class="text-center bg-primary text-white">
                                     <th style="border-top: none; border-bottom: none; vertical-align: middle; min-width: 40px;"></th>
-                                    <th style="border-top: none; border-bottom: none; vertical-align: middle; min-width: 150px;"></th>
-                                    <th style="border-top: none; border-bottom: none; vertical-align: middle; min-width: 100px;"></th>
+                                    <th style="border-top: none; border-bottom: none; vertical-align: middle; min-width: 120px;"></th>
+                                    <th style="border-top: none; border-bottom: none; vertical-align: middle; min-width: 80px;"></th>
                                     @foreach ($months as $month)
                                         <th colspan="3" style="min-width: 240px;">{{ \Carbon\Carbon::parse($month . '-01')->locale('id')->translatedFormat('F Y') }}</th>
                                     @endforeach
@@ -81,7 +81,7 @@
                                 <tr class="text-center bg-light">
                                     <th class="bg-primary" style="border-top:none; border-bottom: none;">#</th>
                                     <th class="bg-primary" style="border-top:none; border-bottom: none;">Nama Pelatih</th>
-                                    <th class="bg-primary" style="border-top:none; border-bottom: none;">Tingkatan Sabuk</th>
+                                    <th class="bg-primary" style="border-top:none; border-bottom: none;">TS</th>
                                     @foreach ($months as $month)
                                         <th style="min-width: 80px;">Kehadiran Unit</th>
                                         <th style="min-width: 80px;">Kehadiran Almaka</th>
@@ -97,7 +97,14 @@
                                     <tr>
                                         <td class="text-center">{{ $loop->iteration }}</td>
                                         <td>{{ $coach['nama_pelatih'] }}</td>
-                                        <td class="text-center">{{ $coach['tingkatan_sabuk'] }}</td>
+                                        @php
+                                            $initials = '';
+                                            if (!empty($coach['tingkatan_sabuk'])) {
+                                                $words = preg_split('/\s+/', trim($coach['tingkatan_sabuk']));
+                                                $initials = implode('', array_map(function($w){ return strtoupper(substr($w,0,1)); }, $words));
+                                            }
+                                        @endphp
+                                        <td class="text-center">{{ $initials }}</td>
                                         @foreach ($months as $month)
                                             @php
                                                 $data = $coach['months'][$month] ?? null;
