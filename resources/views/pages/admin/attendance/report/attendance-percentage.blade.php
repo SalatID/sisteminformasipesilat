@@ -68,22 +68,28 @@
                         <table class="table table-bordered table-striped table-hover" id="attendancePercentageTable">
                             <thead>
                                 <tr class="text-center bg-primary text-white">
-                                    <th rowspan="2" style="vertical-align: middle; min-width: 40px;">#</th>
-                                    <th rowspan="2" style="vertical-align: middle; min-width: 150px;">Nama Pelatih</th>
-                                    <th rowspan="2" style="vertical-align: middle; min-width: 100px;">Tingkatan Sabuk</th>
+                                    <th style="border-top: none; border-bottom: none; vertical-align: middle; min-width: 40px;"></th>
+                                    <th style="border-top: none; border-bottom: none; vertical-align: middle; min-width: 150px;"></th>
+                                    <th style="border-top: none; border-bottom: none; vertical-align: middle; min-width: 100px;"></th>
                                     @foreach ($months as $month)
                                         <th colspan="3" style="min-width: 240px;">{{ \Carbon\Carbon::parse($month . '-01')->locale('id')->translatedFormat('F Y') }}</th>
                                     @endforeach
-                                    <th rowspan="2" class="text-white" style="vertical-align: middle; min-width: 80px;">Total Unit</th>
-                                    <th rowspan="2" class="text-white" style="vertical-align: middle; min-width: 80px;">Total Almaka</th>
-                                    <th rowspan="2" class="bg-success text-white" style="vertical-align: middle; min-width: 80px;">Total</th>
+                                    <th class="text-white" style="border-top: none; border-bottom: none; vertical-align: middle; min-width: 80px;"></th>
+                                    <th class="text-white" style="border-top: none; border-bottom: none; vertical-align: middle; min-width: 80px;"></th>
+                                    <th class="bg-success text-white" style="border-top: none; border-bottom: none; vertical-align: middle; min-width: 80px;"></th>
                                 </tr>
                                 <tr class="text-center bg-light">
+                                    <th class="bg-primary" style="border-top:none; border-bottom: none;">#</th>
+                                    <th class="bg-primary" style="border-top:none; border-bottom: none;">Nama Pelatih</th>
+                                    <th class="bg-primary" style="border-top:none; border-bottom: none;">Tingkatan Sabuk</th>
                                     @foreach ($months as $month)
                                         <th style="min-width: 80px;">Kehadiran Unit</th>
                                         <th style="min-width: 80px;">Kehadiran Almaka</th>
                                         <th style="min-width: 80px;">Total Hadir</th>
                                     @endforeach
+                                    <th class="bg-primary" style="border-top:none; border-bottom: none;">Total Unit</th>
+                                    <th class="bg-primary" style="border-top:none; border-bottom: none;">Total Almaka</th>
+                                    <th class="bg-success" style="border-top:none; border-bottom: none;">Total</th>
                                 </tr>
                             </thead>
                             <tbody>

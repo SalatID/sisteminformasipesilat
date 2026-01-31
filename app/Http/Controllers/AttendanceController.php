@@ -801,6 +801,7 @@ class AttendanceController extends Controller
         $startPeriod = $request->get('start_period', date('Y') . '-01');
         $endPeriod = $request->get('end_period', date('Y') . '-12');
         $tsFilter = $request->get('ts_id');
+        $isShowKaIndra = $request->get('is_ketua', false);
         
         // Extract year and month from period
         $startDate = Carbon::parse($startPeriod . '-01');
@@ -816,8 +817,10 @@ class AttendanceController extends Controller
         $results = \DB::select("
             SELECT
                 DATE_FORMAT(a.attendance_date, '%Y-%m') AS periode,
+                u.id AS coach_id,
                 u.name AS nama_pelatih,
                 ts.name AS tingkatan_sabuk,
+                ts.ts_seq AS ts_seq,
 
                 /* Kehadiran di semua unit selain Kalideres */
                 COALESCE(SUM(
@@ -852,13 +855,14 @@ class AttendanceController extends Controller
 
                 WHERE 1 = 1
                 /* filter sabuk tetap di sini */
-                /* ". ($tsFilter ? " AND u.ts_id = ?" : "") . " */
+                ". ($tsFilter ? " AND u.ts_id = ?" : "") . ($isShowKaIndra?"":" AND u.name !='Indra Madya Permana'"). "
 
                 GROUP BY
-                periode, u.id, u.name, ts.name
+                periode, u.id, u.name, ts.name, ts.ts_seq
 
                 ORDER BY
                 periode ASC,
+                ts.ts_seq DESC,
                 u.name ASC;
 
         ", array_merge(
@@ -881,12 +885,14 @@ class AttendanceController extends Controller
         $coaches = [];
         
         foreach ($results as $row) {
-            $coachKey = $row->nama_pelatih;
+            $coachKey = $row->coach_id;
             
             if (!isset($coaches[$coachKey])) {
                 $coaches[$coachKey] = [
+                    'coach_id' => $row->coach_id,
                     'nama_pelatih' => $row->nama_pelatih,
                     'tingkatan_sabuk' => $row->tingkatan_sabuk,
+                    'ts_seq' => (int) $row->ts_seq,
                     'months' => []
                 ];
             }
@@ -898,10 +904,13 @@ class AttendanceController extends Controller
             ];
         }
         
-        // Convert to indexed array and sort by coach name
+        // Convert to indexed array and sort by ts_seq desc then coach name asc
         $coaches = array_values($coaches);
         usort($coaches, function($a, $b) {
-            return strcmp($a['nama_pelatih'], $b['nama_pelatih']);
+            if ($a['ts_seq'] === $b['ts_seq']) {
+                return strcmp($a['nama_pelatih'], $b['nama_pelatih']);
+            }
+            return $b['ts_seq'] <=> $a['ts_seq'];
         });
         
         return view('pages.admin.attendance.report.attendance-percentage', [
