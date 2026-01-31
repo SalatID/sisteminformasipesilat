@@ -103,8 +103,8 @@
                                                 $data = $coach['months'][$month] ?? null;
                                             @endphp
                                             @if ($data)
-                                                <td class="text-center">{{ $data['kehadiran_di_unit']==0?"-":$data['kehadiran_di_unit'] }}</td>
-                                                <td class="text-center">{{ $data['kehadiran_di_kalideres']==0?"-":$data['kehadiran_di_kalideres'] }}</td>
+                                                <td class="text-center">{!! $data['kehadiran_di_unit']==0?"-":"<strong class='text-success'>".$data['kehadiran_di_unit']."</strong> / ".$data['total_sesi_unit_bulan'] ?? 0 !!}</td>
+                                                <td class="text-center">{!! $data['kehadiran_di_kalideres']==0?"-":"<strong class='text-success'>".$data['kehadiran_di_kalideres']."</strong> / ".$data['total_sesi_kalideres_bulan'] ?? 0 !!}</td>
                                                 <td class="text-center bg-warning"><strong>{{ $data['kehadiran_di_unit'] + $data['kehadiran_di_kalideres'] }}</strong></td>
                                             @else
                                                 <td class="text-center text-muted">-</td>
@@ -112,8 +112,12 @@
                                                 <td class="text-center text-muted bg-warning">-</td>
                                             @endif
                                         @endforeach
-                                        <td class="text-center "><strong>{{ array_sum(array_map(fn($m) => ($m['kehadiran_di_unit'] ?? 0), $coach['months']))==0?"-":array_sum(array_map(fn($m) => ($m['kehadiran_di_unit'] ?? 0), $coach['months'])) }}</strong></td>
-                                        <td class="text-center "><strong>{{ array_sum(array_map(fn($m) => ($m['kehadiran_di_kalideres'] ?? 0), $coach['months']))==0?"-":array_sum(array_map(fn($m) => ($m['kehadiran_di_kalideres'] ?? 0), $coach['months'])) }}</strong></td>
+                                        <td class="text-center ">
+                                            {!! array_sum(array_map(fn($m) => ($m['kehadiran_di_unit'] ?? 0), $coach['months']))==0?"-":"<strong class='text-success'>".array_sum(array_map(fn($m) => ($m['kehadiran_di_unit'] ?? 0), $coach['months']))."</strong> / ".array_sum(array_map(fn($m) => ($m['total_sesi_unit_bulan'] ?? 0), $coach['months'])) !!}
+                                        </td>
+                                        <td class="text-center ">
+                                            {!! array_sum(array_map(fn($m) => ($m['kehadiran_di_kalideres'] ?? 0), $coach['months']))==0?"-":"<strong class='text-success'>".array_sum(array_map(fn($m) => ($m['kehadiran_di_kalideres'] ?? 0), $coach['months']))."</strong> / ".array_sum(array_map(fn($m) => ($m['total_sesi_kalideres_bulan'] ?? 0), $coach['months']))!!}
+                                        </td>
                                         <td class="text-center bg-success"><strong>{{ array_sum(array_map(fn($m) => ($m['kehadiran_di_unit'] ?? 0) + ($m['kehadiran_di_kalideres'] ?? 0), $coach['months']))==0?"-":array_sum(array_map(fn($m) => ($m['kehadiran_di_unit'] ?? 0) + ($m['kehadiran_di_kalideres'] ?? 0), $coach['months'])) }}</strong></td>
                                     </tr>
                                 @empty

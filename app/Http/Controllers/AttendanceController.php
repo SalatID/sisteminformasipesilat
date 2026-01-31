@@ -815,6 +815,40 @@ class AttendanceController extends Controller
         
         // Execute raw SQL query
         $results = \DB::select("
+           WITH monthly_sessions AS (
+            SELECT
+                DATE_FORMAT(a.attendance_date, '%Y-%m') AS periode,
+                SUM(CASE
+                    WHEN CAST(a.unit_id AS BINARY(16)) <> CAST(? AS BINARY(16))
+                    THEN 1 ELSE 0
+                    END) AS total_sesi_unit_bulan,
+                SUM(CASE
+                    WHEN CAST(a.unit_id AS BINARY(16)) = CAST(? AS BINARY(16))
+                    THEN 1 ELSE 0
+                    END) AS total_sesi_kalideres_bulan
+            FROM attendances a
+            WHERE
+                a.deleted_at IS NULL
+                AND a.attendance_status = 'training'
+                AND a.attendance_date BETWEEN ? AND ?
+            GROUP BY
+                periode
+            )
+
+            SELECT
+            q.periode,
+            q.coach_id,
+            q.nama_pelatih,
+            q.tingkatan_sabuk,
+            q.ts_seq,
+            q.kehadiran_di_unit,
+            q.kehadiran_di_kalideres,
+
+            /* total sesi per bulan (dari attendances) */
+            COALESCE(ms.total_sesi_unit_bulan, 0)      AS total_sesi_unit_bulan,
+            COALESCE(ms.total_sesi_kalideres_bulan, 0) AS total_sesi_kalideres_bulan
+
+            FROM (
             SELECT
                 DATE_FORMAT(a.attendance_date, '%Y-%m') AS periode,
                 u.id AS coach_id,
@@ -824,48 +858,54 @@ class AttendanceController extends Controller
 
                 /* Kehadiran di semua unit selain Kalideres */
                 COALESCE(SUM(
-                    CASE
+                CASE
                     WHEN a.id IS NOT NULL
                     AND CAST(a.unit_id AS BINARY(16)) <> CAST(? AS BINARY(16))
                     THEN 1 ELSE 0
-                    END
+                END
                 ), 0) AS kehadiran_di_unit,
 
                 /* Kehadiran di unit Kalideres */
                 COALESCE(SUM(
-                    CASE
+                CASE
                     WHEN a.id IS NOT NULL
                     AND CAST(a.unit_id AS BINARY(16)) = CAST(? AS BINARY(16))
                     THEN 1 ELSE 0
-                    END
+                END
                 ), 0) AS kehadiran_di_kalideres
 
-                FROM coachs u
-                JOIN ts ON ts.id = u.ts_id
+            FROM coachs u
+            JOIN ts ON ts.id = u.ts_id
 
-                LEFT JOIN attendance_details ad
+            LEFT JOIN attendance_details ad
                 ON ad.coach_id = u.id
-                AND ad.deleted_at IS NULL
+            AND ad.deleted_at IS NULL
 
-                LEFT JOIN attendances a
+            LEFT JOIN attendances a
                 ON a.id = ad.attendance_id
-                AND a.deleted_at IS NULL
-                AND a.attendance_status = 'training'
-                AND a.attendance_date BETWEEN ? AND ?
+            AND a.deleted_at IS NULL
+            AND a.attendance_status = 'training'
+            AND a.attendance_date BETWEEN ? AND ?
 
-                WHERE 1 = 1
-                /* filter sabuk tetap di sini */
-                ". ($tsFilter ? " AND u.ts_id = ?" : "") . ($isShowKaIndra?"":" AND u.name !='Indra Madya Permana'"). "
+            WHERE 1=1
+                 ". ($tsFilter ? " AND u.ts_id = ?" : "") . ($isShowKaIndra?"":" AND u.name !='Indra Madya Permana'"). " 
 
-                GROUP BY
+            GROUP BY
                 periode, u.id, u.name, ts.name, ts.ts_seq
+            ) q
+            LEFT JOIN monthly_sessions ms
+            ON ms.periode = q.periode
 
-                ORDER BY
-                periode ASC,
-                ts.ts_seq DESC,
-                u.name ASC;
+            ORDER BY
+            q.periode ASC,
+            q.ts_seq DESC,
+            q.nama_pelatih ASC;
 
         ", array_merge(
+            [
+                $kalideresUnitId, $kalideresUnitId,
+                $startDate->toDateString(), $endDate->toDateString()
+            ],
             [
                 $kalideresUnitId, $kalideresUnitId,
                 $startDate->toDateString(), $endDate->toDateString()
@@ -900,7 +940,9 @@ class AttendanceController extends Controller
             // Add monthly data
             $coaches[$coachKey]['months'][$row->periode] = [
                 'kehadiran_di_unit' => $row->kehadiran_di_unit,
-                'kehadiran_di_kalideres' => $row->kehadiran_di_kalideres
+                'kehadiran_di_kalideres' => $row->kehadiran_di_kalideres,
+                'total_sesi_unit_bulan' => $row->total_sesi_unit_bulan,
+                'total_sesi_kalideres_bulan' => $row->total_sesi_kalideres_bulan
             ];
         }
         
