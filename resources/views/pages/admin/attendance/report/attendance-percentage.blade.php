@@ -69,7 +69,7 @@
                             <thead>
                                 <tr class="text-center bg-primary text-white">
                                     <th style="border-top: none; border-bottom: none; vertical-align: middle; min-width: 40px;"></th>
-                                    <th style="border-top: none; border-bottom: none; vertical-align: middle; min-width: 120px;"></th>
+                                    <th style="border-top: none; border-bottom: none; vertical-align: middle; width: 200px;"></th>
                                     <th style="border-top: none; border-bottom: none; vertical-align: middle; min-width: 80px;"></th>
                                     @foreach ($months as $month)
                                         <th colspan="3" style="min-width: 240px;">{{ \Carbon\Carbon::parse($month . '-01')->locale('id')->translatedFormat('F Y') }}</th>
