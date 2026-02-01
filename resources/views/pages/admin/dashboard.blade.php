@@ -214,7 +214,7 @@
             <div class="col-12 col-lg-4">
                 <div class="card shadow-sm h-100">
                     <div class="card-header bg-primary d-flex justify-content-between align-items-center">
-                        <div class="fw-semibold">Top 10 Unit — Anggota Terbanyak</div>
+                        <div class="fw-semibold">Top 10 Unit — Anggota Terbanyak (Rata-rata)</div>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
@@ -250,7 +250,7 @@
             <div class="col-12 col-lg-4">
                 <div class="card shadow-sm h-100">
                     <div class="card-header bg-warning d-flex justify-content-between align-items-center">
-                        <div class="fw-semibold">Top 10 Unit — Anggota Tersedikit</div>
+                        <div class="fw-semibold">Top 10 Unit — Anggota Tersedikit (Rata-rata)</div>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
