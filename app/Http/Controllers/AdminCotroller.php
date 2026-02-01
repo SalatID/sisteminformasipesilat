@@ -16,9 +16,11 @@ class AdminCotroller extends Controller
         $topCoachesUnit = DB::table('attendance_details as ad')
         ->join('attendances as a', 'a.id', '=', 'ad.attendance_id')
         ->join('coachs as c', 'c.id', '=', 'ad.coach_id')
+        ->join('ts as ts', 'ts.id', '=', 'c.ts_id')
         ->select([
             'c.id',
             'c.name',
+            'ts.name as ts_name',
             DB::raw('COUNT(*) as hadir_unit'),
         ])
         ->whereNull('a.deleted_at')
@@ -26,17 +28,20 @@ class AdminCotroller extends Controller
         ->where('a.attendance_status', 'training')
         ->whereBetween('a.attendance_date', [$start, $end])
         ->where('a.unit_id', '<>', $almakaUnitId)
-        ->groupBy('c.id', 'c.name')
+        ->groupBy('c.id', 'c.name', 'ts.ts_seq')
         ->orderByDesc('hadir_unit')
+        ->orderByDesc('ts.ts_seq')
         ->limit(10)
         ->get();
 
         $topCoachesAlmaka = DB::table('attendance_details as ad')
         ->join('attendances as a', 'a.id', '=', 'ad.attendance_id')
         ->join('coachs as c', 'c.id', '=', 'ad.coach_id')
+        ->join('ts as ts', 'ts.id', '=', 'c.ts_id')
         ->select([
             'c.id',
             'c.name',
+            'ts.name as ts_name',
             DB::raw('COUNT(*) as hadir_almaka'),
         ])
         ->whereNull('a.deleted_at')
@@ -44,8 +49,9 @@ class AdminCotroller extends Controller
         ->where('a.attendance_status', 'training')
         ->whereBetween('a.attendance_date', [$start, $end])
         ->where('a.unit_id', '=', $almakaUnitId)
-        ->groupBy('c.id', 'c.name')
+        ->groupBy('c.id', 'c.name', 'ts.ts_seq')
         ->orderByDesc('hadir_almaka')
+        ->orderByDesc('ts.ts_seq')
         ->limit(10)
         ->get();
 

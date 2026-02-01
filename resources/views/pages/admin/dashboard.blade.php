@@ -102,7 +102,7 @@
         <div class="row g-3">
 
             {{-- 1) Top 10 pelatih hadir di unit --}}
-            <div class="col-12 col-lg-4">
+            <div class="col-12 col-lg-3">
                 <div class="card shadow-sm h-100">
                     <div class="card-header bg-success d-flex justify-content-between align-items-center">
                         <div>
@@ -116,7 +116,7 @@
                                     <tr>
                                         <th style="width:56px;">No</th>
                                         <th>Nama Pelatih</th>
-                                        <th class="text-end">Hadir</th>
+                                        <th class="text-center">Hadir</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -124,7 +124,7 @@
                                         <tr>
                                             <td>{{ $i + 1 }}</td>
                                             <td class="text-truncate" style="max-width: 280px;">{{ $row->name }}</td>
-                                            <td class="text-end fw-semibold">{{ $row->hadir_unit }}</td>
+                                            <td class="text-center fw-semibold">{{ $row->hadir_unit }}</td>
                                         </tr>
                                     @empty
                                         <tr>
@@ -139,7 +139,7 @@
             </div>
 
             {{-- 2) Top 10 pelatih hadir di Almaka --}}
-            <div class="col-12 col-lg-4">
+            <div class="col-12 col-lg-3">
                 <div class="card shadow-sm h-100">
                     <div class="card-header bg-success d-flex justify-content-between align-items-center">
                         <div>
@@ -153,7 +153,7 @@
                                     <tr>
                                         <th style="width:56px;">No</th>
                                         <th>Nama Pelatih</th>
-                                        <th class="text-end">Hadir</th>
+                                        <th class="text-center">Hadir</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -161,7 +161,7 @@
                                         <tr>
                                             <td>{{ $i + 1 }}</td>
                                             <td class="text-truncate" style="max-width: 280px;">{{ $row->name }}</td>
-                                            <td class="text-end fw-semibold">{{ $row->hadir_almaka }}</td>
+                                            <td class="text-center fw-semibold">{{ $row->hadir_almaka }}</td>
                                         </tr>
                                     @empty
                                         <tr>
@@ -176,7 +176,7 @@
             </div>
 
             {{-- 3) Top 10 unit paling banyak pelatih --}}
-            <div class="col-12 col-lg-4">
+            <div class="col-12 col-lg-3">
                 <div class="card shadow-sm h-100">
                     <div class="card-header bg-primary d-flex justify-content-between align-items-center">
                         <div class="fw-semibold">Top 10 Unit — Pelatih Terbanyak</div>
@@ -188,7 +188,7 @@
                                     <tr>
                                         <th style="width:56px;">No</th>
                                         <th>Unit</th>
-                                        <th class="text-end">Total Pelatih</th>
+                                        <th class="text-center">Total Pelatih</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -196,7 +196,42 @@
                                         <tr>
                                             <td>{{ $i + 1 }}</td>
                                             <td class="text-truncate" style="max-width: 280px;">{{ $row->name }}</td>
-                                            <td class="text-end fw-semibold">{{ $row->total_coach }}</td>
+                                            <td class="text-center fw-semibold">{{ $row->total_coach }}</td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="3" class="text-center text-muted py-4">Tidak ada data</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- 4) Top 10 unit paling sedikit pelatih --}}
+            <div class="col-12 col-lg-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-warning d-flex justify-content-between align-items-center">
+                        <div class="fw-semibold">Top 10 Unit — Pelatih Tersedikit</div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width:56px;">No</th>
+                                        <th>Unit</th>
+                                        <th class="text-center">Total Pelatih</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($topUnitsLeastCoaches ?? [] as $i => $row)
+                                        <tr>
+                                            <td>{{ $i + 1 }}</td>
+                                            <td class="text-truncate" style="max-width: 280px;">{{ $row->name }}</td>
+                                            <td class="text-center fw-semibold">{{ $row->total_coach }}</td>
                                         </tr>
                                     @empty
                                         <tr>
@@ -211,7 +246,7 @@
             </div>
 
             {{-- 5) Top 10 unit anggota terbanyak --}}
-            <div class="col-12 col-lg-4">
+            <div class="col-12 col-lg-3">
                 <div class="card shadow-sm h-100">
                     <div class="card-header bg-primary d-flex justify-content-between align-items-center">
                         <div class="fw-semibold">Top 10 Unit — Anggota Terbanyak (Rata-rata)</div>
@@ -223,7 +258,7 @@
                                     <tr>
                                         <th style="width:56px;">No</th>
                                         <th>Unit</th>
-                                        <th class="text-end">Total Anggota</th>
+                                        <th class="text-center">Total Anggota</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -231,7 +266,7 @@
                                         <tr>
                                             <td>{{ $i + 1 }}</td>
                                             <td class="text-truncate" style="max-width: 280px;">{{ $row->name }}</td>
-                                            <td class="text-end fw-semibold">
+                                            <td class="text-center fw-semibold">
                                                 {{ number_format(floor($row->avg_peserta), 0) }}</td>
                                         </tr>
                                     @empty
@@ -247,7 +282,7 @@
             </div>
 
             {{-- 6) Top 10 unit anggota tersedikit --}}
-            <div class="col-12 col-lg-4">
+            <div class="col-12 col-lg-3">
                 <div class="card shadow-sm h-100">
                     <div class="card-header bg-warning d-flex justify-content-between align-items-center">
                         <div class="fw-semibold">Top 10 Unit — Anggota Tersedikit (Rata-rata)</div>
@@ -259,7 +294,7 @@
                                     <tr>
                                         <th style="width:56px;">No</th>
                                         <th>Unit</th>
-                                        <th class="text-end">Total Anggota</th>
+                                        <th class="text-center">Total Anggota</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -267,42 +302,7 @@
                                         <tr>
                                             <td>{{ $i + 1 }}</td>
                                             <td class="text-truncate" style="max-width: 280px;">{{ $row->name }}</td>
-                                            <td class="text-end fw-semibold">{{ number_format(floor($row->avg_peserta), 0) }}</td>
-                                        </tr>
-                                    @empty
-                                        <tr>
-                                            <td colspan="3" class="text-center text-muted py-4">Tidak ada data</td>
-                                        </tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- 4) Top 10 unit paling sedikit pelatih --}}
-            <div class="col-12 col-lg-4">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header bg-warning d-flex justify-content-between align-items-center">
-                        <div class="fw-semibold">Top 10 Unit — Pelatih Tersedikit</div>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover align-middle mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th style="width:56px;">No</th>
-                                        <th>Unit</th>
-                                        <th class="text-end">Total Pelatih</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @forelse($topUnitsLeastCoaches ?? [] as $i => $row)
-                                        <tr>
-                                            <td>{{ $i + 1 }}</td>
-                                            <td class="text-truncate" style="max-width: 280px;">{{ $row->name }}</td>
-                                            <td class="text-end fw-semibold">{{ $row->total_coach }}</td>
+                                            <td class="text-center fw-semibold">{{ number_format(floor($row->avg_peserta), 0) }}</td>
                                         </tr>
                                     @empty
                                         <tr>
@@ -317,7 +317,7 @@
             </div>
 
             {{-- 7) Top 10 unit paling sering latihan --}}
-            <div class="col-12 col-lg-4">
+            <div class="col-12 col-lg-3">
                 <div class="card shadow-sm h-100">
                     <div class="card-header bg-primary d-flex justify-content-between align-items-center">
                         <div class="fw-semibold">Top 10 Unit — Paling Sering Latihan</div>
@@ -329,7 +329,7 @@
                                     <tr>
                                         <th style="width:56px;">No</th>
                                         <th>Unit</th>
-                                        <th class="text-end">Total Latihan</th>
+                                        <th class="text-center">Total Latihan</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -337,7 +337,7 @@
                                         <tr>
                                             <td>{{ $i + 1 }}</td>
                                             <td class="text-truncate" style="max-width: 280px;">{{ $row->name }}</td>
-                                            <td class="text-end fw-semibold">{{ $row->total_latihan }}</td>
+                                            <td class="text-center fw-semibold">{{ $row->total_latihan }}</td>
                                         </tr>
                                     @empty
                                         <tr>
@@ -352,7 +352,7 @@
             </div>
 
             {{-- 8) Top 10 unit paling banyak liburnya --}}
-            <div class="col-12 col-lg-4">
+            <div class="col-12 col-lg-3">
                 <div class="card shadow-sm h-100">
                     <div class="card-header bg-warning d-flex justify-content-between align-items-center">
                         <div class="fw-semibold">Top 10 Unit — Paling Sering Libur</div>
@@ -364,7 +364,7 @@
                                     <tr>
                                         <th style="width:56px;">No</th>
                                         <th>Unit</th>
-                                        <th class="text-end">Total Libur</th>
+                                        <th class="text-center">Total Libur</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -372,7 +372,7 @@
                                         <tr>
                                             <td>{{ $i + 1 }}</td>
                                             <td class="text-truncate" style="max-width: 280px;">{{ $row->name }}</td>
-                                            <td class="text-end fw-semibold">{{ $row->total_tidak_latihan }}</td>
+                                            <td class="text-center fw-semibold">{{ $row->total_tidak_latihan }}</td>
                                         </tr>
                                     @empty
                                         <tr>
