@@ -15,7 +15,7 @@
             <div>
                 <h5>Selamat Datang {{ auth()->user()->fullname }}, di {{ env('APP_NAME') }}</h5>
             </div>
-            <form method="GET" target="{{ route('dashboard') }}" class="d-flex flex-wrap align-items-end gap-2">
+            <form method="GET" action="{{ route('dashboard') }}" class="d-flex flex-wrap align-items-end gap-2">
                 <div>
                     <label class="form-label mb-1">Dari</label>
                     <input type="date" name="start_period" class="form-control form-control-sm"
