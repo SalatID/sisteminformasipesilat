@@ -175,6 +175,79 @@
                 </div>
             </div>
 
+            <div class="col-12 col-lg-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-success d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold">Top 10 Asisten Pelatih — Hadir di Unit</div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width:56px;">No</th>
+                                        <th>Nama Pelatih</th>
+                                        <th class="text-center">Hadir</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($topAssCoachesUnit ?? [] as $i => $row)
+                                        <tr>
+                                            <td>{{ $i + 1 }}</td>
+                                            <td class="text-truncate" style="max-width: 280px;">{{ $row->name }}</td>
+                                            <td class="text-center fw-semibold">{{ $row->hadir_unit }}</td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="3" class="text-center text-muted py-4">Tidak ada data</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- 2) Top 10 pelatih hadir di Almaka --}}
+            <div class="col-12 col-lg-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-success d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold">Top 10 AsistenPelatih — Hadir di Almaka</div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width:56px;">No</th>
+                                        <th>Nama Pelatih</th>
+                                        <th class="text-center">Hadir</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($topAssCoachesAlmaka ?? [] as $i => $row)
+                                        <tr>
+                                            <td>{{ $i + 1 }}</td>
+                                            <td class="text-truncate" style="max-width: 280px;">{{ $row->name }}</td>
+                                            <td class="text-center fw-semibold">{{ $row->hadir_almaka }}</td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="3" class="text-center text-muted py-4">Tidak ada data</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {{-- 3) Top 10 unit paling banyak pelatih --}}
             <div class="col-12 col-lg-3">
                 <div class="card shadow-sm h-100">
