@@ -267,7 +267,7 @@
                                         <tr>
                                             <td>{{ $i + 1 }}</td>
                                             <td class="text-truncate" style="max-width: 280px;">{{ $row->name }}</td>
-                                            <td class="text-end fw-semibold">{{ $row->total_peserta }}</td>
+                                            <td class="text-end fw-semibold">{{ number_format(floor($row->avg_peserta), 0) }}</td>
                                         </tr>
                                     @empty
                                         <tr>

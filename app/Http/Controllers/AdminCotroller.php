@@ -107,13 +107,14 @@ class AdminCotroller extends Controller
         ->select([
             'u.id',
             'u.name',
-            DB::raw('SUM(COALESCE(a.new_member_cnt,0) + COALESCE(a.old_member_cnt,0)) as total_peserta'),
+           DB::raw('AVG(COALESCE(a.new_member_cnt,0) + COALESCE(a.old_member_cnt,0)) as avg_peserta'),
+            DB::raw('COUNT(*) as total_sesi'),
         ])
         ->whereNull('a.deleted_at')
         ->whereBetween('a.attendance_date', [$start, $end])
         ->where('a.attendance_status', 'training')
         ->groupBy('u.id', 'u.name')
-        ->orderBy('total_peserta', 'asc')
+        ->orderBy('avg_peserta', 'asc')
         ->limit(10)
         ->where('a.unit_id', '<>', $almakaUnitId)
         ->get();
