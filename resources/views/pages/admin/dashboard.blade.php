@@ -86,7 +86,7 @@
 
             <div class="col-lg-3 col-6">
                 <!-- small box -->
-                <div class="small-box bg-warning">
+                <div class="small-box bg-success">
                     <div class="inner">
                         <h3>{{ $kpi['active_coaches'] ?? '-' }}<sup style="font-size: 20px"> orang</sup></h3>
                         <p>Total Pelatih Aktif (Periode)</p>
