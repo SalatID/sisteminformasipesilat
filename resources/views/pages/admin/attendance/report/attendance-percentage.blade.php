@@ -111,12 +111,10 @@
                                             @endphp
                                             @if ($data)
                                                 <td class="text-center">
-                                                    {!! $data['kehadiran_di_unit']==0?"-":"<strong class='text-success'>".$data['kehadiran_di_unit']."</strong> / ".$data['total_sesi_unit_bulan'] ?? 0 !!}<br>
-                                                    <span class="badge badge-success">{{ $data['kehadiran_di_unit'] > 0 ? number_format(($data['kehadiran_di_unit'] / $data['total_sesi_unit_bulan']) * 100, 0) . '%' : '' }}</span>
+                                                    {{$data['kehadiran_di_unit']}}
                                                 </td>
                                                 <td class="text-center">
-                                                    {!! $data['kehadiran_di_kalideres']==0?"-":"<strong class='text-success'>".$data['kehadiran_di_kalideres']."</strong> / ".$data['total_sesi_kalideres_bulan'] ?? 0 !!}<br>
-                                                    <span class="badge badge-success">{{ $data['kehadiran_di_kalideres'] > 0 ? number_format(($data['kehadiran_di_kalideres'] / $data['total_sesi_kalideres_bulan']) * 100, 0) . '%' : '' }}</span>
+                                                   {{$data['kehadiran_di_kalideres']}}
                                                 </td>
                                                 <td class="text-center bg-warning"><strong>{{ $data['kehadiran_di_unit'] + $data['kehadiran_di_kalideres'] }}</strong></td>
                                             @else

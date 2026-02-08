@@ -242,6 +242,9 @@ class AttendanceController extends Controller
         $month = $request->get('month', Carbon::now()->month);
         $year  = $request->get('year', Carbon::now()->year);
         $unitId = $request->get('unit_id');
+        $tanpaST = $request->has('tanpa_st');
+        $tanpaKetua = $request->has('tanpa_ketua');
+        $excludeKetuaId = 'a0cbe45f-4bdd-4d40-90a7-592107fced6c';
         $contributionAmount = $request->get('contribution_amount');
 
         $startDate = Carbon::create($year, $month, 1)->startOfMonth();
@@ -278,9 +281,18 @@ class AttendanceController extends Controller
 
             // Get all coaches who attended in this month
             $coachIds = $attendances->pluck('attendanceDetails')->flatten()->pluck('coach_id')->unique();
-            $coaches = \App\Models\Coach::with('ts')
+            $coachesQuery = \App\Models\Coach::with('ts')
                 ->join('ts', 'coachs.ts_id', '=', 'ts.id')
-                ->whereIn('coachs.id', $coachIds)
+                ->whereIn('coachs.id', $coachIds);
+
+            if ($tanpaST) {
+                $coachesQuery->where('ts.ts_seq', '>=', 5);
+            }
+            if ($tanpaKetua) {
+                $coachesQuery->where('coachs.id', '!=', $excludeKetuaId);
+            }
+
+            $coaches = $coachesQuery
                 ->orderBy('ts.ts_seq', 'desc')
                 ->orderBy('coachs.name', 'asc')
                 ->select('coachs.*')
@@ -295,13 +307,16 @@ class AttendanceController extends Controller
                     'total_attendance' => 0
                 ];
             }
-            if(!isset($coachAttendance[$unit->pj_id])){
-                // Ensure PJ is included even if no attendance
-                $coachAttendance[$unit->pj_id] = [
-                    'coach' => \App\Models\Coach::with('ts')->where('id', $unit->pj_id)->first(),
-                    'weeks' => [1 => [], 2 => [], 3 => [], 4 => [], 5 => []],
-                    'total_attendance' => 0
-                ];
+
+            if (!isset($coachAttendance[$unit->pj_id])) {
+                // If Tanpa Ketua selected and PJ is the excluded id, skip adding PJ
+                if (!($tanpaKetua && $unit->pj_id === $excludeKetuaId)) {
+                    $coachAttendance[$unit->pj_id] = [
+                        'coach' => \App\Models\Coach::with('ts')->where('id', $unit->pj_id)->first(),
+                        'weeks' => [1 => [], 2 => [], 3 => [], 4 => [], 5 => []],
+                        'total_attendance' => 0
+                    ];
+                }
             }
 
             // Fill attendance dates
@@ -446,6 +461,18 @@ class AttendanceController extends Controller
                 // Set created_by only for new records
                 if (!$existingContribution) {
                     $contributionData['created_by'] = auth()->user()->id;
+                } else {
+                    $deleteExistingContribution = Contribution::where('id', $existingContribution->id)->delete();
+                    if ($deleteExistingContribution === false) {
+                        \DB::rollBack();
+                        return redirect()->back()->with(['error' => true, 'message' => 'Gagal menghapus data kontribusi lama sebelum penyimpanan ulang']);
+                    }
+                    $deleteExistingContributionDetails = ContributionDetail::where('contribution_id', $existingContribution->id)->delete();
+                    if ($deleteExistingContributionDetails === false) {
+                        \DB::rollBack();
+                        return redirect()->back()->with(['error' => true, 'message' => 'Gagal menghapus data detail kontribusi lama sebelum penyimpanan ulang']);
+                    }
+                    $contributionData['created_by'] = auth()->user()->id;
                 }
 
                 // Only update image path if a new image was uploaded
@@ -500,7 +527,10 @@ class AttendanceController extends Controller
                     'unit_id' => $validatedData['unit_id'],
                     'month' => $validatedData['month'],
                     'year' => $validatedData['year'],
-                    'contribution_amount' => $validatedData['contribution_amount']
+                    'contribution_amount' => $validatedData['contribution_amount'],
+                    'tanpa_st' => $tanpaST ? 1 : 0,
+                    'tanpa_ketua' => $tanpaKetua ? 1 : 0,
+
                 ])->with(['error' => false, 'message' => 'Data kontribusi berhasil disimpan']);
 
             } catch (\Exception $e) {
@@ -516,7 +546,10 @@ class AttendanceController extends Controller
                 'month' => $month,
                 'year' => $year,
                 'unitData' => null,
-                'contributionAmount' => $contributionAmount
+                'contributionAmount' => $contributionAmount,
+                'tanpa_st' => $tanpaST ? 1 : 0,
+                'tanpa_ketua' => $tanpaKetua ? 1 : 0,
+
             ]);
         }
 
@@ -618,7 +651,10 @@ class AttendanceController extends Controller
                 'contributionAmount' => $existingContribution->contribution_amount,
                 'totalAttendance' => $totalAttendance,
                 'totalFinalValue' => $totalFinalValue,
-                'existingContribution' => $existingContribution
+                'existingContribution' => $existingContribution,
+                'tanpa_st' => $tanpaST ? 1 : 0,
+                'tanpa_ketua' => $tanpaKetua ? 1 : 0,
+
             ]);
         }
 
@@ -738,7 +774,10 @@ class AttendanceController extends Controller
             'contributionAmount' => $contributionAmount,
             'totalAttendance' => $totalAttendance,
             'totalFinalValue' => $totalFinalValue,
-            'existingContribution' => $existingContribution
+            'existingContribution' => $existingContribution,
+            'tanpa_st' => $tanpaST ? 1 : 0,
+            'tanpa_ketua' => $tanpaKetua ? 1 : 0,
+
         ]);
     }
 
@@ -962,6 +1001,163 @@ class AttendanceController extends Controller
             'endPeriod' => $endPeriod,
             'tsFilter' => $tsFilter,
             'tsList' => $tsList
+        ]);
+    }
+
+    private function getContributionPerCoachRaw($startPeriod, $endPeriod)
+    {
+        return \DB::select(
+            "SELECT c.id AS coach_id, c.name AS nama_pelatih, ts.alias AS tingkatan_sabuk, ts.ts_seq, cn.periode, COALESCE(SUM(cd.total),0) AS total
+            FROM coachs c
+            JOIN ts ts ON c.ts_id = ts.id
+            LEFT JOIN contribution_details cd ON cd.coach_id = c.id and cd.deleted_at IS NULL
+            LEFT JOIN contributions cn ON cn.id = cd.contribution_id AND cn.periode BETWEEN ? AND ? and cn.deleted_at IS NULL
+            GROUP BY c.id, c.name, ts.alias, ts.ts_seq, cn.periode
+            ORDER BY cn.periode ASC, ts.ts_seq DESC, c.name ASC",
+            [$startPeriod, $endPeriod]
+        );
+    }
+
+    public function contributionPerCoach(Request $request)
+    {
+        // Handle month picker format (YYYY-MM)
+        $startPeriod = $request->get('start_period', date('Y') . '-01');
+        $endPeriod = $request->get('end_period', date('Y') . '-12');
+
+        // Build months list
+        $startDate = Carbon::parse($startPeriod . '-01');
+        $endDate = Carbon::parse($endPeriod . '-01')->endOfMonth();
+        $months = [];
+        $current = $startDate->copy();
+        while ($current->lte($endDate)) {
+            $months[] = $current->format('Y-m');
+            $current->addMonth();
+        }
+
+        // Run aggregated query: sum per coach per periode
+        $results = $this->getContributionPerCoachRaw($startPeriod, $endPeriod);
+
+        // Pivot results into coaches array initialized with zeroes for all months
+        $coaches = [];
+        foreach ($results as $row) {
+            $key = $row->coach_id;
+            if (!isset($coaches[$key])) {
+                $coaches[$key] = [
+                    'coach_id' => $row->coach_id,
+                    'nama_pelatih' => $row->nama_pelatih,
+                    'tingkatan_sabuk' => $row->tingkatan_sabuk,
+                    'ts_seq' => (int) $row->ts_seq,
+                    'months' => array_fill_keys($months, 0),
+                ];
+            }
+
+            if ($row->periode) {
+                $coaches[$key]['months'][$row->periode] = (float) $row->total;
+            }
+        }
+
+        // Ensure all coaches are listed (including those with zero contributions)
+        $allCoaches = \App\Models\Coach::with('ts')
+            ->orderByDesc('ts.ts_seq')
+            ->join('ts', 'coachs.ts_id', '=', 'ts.id')
+            ->orderBy('coachs.name')
+            ->select('coachs.*')
+            ->get();
+
+        foreach ($allCoaches as $coach) {
+            if (!isset($coaches[$coach->id])) {
+                $coaches[$coach->id] = [
+                    'coach_id' => $coach->id,
+                    'nama_pelatih' => $coach->name,
+                    'tingkatan_sabuk' => $coach->ts->name ?? '',
+                    'ts_seq' => $coach->ts->ts_seq ?? 0,
+                    'months' => array_fill_keys($months, 0),
+                ];
+            }
+        }
+
+        // Convert to indexed array and sort by ts_seq desc then coach name asc
+        $coaches = array_values($coaches);
+        usort($coaches, function ($a, $b) {
+            if ($a['ts_seq'] === $b['ts_seq']) {
+                return strcmp($a['nama_pelatih'], $b['nama_pelatih']);
+            }
+            return $b['ts_seq'] <=> $a['ts_seq'];
+        });
+
+        return view('pages.admin.attendance.report.contribution-summary', [
+            'coaches' => $coaches,
+            'months' => $months,
+            'startPeriod' => $startPeriod,
+            'endPeriod' => $endPeriod,
+        ]);
+    }
+
+    public function topContribution(Request $request)
+    {
+        // Handle month picker format (YYYY-MM)
+        $startPeriod = $request->get('start_period', date('Y') . '-01');
+        $endPeriod = $request->get('end_period', date('Y') . '-12');
+        $type = $request->get('type', 'greatest'); // greatest or lowest
+
+        // Build months list
+        $startDate = Carbon::parse($startPeriod . '-01');
+        $endDate = Carbon::parse($endPeriod . '-01')->endOfMonth();
+        $months = [];
+        $current = $startDate->copy();
+        while ($current->lte($endDate)) {
+            $months[] = $current->format('Y-m');
+            $current->addMonth();
+        }
+
+        // Get raw results
+        $results = $this->getContributionPerCoachRaw($startPeriod, $endPeriod);
+
+        // Pivot results into coaches array
+        $coaches = [];
+        foreach ($results as $row) {
+            $key = $row->coach_id;
+            if (!isset($coaches[$key])) {
+                $coaches[$key] = [
+                    'coach_id' => $row->coach_id,
+                    'nama_pelatih' => $row->nama_pelatih,
+                    'tingkatan_sabuk' => $row->tingkatan_sabuk,
+                    'ts_seq' => (int) $row->ts_seq,
+                    'months' => array_fill_keys($months, 0),
+                    'total_contribution' => 0,
+                ];
+            }
+
+            if ($row->periode) {
+                $coaches[$key]['months'][$row->periode] = (float) $row->total;
+                $coaches[$key]['total_contribution'] += (float) $row->total;
+            }
+        }
+
+        // Sort by total contribution
+        $coaches = array_values($coaches);
+        usort($coaches, function ($a, $b) {
+            if ($a['total_contribution'] === $b['total_contribution']) {
+                return strcmp($a['nama_pelatih'], $b['nama_pelatih']);
+            }
+            return $b['total_contribution'] <=> $a['total_contribution'];
+        });
+
+        // Filter top 10 or bottom 10
+        if ($type === 'lowest') {
+            $coaches = array_reverse($coaches);
+        }
+        $coaches = array_slice($coaches, 0, 10);
+
+        $pageTitle = $type === 'greatest' ? '10 Teratas Kontribusi Pelatih' : '10 Terendah Kontribusi Pelatih';
+
+        return view('pages.admin.attendance.report.top-contribution', [
+            'coaches' => $coaches,
+            'months' => $months,
+            'startPeriod' => $startPeriod,
+            'endPeriod' => $endPeriod,
+            'type' => $type,
+            'pageTitle' => $pageTitle,
         ]);
     }
 

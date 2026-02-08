@@ -170,6 +170,12 @@ class Controller extends BaseController
                         "src"=>"report.attendance.percentage.index"
                     ],
                     [
+                        "icon"=>"fas fa-dollar-sign",
+                        "name"=>"Kontribusi Pelatih",
+                        "permision"=>["report-contribution-percoach_list"],
+                        "src"=>"report.contribution.percoach"
+                    ],
+                    [
                         "icon"=>"fas fa-money-bill",
                         "name"=>"Tanda Terima Kontribusi",
                         "permision"=>["receipt-contribution-unit_list"],

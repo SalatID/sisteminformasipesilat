@@ -65,6 +65,19 @@
                                 <input type="file" class="form-control" id="contribution_receipt_img" name="contribution_receipt_img" accept="image/*" required>
                                 <small class="form-text text-muted">Format: JPG, PNG, GIF (Max: 2MB)</small>
                             </div>
+                            @if(auth()->user()->hasRole('super-admin'))
+                            <div class="col-md-2 mb-3">
+                                <label class="form-label d-block">Opsi</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="tanpa_st" id="tanpa_st" value="1" {{ request('tanpa_st') ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="tanpa_st">Tanpa ST</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="tanpa_ketua" id="tanpa_ketua" value="1" {{ request('tanpa_ketua') ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="tanpa_ketua">Tanpa Ketua</label>
+                                </div>
+                            </div>
+                            @endif
                             
                             <!-- Filter Buttons -->
                             <div class="col-md-3 mb-3 d-flex align-items-end">
