@@ -242,8 +242,8 @@ class AttendanceController extends Controller
         $month = $request->get('month', Carbon::now()->month);
         $year  = $request->get('year', Carbon::now()->year);
         $unitId = $request->get('unit_id');
-        $tanpaST = $request->has('tanpa_st');
-        $tanpaKetua = $request->has('tanpa_ketua');
+        $tanpaST = $request->has('tanpa_st')??false;
+        $tanpaKetua = $request->has('tanpa_ketua')??false;
         $excludeKetuaId = 'a0cbe45f-4bdd-4d40-90a7-592107fced6c';
         $contributionAmount = $request->get('contribution_amount');
 
