@@ -249,7 +249,7 @@ class AdminCotroller extends Controller
             JOIN ts ON c.ts_id = ts.id
             LEFT JOIN contribution_details cd ON cd.coach_id = c.id AND cd.deleted_at IS NULL
             LEFT JOIN contributions cn ON cn.id = cd.contribution_id AND cn.periode BETWEEN ? AND ? AND cn.deleted_at IS NULL
-             WHERE cn.periode BETWEEN ? AND ? 
+             WHERE cn.periode BETWEEN ? AND ? AND ts.ts_seq > 4
             GROUP BY c.id, c.name, ts.alias, ts.ts_seq
             HAVING COALESCE(SUM(cd.total), 0) > 0
             ORDER BY total_contribution DESC
@@ -265,7 +265,38 @@ class AdminCotroller extends Controller
             JOIN ts ON c.ts_id = ts.id
             LEFT JOIN contribution_details cd ON cd.coach_id = c.id AND cd.deleted_at IS NULL
             LEFT JOIN contributions cn ON cn.id = cd.contribution_id AND cn.periode BETWEEN ? AND ? AND cn.deleted_at IS NULL
-            WHERE cn.periode BETWEEN ? AND ? 
+            WHERE cn.periode BETWEEN ? AND ? AND ts.ts_seq > 4
+            GROUP BY c.id, c.name, ts.alias, ts.ts_seq
+            HAVING COALESCE(SUM(cd.total), 0) > 0
+            ORDER BY total_contribution ASC
+            LIMIT 10",
+            [$startPeriod, $endPeriod, $startPeriod, $endPeriod]
+        );
+
+        $topAssistantContributionGreatestResults = DB::select(
+            "SELECT c.id AS coach_id, c.name AS nama_pelatih, ts.alias AS tingkatan_sabuk, ts.ts_seq,
+                    COALESCE(SUM(cd.total), 0) AS total_contribution
+            FROM coachs c
+            JOIN ts ON c.ts_id = ts.id
+            LEFT JOIN contribution_details cd ON cd.coach_id = c.id AND cd.deleted_at IS NULL
+            LEFT JOIN contributions cn ON cn.id = cd.contribution_id AND cn.periode BETWEEN ? AND ? AND cn.deleted_at IS NULL
+             WHERE cn.periode BETWEEN ? AND ? AND ts.ts_seq <= 4
+            GROUP BY c.id, c.name, ts.alias, ts.ts_seq
+            HAVING COALESCE(SUM(cd.total), 0) > 0
+            ORDER BY total_contribution DESC
+            LIMIT 10",
+            [$startPeriod, $endPeriod, $startPeriod, $endPeriod]
+        );
+
+        // Top 10 Lowest Contributions (excluding zero)
+        $topAssistantContributionLowestResults = DB::select(
+            "SELECT c.id AS coach_id, c.name AS nama_pelatih, ts.alias AS tingkatan_sabuk, ts.ts_seq,
+                    COALESCE(SUM(cd.total), 0) AS total_contribution
+            FROM coachs c
+            JOIN ts ON c.ts_id = ts.id
+            LEFT JOIN contribution_details cd ON cd.coach_id = c.id AND cd.deleted_at IS NULL
+            LEFT JOIN contributions cn ON cn.id = cd.contribution_id AND cn.periode BETWEEN ? AND ? AND cn.deleted_at IS NULL
+            WHERE cn.periode BETWEEN ? AND ? AND ts.ts_seq <= 4
             GROUP BY c.id, c.name, ts.alias, ts.ts_seq
             HAVING COALESCE(SUM(cd.total), 0) > 0
             ORDER BY total_contribution ASC
