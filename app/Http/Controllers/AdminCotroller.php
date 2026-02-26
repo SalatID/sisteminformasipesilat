@@ -365,6 +365,9 @@ class AdminCotroller extends Controller
             ORDER BY m.periode ASC"
         );
 
+        // Get average contribution dates for all units
+        $unitAverageContributionDates = $this->getUnitAverageContributionDates();
+
         return view('pages.admin.dashboard', [
             'topCoachesUnit' => $topCoachesUnit,
             'topCoachesAlmaka' => $topCoachesAlmaka,
@@ -383,7 +386,8 @@ class AdminCotroller extends Controller
             'topAssistantContributionLowestResults' => $topAssistantContributionLowestResults,
             'unitMembersMonthly' => $unitMembersMonthly,
             'monthlyContributions' => $monthlyContributions,
-            'totalMonthlyContributions' => $totalMonthlyContributions
+            'totalMonthlyContributions' => $totalMonthlyContributions,
+            'unitAverageContributionDates' => $unitAverageContributionDates
         ]);
     }
     public function index(){
@@ -406,5 +410,121 @@ class AdminCotroller extends Controller
     }
     public function destroy(){
         
+    }
+
+    private function getUnitAverageContributionDates()
+    {
+        // Get all units
+        $units = \App\Models\Unit::orderBy('name')->get();
+        $result = [];
+
+        // Get previous month periode
+        $previousMonth = Carbon::now()->subMonth();
+        $previousPeriode = $previousMonth->format('Y-m');
+
+        foreach ($units as $unit) {
+            // Get current year and month
+            $currentYear = Carbon::now()->year;
+            $currentMonth = Carbon::now()->month;
+            $currentPeriode = sprintf('%04d-%02d', $currentYear, $currentMonth);
+
+            // Check if previous month contribution exists
+            $previousContributionExists = \App\Models\Contribution::where('unit_id', $unit->id)
+                ->where('periode', $previousPeriode)
+                ->exists();
+
+            // Get 6 months back
+            $sixMonthsAgo = Carbon::now()->subMonths(6);
+            $sixMonthsAgoPeriode = $sixMonthsAgo->format('Y-m');
+
+            // Get past contributions (excluding current period)
+            $pastContributions = \App\Models\Contribution::where('unit_id', $unit->id)
+                ->where('periode', '!=', $currentPeriode)
+                ->whereBetween('periode', [
+                    $sixMonthsAgoPeriode,
+                    $previousPeriode
+                ])
+                ->get();
+
+            if ($pastContributions->isEmpty()) {
+                continue; // Skip if no historical data
+            }
+
+            // Collect day of month from created_at dates
+            $createdDays = [];
+            foreach ($pastContributions as $contribution) {
+                $createdDate = Carbon::parse($contribution->created_at);
+                $day = $createdDate->day;
+                $createdDays[] = $day;
+            }
+
+            // Calculate average day
+            $averageDay = round(array_sum($createdDays) / count($createdDays));
+
+            // Get month name for average day (using current month as reference)
+            $monthName = Carbon::now()->locale('id')->translatedFormat('F');
+
+            // Get previous month contribution for comparison
+            $previousContribution = \App\Models\Contribution::where('unit_id', $unit->id)
+                ->where('periode', $previousPeriode)
+                ->first();
+
+            $comparisonLabel = '';
+            $comparisonClass = '';
+
+            if ($previousContributionExists && $previousContribution) {
+                // Compare from previous month's created_at
+                $previousDay = Carbon::parse($previousContribution->created_at)->day;
+                $daysDifference = abs($previousDay - $averageDay);
+
+                if ($previousDay < $averageDay) {
+                    $comparisonLabel = "Lebih Cepat {$daysDifference} Hari";
+                    $comparisonClass = 'badge bg-success';
+                } else {
+                    $comparisonLabel = "Terlambat {$daysDifference} Hari";
+                    $comparisonClass = 'badge bg-warning text-dark';
+                }
+            } else {
+                // Previous period doesn't exist - compare from current date instead
+                $currentDay = Carbon::now()->day;
+                $daysDifference = abs($currentDay - $averageDay);
+
+                $comparisonLabel = "Periode Terakhir Belum Dihitung";
+                
+                if ($currentDay < $averageDay) {
+                    $comparisonLabel .= ", Lebih Cepat {$daysDifference} Hari";
+                    $comparisonClass = 'badge bg-secondary';
+                } else {
+                    $comparisonLabel .= ", Terlambat {$daysDifference} Hari";
+                    $comparisonClass = 'badge bg-secondary';
+                }
+            }
+
+            // Get created_at date for display (use previous contribution's created_at or current date)
+            $displayCreatedDate = $previousContribution 
+                ? $previousContribution->created_at->locale('id')->translatedFormat('d F Y')
+                : "<span class='badge badge-danger'>Belum Ada Kontribusi</span>";
+
+            $result[] = [
+                'unit_id' => $unit->id,
+                'unit_name' => $unit->name,
+                'average_day' => $averageDay,
+                'month_name' => $monthName,
+                'previous_period_exists' => $previousContributionExists,
+                'comparison_label' => $comparisonLabel,
+                'comparison_class' => $comparisonClass,
+                'display_created_date' => $displayCreatedDate
+            ];
+        }
+        // dd($result);
+
+        // Convert periode to Indonesian format (e.g., "2026-01" to "Januari 2026")
+        $periodeCarbon = Carbon::createFromFormat('Y-m', $previousPeriode);
+        $periodeFormatted = $periodeCarbon->locale('id')->translatedFormat('F Y');
+
+        return [
+            "periode" => $periodeFormatted,
+            "data" => $result
+        ];
     }
 }

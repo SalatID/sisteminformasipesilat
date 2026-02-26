@@ -522,6 +522,7 @@
             </div>
             <div class="tab-pane fade" id="kontribusi" role="tabpanel" aria-labelledby="kontribusi-tab">
                 <div class="row g-3">
+
                     {{-- Monthly Contributions Chart --}}
                     <div class="col-12 col-lg-6">
                         <div class="card shadow-sm h-100">
@@ -554,12 +555,12 @@
                         </div>
                     </div>
 
-                    {{-- Average Unit Members Monthly Chart --}}
-                    <div class="col-12 col-md-6 col-lg-3">
-                        <div class="card shadow-sm h-100">
-                            <div class="card-header bg-primary d-flex justify-content-between align-items-center">
+                    {{-- Average Unit Contribution Dates --}}
+                    <div class="col-12 col-lg-6">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-secondary d-flex justify-content-between align-items-center">
                                 <div>
-                                    <div class="fw-semibold">Top 10 Pelatih — Kontribusi Terbesar</div>
+                                    <div class="fw-semibold">Rata-Rata Tanggal Hitung Kontribusi Per Unit</div>
                                 </div>
                             </div>
                             <div class="card-body p-0">
@@ -567,21 +568,29 @@
                                     <table class="table table-sm table-hover align-middle mb-0">
                                         <thead class="table-light">
                                             <tr>
-                                                <th style="width:56px;">No</th>
-                                                <th>Nama Pelatih</th>
-                                                <th class="text-right">Total Kontribusi</th>
+                                                <th style="width:50px;">No</th>
+                                                <th>Nama Unit</th>
+                                                <th style="width:150px;">Rata-Rata</th>
+                                                <th style="width:180px;">Tanggal Hitung</th>
+                                                <th>Periode {{ $unitAverageContributionDates['periode'] }}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @forelse($topContributionGreatestResults ?? [] as $i => $row)
+                                            @forelse($unitAverageContributionDates['data'] ?? [] as $i => $data)
                                                 <tr>
                                                     <td>{{ $i + 1 }}</td>
-                                                    <td class="text-truncate" style="max-width: 200px;">{{ $row->nama_pelatih }}</td>
-                                                    <td class="text-right fw-semibold">{{ number_format($row->total_contribution, 0, ',', '.') }}</td>
+                                                    <td>{{ $data['unit_name'] }}</td>
+                                                    <td class="fw-semibold">Tanggal {{ $data['average_day'] }}</td>
+                                                    <td>{!! $data['display_created_date'] !!}</td>
+                                                    <td>
+                                                        <span class="{{ $data['comparison_class'] }}">
+                                                            {{ $data['comparison_label'] }}
+                                                        </span>
+                                                    </td>
                                                 </tr>
                                             @empty
                                                 <tr>
-                                                    <td colspan="4" class="text-center text-muted py-4">Tidak ada data</td>
+                                                    <td colspan="5" class="text-center text-muted py-4">Tidak ada data kontribusi</td>
                                                 </tr>
                                             @endforelse
                                         </tbody>
@@ -591,38 +600,75 @@
                         </div>
                     </div>
 
-                    {{-- Top 10 Lowest Contributions --}}
+                    {{-- Average Unit Members Monthly Chart --}}
                     <div class="col-12 col-md-6 col-lg-3">
-                        <div class="card shadow-sm h-100">
-                            <div class="card-header bg-warning d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="fw-semibold">Top 10 Pelatih — Kontribusi Terendah</div>
+                        <div class="row">
+                            <div class="card shadow-sm h-100 col-12">
+                                <div class="card-header bg-primary d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-semibold">Top 10 Pelatih — Kontribusi Terbesar</div>
+                                    </div>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-hover align-middle mb-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th style="width:56px;">No</th>
+                                                    <th>Nama Pelatih</th>
+                                                    <th class="text-right">Total Kontribusi</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @forelse($topContributionGreatestResults ?? [] as $i => $row)
+                                                    <tr>
+                                                        <td>{{ $i + 1 }}</td>
+                                                        <td class="text-truncate" style="max-width: 200px;">{{ $row->nama_pelatih }}</td>
+                                                        <td class="text-right fw-semibold">{{ number_format($row->total_contribution, 0, ',', '.') }}</td>
+                                                    </tr>
+                                                @empty
+                                                    <tr>
+                                                        <td colspan="4" class="text-center text-muted py-4">Tidak ada data</td>
+                                                    </tr>
+                                                @endforelse
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="card-body p-0">
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-hover align-middle mb-0">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th style="width:56px;">No</th>
-                                                <th>Nama Pelatih</th>
-                                                <th class="text-right">Total Kontribusi</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @forelse($topContributionLowestResults ?? [] as $i => $row)
+                        </div>
+                        <div class="row">
+                            <div class="card shadow-sm h-100 col-12">
+                                <div class="card-header bg-warning d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-semibold">Top 10 Pelatih — Kontribusi Terendah</div>
+                                    </div>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-hover align-middle mb-0">
+                                            <thead class="table-light">
                                                 <tr>
-                                                    <td>{{ $i + 1 }}</td>
-                                                    <td class="text-truncate" style="max-width: 200px;">{{ $row->nama_pelatih }}</td>
-                                                    <td class="text-right fw-semibold">{{ number_format($row->total_contribution, 0, ',', '.') }}</td>
+                                                    <th style="width:56px;">No</th>
+                                                    <th>Nama Pelatih</th>
+                                                    <th class="text-right">Total Kontribusi</th>
                                                 </tr>
-                                            @empty
-                                                <tr>
-                                                    <td colspan="4" class="text-center text-muted py-4">Tidak ada data</td>
-                                                </tr>
-                                            @endforelse
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody>
+                                                @forelse($topContributionLowestResults ?? [] as $i => $row)
+                                                    <tr>
+                                                        <td>{{ $i + 1 }}</td>
+                                                        <td class="text-truncate" style="max-width: 200px;">{{ $row->nama_pelatih }}</td>
+                                                        <td class="text-right fw-semibold">{{ number_format($row->total_contribution, 0, ',', '.') }}</td>
+                                                    </tr>
+                                                @empty
+                                                    <tr>
+                                                        <td colspan="4" class="text-center text-muted py-4">Tidak ada data</td>
+                                                    </tr>
+                                                @endforelse
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -630,76 +676,76 @@
 
                     {{-- Top 10 Greatest Contributions --}}
                     <div class="col-12 col-md-6 col-lg-3">
-                        <div class="card shadow-sm h-100">
-                            <div class="card-header bg-primary d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="fw-semibold">Top 10 Asisten Pelatih — Kontribusi Terbesar</div>
+                       <div class="row">
+                            <div class="card shadow-sm h-100 col-12">
+                                <div class="card-header bg-primary d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-semibold">Top 10 Asisten Pelatih — Kontribusi Terbesar</div>
+                                    </div>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-hover align-middle mb-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th style="width:56px;">No</th>
+                                                    <th>Nama Asisten Pelatih</th>
+                                                    <th class="text-right">Total Kontribusi</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @forelse($topAssistantContributionGreatestResults ?? [] as $i => $row)
+                                                    <tr>
+                                                        <td>{{ $i + 1 }}</td>
+                                                        <td class="text-truncate" style="max-width: 200px;">{{ $row->nama_pelatih }}</td>
+                                                        <td class="text-right fw-semibold">{{ number_format($row->total_contribution, 0, ',', '.') }}</td>
+                                                    </tr>
+                                                @empty
+                                                    <tr>
+                                                        <td colspan="4" class="text-center text-muted py-4">Tidak ada data</td>
+                                                    </tr>
+                                                @endforelse
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="card-body p-0">
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-hover align-middle mb-0">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th style="width:56px;">No</th>
-                                                <th>Nama Asisten Pelatih</th>
-                                                <th class="text-right">Total Kontribusi</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @forelse($topAssistantContributionGreatestResults ?? [] as $i => $row)
+                       </div>
+                       <div class="row">
+                            <div class="card shadow-sm h-100 col-12">
+                                <div class="card-header bg-warning d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-semibold">Top 10 Asisten Pelatih — Kontribusi Terendah</div>
+                                    </div>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-hover align-middle mb-0">
+                                            <thead class="table-light">
                                                 <tr>
-                                                    <td>{{ $i + 1 }}</td>
-                                                    <td class="text-truncate" style="max-width: 200px;">{{ $row->nama_pelatih }}</td>
-                                                    <td class="text-right fw-semibold">{{ number_format($row->total_contribution, 0, ',', '.') }}</td>
+                                                    <th style="width:56px;">No</th>
+                                                    <th>Nama Asisten Pelatih</th>
+                                                    <th class="text-right">Total Kontribusi</th>
                                                 </tr>
-                                            @empty
-                                                <tr>
-                                                    <td colspan="4" class="text-center text-muted py-4">Tidak ada data</td>
-                                                </tr>
-                                            @endforelse
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody>
+                                                @forelse($topAssistantContributionLowestResults ?? [] as $i => $row)
+                                                    <tr>
+                                                        <td>{{ $i + 1 }}</td>
+                                                        <td class="text-truncate" style="max-width: 200px;">{{ $row->nama_pelatih }}</td>
+                                                        <td class="text-right fw-semibold">{{ number_format($row->total_contribution, 0, ',', '.') }}</td>
+                                                    </tr>
+                                                @empty
+                                                    <tr>
+                                                        <td colspan="4" class="text-center text-muted py-4">Tidak ada data</td>
+                                                    </tr>
+                                                @endforelse
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-
-                    {{-- Top 10 Lowest Contributions --}}
-                    <div class="col-12 col-md-6 col-lg-3">
-                        <div class="card shadow-sm h-100">
-                            <div class="card-header bg-warning d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="fw-semibold">Top 10 Asisten Pelatih — Kontribusi Terendah</div>
-                                </div>
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="table-responsive">
-                                    <table class="table table-sm table-hover align-middle mb-0">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th style="width:56px;">No</th>
-                                                <th>Nama Asisten Pelatih</th>
-                                                <th class="text-right">Total Kontribusi</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @forelse($topAssistantContributionLowestResults ?? [] as $i => $row)
-                                                <tr>
-                                                    <td>{{ $i + 1 }}</td>
-                                                    <td class="text-truncate" style="max-width: 200px;">{{ $row->nama_pelatih }}</td>
-                                                    <td class="text-right fw-semibold">{{ number_format($row->total_contribution, 0, ',', '.') }}</td>
-                                                </tr>
-                                            @empty
-                                                <tr>
-                                                    <td colspan="4" class="text-center text-muted py-4">Tidak ada data</td>
-                                                </tr>
-                                            @endforelse
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
+                       </div>
                     </div>
                 </div>
             </div>

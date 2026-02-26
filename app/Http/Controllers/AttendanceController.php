@@ -652,6 +652,7 @@ class AttendanceController extends Controller
                 'totalAttendance' => $totalAttendance,
                 'totalFinalValue' => $totalFinalValue,
                 'existingContribution' => $existingContribution,
+                'createdAtComparison' => $this->getCreatedAtComparison($unitId, $periode, $existingContribution->created_at),
                 'tanpa_st' => $tanpaST ? 1 : 0,
                 'tanpa_ketua' => $tanpaKetua ? 1 : 0,
 
@@ -775,6 +776,7 @@ class AttendanceController extends Controller
             'totalAttendance' => $totalAttendance,
             'totalFinalValue' => $totalFinalValue,
             'existingContribution' => $existingContribution,
+            'createdAtComparison' => $existingContribution ? $this->getCreatedAtComparison($unitId, $periode, $existingContribution->created_at) : null,
             'tanpa_st' => $tanpaST ? 1 : 0,
             'tanpa_ketua' => $tanpaKetua ? 1 : 0,
 
@@ -1174,5 +1176,74 @@ class AttendanceController extends Controller
                 'error' => true,
                 'message' => 'Kontribusi gagal disetujui.'
             ]);
+    }
+
+    private function calculateAverageCreatedAtComparison($unitId, $currentPeriode)
+    {
+        // Get the current period's year and month
+        [$currentYear, $currentMonth] = explode('-', $currentPeriode);
+        
+        // Get 6 months back from current period
+        $sixMonthsAgo = Carbon::create($currentYear, $currentMonth, 1)->subMonths(6);
+        
+        // Get contributions from 6 months ago to current month (excluding current period)
+        $pastContributions = Contribution::where('unit_id', $unitId)
+            ->where('periode', '!=', $currentPeriode)
+            ->whereBetween('periode', [
+                $sixMonthsAgo->format('Y-m'),
+                Carbon::create($currentYear, $currentMonth, 1)->subMonth()->format('Y-m')
+            ])
+            ->get();
+        if ($pastContributions->isEmpty()) {
+            return null;
+        }
+
+        // Collect day of month from created_at dates only
+        $createdDays = [];
+        
+        foreach ($pastContributions as $contribution) {
+            $createdDate = Carbon::parse($contribution->created_at);
+            // Extract only the day of month (1-31)
+            $day = $createdDate->day;
+            $createdDays[] = $day;
+        }
+        
+        // Calculate average day
+        $averageDay = round(array_sum($createdDays) / count($createdDays));
+        
+        return [
+            'average_day' => $averageDay,
+            'count' => count($pastContributions),
+            'created_days' => $createdDays
+        ];
+    }
+
+    private function getCreatedAtComparison($unitId, $currentPeriode, $currentCreatedAt)
+    {
+        $averageData = $this->calculateAverageCreatedAtComparison($unitId, $currentPeriode);
+        if (!$averageData) {
+            return null;
+        }
+
+        // Get day of month from current created_at
+        $currentDay = Carbon::parse($currentCreatedAt)->day;
+        $averageDay = $averageData['average_day'];
+        $daysDifference = abs($currentDay - $averageDay);
+
+        if ($currentDay < $averageDay) {
+            $label = "Lebih Cepat {$daysDifference} Hari Dari Rata-Rata Hitung 6 Bulan Terakhir, Rata-rata hitung kontribusi pada tanggal {$averageDay}";
+            $isFaster = true;
+        } else {
+            $label = "Lebih Lambat {$daysDifference} Hari Dari Rata-Rata Hitung 6 Bulan Terakhir, Rata-rata hitung kontribusi pada tanggal {$averageDay}";
+            $isFaster = false;
+        }
+
+        return [
+            'label' => $label,
+            'is_faster' => $isFaster,
+            'days_difference' => $daysDifference,
+            'current_day' => $currentDay,
+            'average_day' => $averageDay
+        ];
     }
 }
