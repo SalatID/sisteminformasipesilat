@@ -7,11 +7,6 @@
 @endsection
 
 <style>
-    .chart-container {
-        position: relative;
-        height: 400px;
-        margin-bottom: 1rem;
-    }
     
     @media (min-width: 992px) {
         .chart-container {
@@ -21,6 +16,21 @@
     
     .chart-container canvas {
         max-height: 100% !important;
+    }
+    
+    /* .card {
+        display: flex;
+        flex-direction: column;
+    } */
+    
+    /* .card-body {
+        flex: 1;
+    } */
+    
+    @media (max-width: 991px) {
+        .card.h-100 {
+            height: auto !important;
+        }
     }
 </style>
 
@@ -545,7 +555,7 @@
                     </div>
 
                     {{-- Average Unit Members Monthly Chart --}}
-                    <div class="col-12 col-lg-3">
+                    <div class="col-12 col-md-6 col-lg-3">
                         <div class="card shadow-sm h-100">
                             <div class="card-header bg-primary d-flex justify-content-between align-items-center">
                                 <div>
@@ -582,7 +592,7 @@
                     </div>
 
                     {{-- Top 10 Lowest Contributions --}}
-                    <div class="col-12 col-lg-3">
+                    <div class="col-12 col-md-6 col-lg-3">
                         <div class="card shadow-sm h-100">
                             <div class="card-header bg-warning d-flex justify-content-between align-items-center">
                                 <div>
@@ -619,7 +629,7 @@
                     </div>
 
                     {{-- Top 10 Greatest Contributions --}}
-                    <div class="col-12 col-lg-3">
+                    <div class="col-12 col-md-6 col-lg-3">
                         <div class="card shadow-sm h-100">
                             <div class="card-header bg-primary d-flex justify-content-between align-items-center">
                                 <div>
@@ -656,7 +666,7 @@
                     </div>
 
                     {{-- Top 10 Lowest Contributions --}}
-                    <div class="col-12 col-lg-3">
+                    <div class="col-12 col-md-6 col-lg-3">
                         <div class="card shadow-sm h-100">
                             <div class="card-header bg-warning d-flex justify-content-between align-items-center">
                                 <div>
