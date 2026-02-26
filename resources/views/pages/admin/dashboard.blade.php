@@ -581,7 +581,15 @@
                                                     <td>{{ $i + 1 }}</td>
                                                     <td>{{ $data['unit_name'] }}</td>
                                                     <td class="fw-semibold">Tanggal {{ $data['average_day'] }}</td>
-                                                    <td>{!! $data['display_created_date'] !!}</td>
+                                                    <td>
+                                                        @if($data['display_created_date']!= null)
+                                                            {{ $data['display_created_date'] }}
+                                                        @else
+                                                            @if( $data['comparison_label'] != "Tidak Ada Latihan" )
+                                                                <span class="badge badge-danger">Belum Ada Kontribusi</span>
+                                                            @endif
+                                                        @endif
+                                                    </td>
                                                     <td>
                                                         <span class="{{ $data['comparison_class'] }}">
                                                             {{ $data['comparison_label'] }}

@@ -447,7 +447,24 @@ class AdminCotroller extends Controller
                 ->get();
 
             if ($pastContributions->isEmpty()) {
-                continue; // Skip if no historical data
+                // No historical data - show with "Belum Ada Data Kontribusi" label
+                $comparisonLabel = "Belum Ada Data Kontribsi Sama Sekali";
+                $comparisonClass = 'badge bg-info';
+                $displayCreatedDate = null;
+                $averageDay = null;
+                $monthName = null;
+                
+                $result[] = [
+                    'unit_id' => $unit->id,
+                    'unit_name' => $unit->name,
+                    'average_day' => $averageDay,
+                    'month_name' => $monthName,
+                    'previous_period_exists' => $previousContributionExists,
+                    'comparison_label' => $comparisonLabel,
+                    'comparison_class' => $comparisonClass,
+                    'display_created_date' => $displayCreatedDate
+                ];
+                continue;
             }
 
             // Collect day of month from created_at dates
@@ -485,25 +502,42 @@ class AdminCotroller extends Controller
                     $comparisonClass = 'badge bg-warning text-dark';
                 }
             } else {
-                // Previous period doesn't exist - compare from current date instead
-                $currentDay = Carbon::now()->day;
-                $daysDifference = abs($currentDay - $averageDay);
-
-                $comparisonLabel = "Periode Terakhir Belum Dihitung";
+                // Check if there were any training sessions in previous period
+                $previousMonthStart = $previousMonth->copy()->startOfMonth()->toDateString();
+                $previousMonthEnd = $previousMonth->copy()->endOfMonth()->toDateString();
                 
-                if ($currentDay < $averageDay) {
-                    $comparisonLabel .= ", Lebih Cepat {$daysDifference} Hari";
-                    $comparisonClass = 'badge bg-secondary';
+                $trainingCount = \App\Models\Attendance::where('unit_id', $unit->id)
+                    ->where('attendance_status', 'training')
+                    ->whereBetween('attendance_date', [$previousMonthStart, $previousMonthEnd])
+                    ->whereNull('deleted_at')
+                    ->count();
+                
+                if ($trainingCount == 0) {
+                    // No training sessions in previous month
+                    $comparisonLabel = "Tidak Ada Latihan";
+                    $comparisonClass = 'badge bg-danger';
                 } else {
-                    $comparisonLabel .= ", Terlambat {$daysDifference} Hari";
-                    $comparisonClass = 'badge bg-secondary';
+                    // Previous period doesn't exist but there are training sessions
+                    // Compare from current date instead
+                    $currentDay = Carbon::now()->day;
+                    $daysDifference = abs($currentDay - $averageDay);
+
+                    $comparisonLabel = "Periode Terakhir Belum Dihitung";
+                    
+                    if ($currentDay < $averageDay) {
+                        $comparisonLabel .= ", Lebih Cepat {$daysDifference} Hari";
+                        $comparisonClass = 'badge bg-secondary';
+                    } else {
+                        $comparisonLabel .= ", Terlambat {$daysDifference} Hari";
+                        $comparisonClass = 'badge bg-secondary';
+                    }
                 }
             }
 
             // Get created_at date for display (use previous contribution's created_at or current date)
             $displayCreatedDate = $previousContribution 
                 ? $previousContribution->created_at->locale('id')->translatedFormat('d F Y')
-                : "<span class='badge badge-danger'>Belum Ada Kontribusi</span>";
+                : null;
 
             $result[] = [
                 'unit_id' => $unit->id,
