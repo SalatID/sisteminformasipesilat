@@ -527,7 +527,7 @@
                         <div class="card shadow-sm h-100">
                             <div class="card-header bg-success d-flex justify-content-between align-items-center">
                                 <div>
-                                    <div class="fw-semibold">Kontribusi Bulanan - Pelatih & Komwil</div>
+                                    <div class="fw-semibold">Kontribusi Bulanan - Pelatih & Komwil (6 Bulan Terakhir)</div>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -543,7 +543,7 @@
                         <div class="card shadow-sm h-100">
                             <div class="card-header bg-info d-flex justify-content-between align-items-center">
                                 <div>
-                                    <div class="fw-semibold">Total Kontribusi Bulanan</div>
+                                    <div class="fw-semibold">Total Kontribusi Bulanan (6 Bulan Terakhir)</div>
                                 </div>
                             </div>
                             <div class="card-body">
