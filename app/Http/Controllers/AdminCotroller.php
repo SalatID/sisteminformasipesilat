@@ -304,6 +304,68 @@ class AdminCotroller extends Controller
             [$startPeriod, $endPeriod, $startPeriod, $endPeriod]
         );
 
+        // Average unit member monthly - last 6 months with zero fill
+        $unitMembersMonthly = DB::select(
+            "WITH RECURSIVE months AS (
+                SELECT DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 5 MONTH), '%Y-%m') as periode
+                UNION ALL
+                SELECT DATE_FORMAT(DATE_ADD(STR_TO_DATE(CONCAT(periode, '-01'), '%Y-%m-%d'), INTERVAL 1 MONTH), '%Y-%m')
+                FROM months
+                WHERE DATE_ADD(STR_TO_DATE(CONCAT(periode, '-01'), '%Y-%m-%d'), INTERVAL 1 MONTH) <= NOW()
+            )
+            SELECT 
+                m.periode as month,
+                COALESCE(AVG(COALESCE(a.new_member_cnt, 0) + COALESCE(a.old_member_cnt, 0)), 0) as avg_members
+            FROM months m
+            LEFT JOIN attendances a ON DATE_FORMAT(a.attendance_date, '%Y-%m') = m.periode 
+                AND a.deleted_at IS NULL 
+                AND a.attendance_status = 'training'
+            GROUP BY m.periode
+            ORDER BY m.periode ASC"
+        );
+
+        // Monthly contributions - Coach and Komwi (last 6 months with zero fill)
+        $sixMonthsAgoPeriod = Carbon::now()->subMonths(6)->format('Y-m');
+        $monthlyContributions = DB::select(
+            "WITH RECURSIVE months AS (
+                SELECT DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 5 MONTH), '%Y-%m') as periode
+                UNION ALL
+                SELECT DATE_FORMAT(DATE_ADD(STR_TO_DATE(CONCAT(periode, '-01'), '%Y-%m-%d'), INTERVAL 1 MONTH), '%Y-%m')
+                FROM months
+                WHERE DATE_ADD(STR_TO_DATE(CONCAT(periode, '-01'), '%Y-%m-%d'), INTERVAL 1 MONTH) <= NOW()
+            )
+            SELECT 
+                m.periode as month,
+                COALESCE(SUM(CASE WHEN ts.ts_seq > 4 THEN cd.total ELSE 0 END), 0) as coach_contribution,
+                COALESCE(SUM(CASE WHEN ts.ts_seq <= 4 THEN cd.total ELSE 0 END), 0) as komwi_contribution
+            FROM months m
+            LEFT JOIN contributions cn ON cn.periode = m.periode AND cn.deleted_at IS NULL
+            LEFT JOIN contribution_details cd ON cd.contribution_id = cn.id AND cd.deleted_at IS NULL
+            LEFT JOIN coachs c ON c.id = cd.coach_id
+            LEFT JOIN ts ON ts.id = c.ts_id
+            GROUP BY m.periode
+            ORDER BY m.periode ASC"
+        );
+
+        // Total monthly contributions (last 6 months with zero fill)
+        $totalMonthlyContributions = DB::select(
+            "WITH RECURSIVE months AS (
+                SELECT DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 5 MONTH), '%Y-%m') as periode
+                UNION ALL
+                SELECT DATE_FORMAT(DATE_ADD(STR_TO_DATE(CONCAT(periode, '-01'), '%Y-%m-%d'), INTERVAL 1 MONTH), '%Y-%m')
+                FROM months
+                WHERE DATE_ADD(STR_TO_DATE(CONCAT(periode, '-01'), '%Y-%m-%d'), INTERVAL 1 MONTH) <= NOW()
+            )
+            SELECT 
+                m.periode as month,
+                COALESCE(SUM(cd.total), 0) as total_contribution
+            FROM months m
+            LEFT JOIN contributions cn ON cn.periode = m.periode AND cn.deleted_at IS NULL
+            LEFT JOIN contribution_details cd ON cd.contribution_id = cn.id AND cd.deleted_at IS NULL
+            GROUP BY m.periode
+            ORDER BY m.periode ASC"
+        );
+
         return view('pages.admin.dashboard', [
             'topCoachesUnit' => $topCoachesUnit,
             'topCoachesAlmaka' => $topCoachesAlmaka,
@@ -319,7 +381,10 @@ class AdminCotroller extends Controller
             'topContributionGreatestResults' => $topContributionGreatestResults,
             'topContributionLowestResults' => $topContributionLowestResults,
             'topAssistantContributionGreatestResults' => $topAssistantContributionGreatestResults,
-            'topAssistantContributionLowestResults' => $topAssistantContributionLowestResults
+            'topAssistantContributionLowestResults' => $topAssistantContributionLowestResults,
+            'unitMembersMonthly' => $unitMembersMonthly,
+            'monthlyContributions' => $monthlyContributions,
+            'totalMonthlyContributions' => $totalMonthlyContributions
         ]);
     }
     public function index(){

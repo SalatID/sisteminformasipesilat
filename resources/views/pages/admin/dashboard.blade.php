@@ -101,16 +101,29 @@
         {{-- 8 Cards: Top 10 (tabbed) --}}
         <ul class="nav nav-tabs mb-3" id="dashboardTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="absensi-tab" data-bs-toggle="tab" data-bs-target="#absensi" type="button" role="tab" aria-controls="absensi" aria-selected="true">Absensi</button>
+                <button class="nav-link active" id="absensi-tab" data-toggle="tab" data-target="#absensi" type="button" role="tab" aria-controls="absensi" aria-selected="true">Absensi</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="kontribusi-tab" data-bs-toggle="tab" data-bs-target="#kontribusi" type="button" role="tab" aria-controls="kontribusi" aria-selected="false">Kontribusi</button>
+                <button class="nav-link" id="kontribusi-tab" data-toggle="tab" data-target="#kontribusi" type="button" role="tab" aria-controls="kontribusi" aria-selected="false">Kontribusi</button>
             </li>
         </ul>
 
         <div class="tab-content" id="dashboardTabsContent">
             <div class="tab-pane fade show active" id="absensi" role="tabpanel" aria-labelledby="absensi-tab">
                 <div class="row g-3">
+
+                    <div class="col-12 col-lg-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header bg-info d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-semibold">Rata-rata Anggota Unit Per Bulan (6 Bulan Terakhir)</div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="unitMembersChart" height="80"></canvas>
+                            </div>
+                        </div>
+                    </div>
 
                     {{-- 1) Top 10 pelatih hadir di unit --}}
                     <div class="col-12 col-lg-3">
@@ -470,9 +483,38 @@
                         </div>
                     </div>
                 </div>
+            </div>
+            <div class="tab-pane fade" id="kontribusi" role="tabpanel" aria-labelledby="kontribusi-tab">
                 <div class="row g-3">
+                    {{-- Monthly Contributions Chart --}}
+                    <div class="col-12 col-lg-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header bg-success d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-semibold">Kontribusi Bulanan - Pelatih & Komwi</div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="monthlyContributionsChart" height="80"></canvas>
+                            </div>
+                        </div>
+                    </div>
 
-                    {{-- Top 10 Greatest Contributions --}}
+                    {{-- Total Monthly Contributions Chart --}}
+                    <div class="col-12 col-lg-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header bg-info d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-semibold">Total Kontribusi Bulanan</div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="totalContributionsChart" height="80"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Average Unit Members Monthly Chart --}}
                     <div class="col-12 col-lg-3">
                         <div class="card shadow-sm h-100">
                             <div class="card-header bg-primary d-flex justify-content-between align-items-center">
@@ -619,14 +661,270 @@
                             </div>
                         </div>
                     </div>
-
-                </div>
-            </div>
-            <div class="tab-pane fade" id="kontribusi" role="tabpanel" aria-labelledby="kontribusi-tab">
-                <div class="row g-3">
-                    
                 </div>
             </div>
         </div>
     </div>
+    
+    <script>
+        // Initialize Unit Members Monthly Chart - ensure chart library is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            @if(!empty($unitMembersMonthly) && count($unitMembersMonthly) > 0)
+                var canvasElement = document.getElementById('unitMembersChart');
+                if (canvasElement && typeof Chart !== 'undefined') {
+                    var ctx = canvasElement.getContext('2d');
+                    var chartData = @json($unitMembersMonthly);
+                    
+                    var labels = chartData.map(item => {
+                        const [year, month] = item.month.split('-');
+                        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                        return monthNames[parseInt(month) - 1] + ' ' + year;
+                    });
+                    
+                    var data = chartData.map(item => parseFloat(item.avg_members).toFixed(2));
+                    
+                    try {
+                        var unitMembersChart = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: 'Rata-rata Anggota Unit',
+                                    data: data,
+                                    borderColor: 'rgba(54, 162, 235, 1)',
+                                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                                    borderWidth: 2,
+                                    fill: true,
+                                    tension: 0.4,
+                                    pointRadius: 5,
+                                    pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                                    pointBorderColor: '#fff',
+                                    pointBorderWidth: 2,
+                                    pointHoverRadius: 7
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: true,
+                                interaction: {
+                                    mode: 'index',
+                                    intersect: false
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: true,
+                                        position: 'top'
+                                    },
+                                    tooltip: {
+                                        enabled: true,
+                                        mode: 'index',
+                                        intersect: false,
+                                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                        titleColor: '#fff',
+                                        bodyColor: '#fff'
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        title: {
+                                            display: true,
+                                            text: 'Jumlah Anggota'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    } catch(e) {
+                        console.error('Chart initialization error:', e);
+                    }
+                }
+            @endif
+
+            // Initialize Monthly Contributions Chart
+            @if(!empty($monthlyContributions) && count($monthlyContributions) > 0)
+                var monthlyCtx = document.getElementById('monthlyContributionsChart');
+                if (monthlyCtx && typeof Chart !== 'undefined') {
+                    var monthlyCtxReal = monthlyCtx.getContext('2d');
+                    var monthlyData = @json($monthlyContributions);
+                    
+                    var monthlyLabels = monthlyData.map(item => {
+                        const [year, month] = item.month.split('-');
+                        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                        return monthNames[parseInt(month) - 1] + ' ' + year;
+                    });
+                    
+                    var coachData = monthlyData.map(item => parseFloat(item.coach_contribution).toFixed(0));
+                    var komwiData = monthlyData.map(item => parseFloat(item.komwi_contribution).toFixed(0));
+                    
+                    try {
+                        var monthlyContributionsChart = new Chart(monthlyCtxReal, {
+                            type: 'line',
+                            data: {
+                                labels: monthlyLabels,
+                                datasets: [
+                                    {
+                                        label: 'Kontribusi Pelatih',
+                                        data: coachData,
+                                        borderColor: 'rgba(75, 192, 75, 1)',
+                                        backgroundColor: 'rgba(75, 192, 75, 0.1)',
+                                        borderWidth: 2,
+                                        fill: true,
+                                        tension: 0.4,
+                                        pointRadius: 5,
+                                        pointBackgroundColor: 'rgba(75, 192, 75, 1)',
+                                        pointBorderColor: '#fff',
+                                        pointBorderWidth: 2,
+                                        pointHoverRadius: 7
+                                    },
+                                    {
+                                        label: 'Kontribusi Komwi',
+                                        data: komwiData,
+                                        borderColor: 'rgba(255, 159, 64, 1)',
+                                        backgroundColor: 'rgba(255, 159, 64, 0.1)',
+                                        borderWidth: 2,
+                                        fill: true,
+                                        tension: 0.4,
+                                        pointRadius: 5,
+                                        pointBackgroundColor: 'rgba(255, 159, 64, 1)',
+                                        pointBorderColor: '#fff',
+                                        pointBorderWidth: 2,
+                                        pointHoverRadius: 7
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: true,
+                                interaction: {
+                                    mode: 'index',
+                                    intersect: false
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: true,
+                                        position: 'top'
+                                    },
+                                    tooltip: {
+                                        enabled: true,
+                                        mode: 'index',
+                                        intersect: false,
+                                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                        titleColor: '#fff',
+                                        bodyColor: '#fff',
+                                        callbacks: {
+                                            label: function(context) {
+                                                let label = context.dataset.label || '';
+                                                if (label) {
+                                                    label += ': ';
+                                                }
+                                                const value = parseInt(context.parsed.y);
+                                                label += value.toLocaleString('id-ID');
+                                                return label;
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        title: {
+                                            display: true,
+                                            text: 'Total Kontribusi'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    } catch(e) {
+                        console.error('Monthly contributions chart initialization error:', e);
+                    }
+                }
+            @endif
+
+            // Initialize Total Contributions Chart
+            @if(!empty($totalMonthlyContributions) && count($totalMonthlyContributions) > 0)
+                var totalCtx = document.getElementById('totalContributionsChart');
+                if (totalCtx && typeof Chart !== 'undefined') {
+                    var totalCtxReal = totalCtx.getContext('2d');
+                    var totalData = @json($totalMonthlyContributions);
+                    
+                    var totalLabels = totalData.map(item => {
+                        const [year, month] = item.month.split('-');
+                        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                        return monthNames[parseInt(month) - 1] + ' ' + year;
+                    });
+                    
+                    var totalContributionData = totalData.map(item => parseFloat(item.total_contribution).toFixed(0));
+                    
+                    try {
+                        var totalContributionsChart = new Chart(totalCtxReal, {
+                            type: 'line',
+                            data: {
+                                labels: totalLabels,
+                                datasets: [{
+                                    label: 'Total Kontribusi',
+                                    data: totalContributionData,
+                                    borderColor: 'rgba(153, 102, 255, 1)',
+                                    backgroundColor: 'rgba(153, 102, 255, 0.1)',
+                                    borderWidth: 2,
+                                    fill: true,
+                                    tension: 0.4,
+                                    pointRadius: 5,
+                                    pointBackgroundColor: 'rgba(153, 102, 255, 1)',
+                                    pointBorderColor: '#fff',
+                                    pointBorderWidth: 2,
+                                    pointHoverRadius: 7
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: true,
+                                interaction: {
+                                    mode: 'index',
+                                    intersect: false
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: true,
+                                        position: 'top'
+                                    },
+                                    tooltip: {
+                                        enabled: true,
+                                        mode: 'index',
+                                        intersect: false,
+                                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                        titleColor: '#fff',
+                                        bodyColor: '#fff',
+                                        callbacks: {
+                                            label: function(context) {
+                                                let label = context.dataset.label || '';
+                                                if (label) {
+                                                    label += ': ';
+                                                }
+                                                const value = parseInt(context.parsed.y);
+                                                label += value.toLocaleString('id-ID');
+                                                return label;
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        title: {
+                                            display: true,
+                                            text: 'Total Kontribusi'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    } catch(e) {
+                        console.error('Total contributions chart initialization error:', e);
+                    }
+                }
+            @endif
+        });
+    </script>
 @endsection
