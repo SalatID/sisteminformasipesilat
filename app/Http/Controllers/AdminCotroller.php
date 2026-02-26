@@ -324,8 +324,7 @@ class AdminCotroller extends Controller
             ORDER BY m.periode ASC"
         );
 
-        // Monthly contributions - Coach and Komwi (last 6 months with zero fill)
-        $sixMonthsAgoPeriod = Carbon::now()->subMonths(6)->format('Y-m');
+        // Monthly contributions - Coach and Komwil (last 6 months with zero fill)
         $monthlyContributions = DB::select(
             "WITH RECURSIVE months AS (
                 SELECT DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 5 MONTH), '%Y-%m') as periode
@@ -336,8 +335,8 @@ class AdminCotroller extends Controller
             )
             SELECT 
                 m.periode as month,
-                COALESCE(SUM(CASE WHEN ts.ts_seq > 4 THEN cd.total ELSE 0 END), 0) as coach_contribution,
-                COALESCE(SUM(CASE WHEN ts.ts_seq <= 4 THEN cd.total ELSE 0 END), 0) as komwi_contribution
+                COALESCE(SUM(cn.pj_share), 0) as coach_contribution,
+                COALESCE(SUM(CASE WHEN ts.ts_seq <= 4 THEN cd.total ELSE 0 END), 0) as komwil_contribution
             FROM months m
             LEFT JOIN contributions cn ON cn.periode = m.periode AND cn.deleted_at IS NULL
             LEFT JOIN contribution_details cd ON cd.contribution_id = cn.id AND cd.deleted_at IS NULL

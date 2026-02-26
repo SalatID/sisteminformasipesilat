@@ -491,7 +491,7 @@
                         <div class="card shadow-sm h-100">
                             <div class="card-header bg-success d-flex justify-content-between align-items-center">
                                 <div>
-                                    <div class="fw-semibold">Kontribusi Bulanan - Pelatih & Komwi</div>
+                                    <div class="fw-semibold">Kontribusi Bulanan - Pelatih & Komwil</div>
                                 </div>
                             </div>
                             <div class="card-body">
@@ -755,7 +755,7 @@
                     });
                     
                     var coachData = monthlyData.map(item => parseFloat(item.coach_contribution).toFixed(0));
-                    var komwiData = monthlyData.map(item => parseFloat(item.komwi_contribution).toFixed(0));
+                    var komwilData = monthlyData.map(item => parseFloat(item.komwil_contribution).toFixed(0));
                     
                     try {
                         var monthlyContributionsChart = new Chart(monthlyCtxReal, {
@@ -779,7 +779,7 @@
                                     },
                                     {
                                         label: 'Kontribusi Komwi',
-                                        data: komwiData,
+                                        data: komwilData,
                                         borderColor: 'rgba(255, 159, 64, 1)',
                                         backgroundColor: 'rgba(255, 159, 64, 0.1)',
                                         borderWidth: 2,
