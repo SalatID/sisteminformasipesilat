@@ -336,7 +336,7 @@ class AdminCotroller extends Controller
             SELECT 
                 m.periode as month,
                 COALESCE(SUM(cn.pj_share), 0) as coach_contribution,
-                COALESCE(SUM(CASE WHEN ts.ts_seq <= 4 THEN cd.total ELSE 0 END), 0) as komwil_contribution
+                COALESCE(SUM(cn.kas_share + cn.saving_share), 0) as komwil_contribution
             FROM months m
             LEFT JOIN contributions cn ON cn.periode = m.periode AND cn.deleted_at IS NULL
             LEFT JOIN contribution_details cd ON cd.contribution_id = cn.id AND cd.deleted_at IS NULL

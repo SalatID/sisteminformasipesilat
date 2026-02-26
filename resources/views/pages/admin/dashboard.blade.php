@@ -5,6 +5,25 @@
         <li class="breadcrumb-item active">Dashboard</li>
     </ol>
 @endsection
+
+<style>
+    .chart-container {
+        position: relative;
+        height: 400px;
+        margin-bottom: 1rem;
+    }
+    
+    @media (min-width: 992px) {
+        .chart-container {
+            height: 350px;
+        }
+    }
+    
+    .chart-container canvas {
+        max-height: 100% !important;
+    }
+</style>
+
 @section('content')
 
 
@@ -125,7 +144,9 @@
                                 </div>
                             </div>
                             <div class="card-body">
-                                <canvas id="unitMembersChart" height="80"></canvas>
+                                <div class="chart-container">
+                                    <canvas id="unitMembersChart"></canvas>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -500,7 +521,9 @@
                                 </div>
                             </div>
                             <div class="card-body">
-                                <canvas id="monthlyContributionsChart" height="80"></canvas>
+                                <div class="chart-container">
+                                    <canvas id="monthlyContributionsChart"></canvas>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -514,7 +537,9 @@
                                 </div>
                             </div>
                             <div class="card-body">
-                                <canvas id="totalContributionsChart" height="80"></canvas>
+                                <div class="chart-container">
+                                    <canvas id="totalContributionsChart"></canvas>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -710,7 +735,7 @@
                             },
                             options: {
                                 responsive: true,
-                                maintainAspectRatio: true,
+                                maintainAspectRatio: false,
                                 interaction: {
                                     mode: 'index',
                                     intersect: false
@@ -726,7 +751,18 @@
                                         intersect: false,
                                         backgroundColor: 'rgba(0, 0, 0, 0.8)',
                                         titleColor: '#fff',
-                                        bodyColor: '#fff'
+                                        bodyColor: '#fff',
+                                        callbacks: {
+                                            label: function(context) {
+                                                let label = context.dataset.label || '';
+                                                if (label) {
+                                                    label += ': ';
+                                                }
+                                                const value = parseInt(context.parsed.y);
+                                                label += value.toLocaleString('id-ID');
+                                                return label;
+                                            }
+                                        }
                                     }
                                 },
                                 scales: {
@@ -735,6 +771,11 @@
                                         title: {
                                             display: true,
                                             text: 'Jumlah Anggota'
+                                        },
+                                        ticks: {
+                                            callback: function(value) {
+                                                return parseInt(value).toLocaleString('id-ID');
+                                            }
                                         }
                                     }
                                 }
@@ -800,7 +841,7 @@
                             },
                             options: {
                                 responsive: true,
-                                maintainAspectRatio: true,
+                                maintainAspectRatio: false,
                                 interaction: {
                                     mode: 'index',
                                     intersect: false
@@ -836,6 +877,11 @@
                                         title: {
                                             display: true,
                                             text: 'Total Kontribusi'
+                                        },
+                                        ticks: {
+                                            callback: function(value) {
+                                                return parseInt(value).toLocaleString('id-ID');
+                                            }
                                         }
                                     }
                                 }
@@ -884,7 +930,7 @@
                             },
                             options: {
                                 responsive: true,
-                                maintainAspectRatio: true,
+                                maintainAspectRatio: false,
                                 interaction: {
                                     mode: 'index',
                                     intersect: false
@@ -920,6 +966,11 @@
                                         title: {
                                             display: true,
                                             text: 'Total Kontribusi'
+                                        },
+                                        ticks: {
+                                            callback: function(value) {
+                                                return parseInt(value).toLocaleString('id-ID');
+                                            }
                                         }
                                     }
                                 }
