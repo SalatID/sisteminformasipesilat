@@ -339,9 +339,6 @@ class AdminCotroller extends Controller
                 COALESCE(SUM(cn.kas_share + cn.saving_share), 0) as komwil_contribution
             FROM months m
             LEFT JOIN contributions cn ON cn.periode = m.periode AND cn.deleted_at IS NULL
-            LEFT JOIN contribution_details cd ON cd.contribution_id = cn.id AND cd.deleted_at IS NULL
-            LEFT JOIN coachs c ON c.id = cd.coach_id
-            LEFT JOIN ts ON ts.id = c.ts_id
             GROUP BY m.periode
             ORDER BY m.periode ASC"
         );
