@@ -8,7 +8,7 @@
 @section('content')
 
 
-    <div class="container-fluid py-3">
+    <div class="container-fluid py-3" id="dashboardContent">
 
         {{-- Header + Filter --}}
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
@@ -99,14 +99,19 @@
         </div>
 
         {{-- 8 Cards: Top 10 (tabbed) --}}
-        <ul class="nav nav-tabs mb-3" id="dashboardTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="absensi-tab" data-toggle="tab" data-target="#absensi" type="button" role="tab" aria-controls="absensi" aria-selected="true">Absensi</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="kontribusi-tab" data-toggle="tab" data-target="#kontribusi" type="button" role="tab" aria-controls="kontribusi" aria-selected="false">Kontribusi</button>
-            </li>
-        </ul>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <ul class="nav nav-tabs" id="dashboardTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="absensi-tab" data-toggle="tab" data-target="#absensi" type="button" role="tab" aria-controls="absensi" aria-selected="true">Absensi</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="kontribusi-tab" data-toggle="tab" data-target="#kontribusi" type="button" role="tab" aria-controls="kontribusi" aria-selected="false">Kontribusi</button>
+                </li>
+            </ul>
+            <button type="button" class="btn btn-success btn-sm" id="exportTabBtn">
+                <i class="fa fa-download"></i> Export to Image
+            </button>
+        </div>
 
         <div class="tab-content" id="dashboardTabsContent">
             <div class="tab-pane fade show active" id="absensi" role="tabpanel" aria-labelledby="absensi-tab">
@@ -925,6 +930,66 @@
                     }
                 }
             @endif
+
+            // Export current screen to image
+            document.getElementById('exportTabBtn').addEventListener('click', function() {
+                const dashboardContent = document.getElementById('dashboardContent');
+                if (!dashboardContent) {
+                    alert('Dashboard content not found');
+                    return;
+                }
+
+                const btn = this;
+                btn.style.display = 'none';
+
+                // Dynamically load html2canvas
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+                script.onload = function() {
+                    // Set fixed width for consistent export
+                    const originalWidth = dashboardContent.style.width;
+                    const originalOverflow = dashboardContent.style.overflow;
+                    const originalMaxWidth = dashboardContent.style.maxWidth;
+                    
+                    dashboardContent.style.width = '1800px';
+                    dashboardContent.style.maxWidth = '1800px';
+                    dashboardContent.style.overflow = 'visible';
+
+                    html2canvas(dashboardContent, {
+                        allowTaint: true,
+                        useCORS: true,
+                        scale: 2,
+                        logging: false,
+                        backgroundColor: '#ffffff',
+                        windowWidth: 1800,
+                        windowHeight: document.documentElement.scrollHeight
+                    }).then(canvas => {
+                        // Restore original styles
+                        dashboardContent.style.width = originalWidth;
+                        dashboardContent.style.maxWidth = originalMaxWidth;
+                        dashboardContent.style.overflow = originalOverflow;
+
+                        const link = document.createElement('a');
+                        const timestamp = new Date().toLocaleString('id-ID').replace(/[:\s/]/g, '-');
+                        link.href = canvas.toDataURL('image/png');
+                        link.download = `Dashboard-${timestamp}.png`;
+                        link.click();
+                        
+                        btn.style.display = 'block';
+                    }).catch(err => {
+                        // Restore original styles on error
+                        dashboardContent.style.width = originalWidth;
+                        dashboardContent.style.maxWidth = originalMaxWidth;
+                        dashboardContent.style.overflow = originalOverflow;
+
+                        console.error('Export error:', err);
+                        alert('Failed to export image');
+                        btn.style.display = 'block';
+                    });
+                };
+                document.head.appendChild(script);
+            });
         });
     </script>
 @endsection
+
