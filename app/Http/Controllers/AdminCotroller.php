@@ -317,7 +317,9 @@ class AdminCotroller extends Controller
             'topAssCoachesUnit' => $topAssCoachesUnit,
             'topAssCoachesAlmaka' => $topAssCoachesAlmaka,
             'topContributionGreatestResults' => $topContributionGreatestResults,
-            'topContributionLowestResults' => $topContributionLowestResults
+            'topContributionLowestResults' => $topContributionLowestResults,
+            'topAssistantContributionGreatestResults' => $topAssistantContributionGreatestResults,
+            'topAssistantContributionLowestResults' => $topAssistantContributionLowestResults
         ]);
     }
     public function index(){
