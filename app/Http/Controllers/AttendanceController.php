@@ -183,22 +183,13 @@ class AttendanceController extends Controller
             $unitId = $attendance->unit_id;
             $date = Carbon::parse($attendance->attendance_date);
             
-            // Calculate week number: Week 1 = 1-3 Jan, Week 2 = 4-10 Jan, etc.
-            // Get the day of month (1-31)
+            // Calculate week number using weeks that start on Sunday.
+            // Week 1 = first Sunday..first Saturday, Week 2 = next Sunday..Saturday, etc.
             $dayOfMonth = $date->day;
-            
-            // Week 1: days 1-3, Week 2: days 4-10, Week 3: days 11-17, Week 4: days 18-24, Week 5: days 25-31
-            if ($dayOfMonth <= 3) {
-                $week = 1;
-            } elseif ($dayOfMonth <= 10) {
-                $week = 2;
-            } elseif ($dayOfMonth <= 17) {
-                $week = 3;
-            } elseif ($dayOfMonth <= 24) {
-                $week = 4;
-            } else {
-                $week = 5;
-            }
+            $firstDayOfMonthDow = $startDate->dayOfWeek; // 0 = Sunday
+            $week = (int) floor((($dayOfMonth + $firstDayOfMonthDow - 1) / 7)) + 1;
+            if ($week < 1) $week = 1;
+            if ($week > 5) $week = 5;
 
             // Store attendance data for view formatting (support multiple per week)
             if (!isset($report[$unitId])) {
@@ -212,18 +203,10 @@ class AttendanceController extends Controller
         $currentWeek = 0;
         
         if ($year == $currentDate->year && $month == $currentDate->month) {
-            $dayOfMonth = $currentDate->day;
-            if ($dayOfMonth <= 3) {
-                $currentWeek = 1;
-            } elseif ($dayOfMonth <= 10) {
-                $currentWeek = 2;
-            } elseif ($dayOfMonth <= 17) {
-                $currentWeek = 3;
-            } elseif ($dayOfMonth <= 24) {
-                $currentWeek = 4;
-            } else {
-                $currentWeek = 5;
-            }
+            $firstDayOfMonthDow = $startDate->dayOfWeek; // 0 = Sunday
+            $currentWeek = (int) floor((($currentDate->day + $firstDayOfMonthDow - 1) / 7)) + 1;
+            if ($currentWeek < 1) $currentWeek = 1;
+            if ($currentWeek > 5) $currentWeek = 5;
         } elseif ($year < $currentDate->year || ($year == $currentDate->year && $month < $currentDate->month)) {
             // Past month, all weeks have passed
             $currentWeek = 5;
@@ -323,19 +306,11 @@ class AttendanceController extends Controller
             foreach ($attendances as $attendance) {
                 $date = Carbon::parse($attendance->attendance_date);
                 $dayOfMonth = $date->day;
-                
-                // Calculate week number
-                if ($dayOfMonth <= 3) {
-                    $week = 1;
-                } elseif ($dayOfMonth <= 10) {
-                    $week = 2;
-                } elseif ($dayOfMonth <= 17) {
-                    $week = 3;
-                } elseif ($dayOfMonth <= 24) {
-                    $week = 4;
-                } else {
-                    $week = 5;
-                }
+                // Weeks starting on Sunday
+                $firstDayOfMonthDow = $startDate->dayOfWeek; // 0 = Sunday
+                $week = (int) floor((($dayOfMonth + $firstDayOfMonthDow - 1) / 7)) + 1;
+                if ($week < 1) $week = 1;
+                if ($week > 5) $week = 5;
 
                 $isTraining = $attendance->attendance_status == 'training';
                 
@@ -584,20 +559,12 @@ class AttendanceController extends Controller
                 // Build weeks data from attendances
                 $weeks = [1 => [], 2 => [], 3 => [], 4 => [], 5 => []];
                 foreach ($attendances as $attendance) {
-                    $date = Carbon::parse($attendance->attendance_date);
-                    $dayOfMonth = $date->day;
-                    
-                    if ($dayOfMonth <= 3) {
-                        $week = 1;
-                    } elseif ($dayOfMonth <= 10) {
-                        $week = 2;
-                    } elseif ($dayOfMonth <= 17) {
-                        $week = 3;
-                    } elseif ($dayOfMonth <= 24) {
-                        $week = 4;
-                    } else {
-                        $week = 5;
-                    }
+                        $date = Carbon::parse($attendance->attendance_date);
+                        $dayOfMonth = $date->day;
+                        $firstDayOfMonthDow = $startDate->dayOfWeek; // 0 = Sunday
+                        $week = (int) floor((($dayOfMonth + $firstDayOfMonthDow - 1) / 7)) + 1;
+                        if ($week < 1) $week = 1;
+                        if ($week > 5) $week = 5;
 
                     $isTraining = $attendance->attendance_status == 'training';
                     
@@ -683,19 +650,10 @@ class AttendanceController extends Controller
         foreach ($attendances as $attendance) {
             $date = Carbon::parse($attendance->attendance_date);
             $dayOfMonth = $date->day;
-            
-            // Calculate week number
-            if ($dayOfMonth <= 3) {
-                $week = 1;
-            } elseif ($dayOfMonth <= 10) {
-                $week = 2;
-            } elseif ($dayOfMonth <= 17) {
-                $week = 3;
-            } elseif ($dayOfMonth <= 24) {
-                $week = 4;
-            } else {
-                $week = 5;
-            }
+            $firstDayOfMonthDow = $startDate->dayOfWeek; // 0 = Sunday
+            $week = (int) floor((($dayOfMonth + $firstDayOfMonthDow - 1) / 7)) + 1;
+            if ($week < 1) $week = 1;
+            if ($week > 5) $week = 5;
 
             $isTraining = $attendance->attendance_status == 'training';
             
