@@ -110,8 +110,24 @@
                 <div class="card-body" >
                     <!-- Header -->
                     <div class="mb-4">
-                        <h4><strong>Bulan:</strong> {{ \Carbon\Carbon::create()->month($month)->locale('id')->translatedFormat('F') }} {{ $year }}</h4>
-                        <h4><strong>Unit:</strong> {{ $unit->name }}</h4>
+                        <h3 class="text-center mb-0"><strong>Tanda Terima Kontribusi</strong></h3>
+                        <div class="row">
+
+                            <div class="col-md-6">
+                                <h4><strong>Bulan:</strong> {{ \Carbon\Carbon::create()->month($month)->locale('id')->translatedFormat('F') }} {{ $year }}</h4>
+                                <h4><strong>Unit:</strong> {{ $unit->name }}</h4>
+                            </div>
+                            <div class="col-md-6 text-right">
+                                <h4><strong>Tanggal Hitung:</strong> {{ isset($existingContribution) && $existingContribution ? $existingContribution->created_at->locale('id')->translatedFormat('d F Y') : \Carbon\Carbon::now()->locale('id')->translatedFormat('d F Y') }}</h4>
+                                @if(isset($createdAtComparison) && $createdAtComparison)
+                                    <p class="mb-0 mt-2">
+                                        <span class="badge h1 {{ $createdAtComparison['is_faster'] ? 'bg-success' : 'bg-warning' }}">
+                                            {{ $createdAtComparison['label'] }}
+                                        </span>
+                                    </p>
+                                @endif
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Attendance Table -->

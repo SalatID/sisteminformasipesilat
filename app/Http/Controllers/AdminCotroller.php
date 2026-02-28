@@ -249,7 +249,7 @@ class AdminCotroller extends Controller
             JOIN ts ON c.ts_id = ts.id
             LEFT JOIN contribution_details cd ON cd.coach_id = c.id AND cd.deleted_at IS NULL
             LEFT JOIN contributions cn ON cn.id = cd.contribution_id AND cn.periode BETWEEN ? AND ? AND cn.deleted_at IS NULL
-             WHERE cn.periode BETWEEN ? AND ? 
+             WHERE cn.periode BETWEEN ? AND ? AND ts.ts_seq > 4
             GROUP BY c.id, c.name, ts.alias, ts.ts_seq
             HAVING COALESCE(SUM(cd.total), 0) > 0
             ORDER BY total_contribution DESC
@@ -265,13 +265,105 @@ class AdminCotroller extends Controller
             JOIN ts ON c.ts_id = ts.id
             LEFT JOIN contribution_details cd ON cd.coach_id = c.id AND cd.deleted_at IS NULL
             LEFT JOIN contributions cn ON cn.id = cd.contribution_id AND cn.periode BETWEEN ? AND ? AND cn.deleted_at IS NULL
-            WHERE cn.periode BETWEEN ? AND ? 
+            WHERE cn.periode BETWEEN ? AND ? AND ts.ts_seq > 4
             GROUP BY c.id, c.name, ts.alias, ts.ts_seq
             HAVING COALESCE(SUM(cd.total), 0) > 0
             ORDER BY total_contribution ASC
             LIMIT 10",
             [$startPeriod, $endPeriod, $startPeriod, $endPeriod]
         );
+
+        $topAssistantContributionGreatestResults = DB::select(
+            "SELECT c.id AS coach_id, c.name AS nama_pelatih, ts.alias AS tingkatan_sabuk, ts.ts_seq,
+                    COALESCE(SUM(cd.total), 0) AS total_contribution
+            FROM coachs c
+            JOIN ts ON c.ts_id = ts.id
+            LEFT JOIN contribution_details cd ON cd.coach_id = c.id AND cd.deleted_at IS NULL
+            LEFT JOIN contributions cn ON cn.id = cd.contribution_id AND cn.periode BETWEEN ? AND ? AND cn.deleted_at IS NULL
+             WHERE cn.periode BETWEEN ? AND ? AND ts.ts_seq <= 4
+            GROUP BY c.id, c.name, ts.alias, ts.ts_seq
+            HAVING COALESCE(SUM(cd.total), 0) > 0
+            ORDER BY total_contribution DESC
+            LIMIT 10",
+            [$startPeriod, $endPeriod, $startPeriod, $endPeriod]
+        );
+
+        // Top 10 Lowest Contributions (excluding zero)
+        $topAssistantContributionLowestResults = DB::select(
+            "SELECT c.id AS coach_id, c.name AS nama_pelatih, ts.alias AS tingkatan_sabuk, ts.ts_seq,
+                    COALESCE(SUM(cd.total), 0) AS total_contribution
+            FROM coachs c
+            JOIN ts ON c.ts_id = ts.id
+            LEFT JOIN contribution_details cd ON cd.coach_id = c.id AND cd.deleted_at IS NULL
+            LEFT JOIN contributions cn ON cn.id = cd.contribution_id AND cn.periode BETWEEN ? AND ? AND cn.deleted_at IS NULL
+            WHERE cn.periode BETWEEN ? AND ? AND ts.ts_seq <= 4
+            GROUP BY c.id, c.name, ts.alias, ts.ts_seq
+            HAVING COALESCE(SUM(cd.total), 0) > 0
+            ORDER BY total_contribution ASC
+            LIMIT 10",
+            [$startPeriod, $endPeriod, $startPeriod, $endPeriod]
+        );
+
+        // Average unit member monthly - last 6 months with zero fill
+        $unitMembersMonthly = DB::select(
+            "WITH RECURSIVE months AS (
+                SELECT DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 5 MONTH), '%Y-%m') as periode
+                UNION ALL
+                SELECT DATE_FORMAT(DATE_ADD(STR_TO_DATE(CONCAT(periode, '-01'), '%Y-%m-%d'), INTERVAL 1 MONTH), '%Y-%m')
+                FROM months
+                WHERE DATE_ADD(STR_TO_DATE(CONCAT(periode, '-01'), '%Y-%m-%d'), INTERVAL 1 MONTH) <= NOW()
+            )
+            SELECT 
+                m.periode as month,
+                COALESCE(AVG(COALESCE(a.new_member_cnt, 0) + COALESCE(a.old_member_cnt, 0)), 0) as avg_members
+            FROM months m
+            LEFT JOIN attendances a ON DATE_FORMAT(a.attendance_date, '%Y-%m') = m.periode 
+                AND a.deleted_at IS NULL 
+                AND a.attendance_status = 'training'
+            GROUP BY m.periode
+            ORDER BY m.periode ASC"
+        );
+
+        // Monthly contributions - Coach and Komwil (last 6 months with zero fill)
+        $monthlyContributions = DB::select(
+            "WITH RECURSIVE months AS (
+                SELECT DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 5 MONTH), '%Y-%m') as periode
+                UNION ALL
+                SELECT DATE_FORMAT(DATE_ADD(STR_TO_DATE(CONCAT(periode, '-01'), '%Y-%m-%d'), INTERVAL 1 MONTH), '%Y-%m')
+                FROM months
+                WHERE DATE_ADD(STR_TO_DATE(CONCAT(periode, '-01'), '%Y-%m-%d'), INTERVAL 1 MONTH) <= NOW()
+            )
+            SELECT 
+                m.periode as month,
+                COALESCE(SUM(cn.pj_share), 0) as coach_contribution,
+                COALESCE(SUM(cn.kas_share + cn.saving_share), 0) as komwil_contribution
+            FROM months m
+            LEFT JOIN contributions cn ON cn.periode = m.periode AND cn.deleted_at IS NULL
+            GROUP BY m.periode
+            ORDER BY m.periode ASC"
+        );
+
+        // Total monthly contributions (last 6 months with zero fill)
+        $totalMonthlyContributions = DB::select(
+            "WITH RECURSIVE months AS (
+                SELECT DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 5 MONTH), '%Y-%m') as periode
+                UNION ALL
+                SELECT DATE_FORMAT(DATE_ADD(STR_TO_DATE(CONCAT(periode, '-01'), '%Y-%m-%d'), INTERVAL 1 MONTH), '%Y-%m')
+                FROM months
+                WHERE DATE_ADD(STR_TO_DATE(CONCAT(periode, '-01'), '%Y-%m-%d'), INTERVAL 1 MONTH) <= NOW()
+            )
+            SELECT 
+                m.periode as month,
+                COALESCE(SUM(cd.total), 0) as total_contribution
+            FROM months m
+            LEFT JOIN contributions cn ON cn.periode = m.periode AND cn.deleted_at IS NULL
+            LEFT JOIN contribution_details cd ON cd.contribution_id = cn.id AND cd.deleted_at IS NULL
+            GROUP BY m.periode
+            ORDER BY m.periode ASC"
+        );
+
+        // Get average contribution dates for all units
+        $unitAverageContributionDates = $this->getUnitAverageContributionDates();
 
         return view('pages.admin.dashboard', [
             'topCoachesUnit' => $topCoachesUnit,
@@ -286,7 +378,13 @@ class AdminCotroller extends Controller
             'topAssCoachesUnit' => $topAssCoachesUnit,
             'topAssCoachesAlmaka' => $topAssCoachesAlmaka,
             'topContributionGreatestResults' => $topContributionGreatestResults,
-            'topContributionLowestResults' => $topContributionLowestResults
+            'topContributionLowestResults' => $topContributionLowestResults,
+            'topAssistantContributionGreatestResults' => $topAssistantContributionGreatestResults,
+            'topAssistantContributionLowestResults' => $topAssistantContributionLowestResults,
+            'unitMembersMonthly' => $unitMembersMonthly,
+            'monthlyContributions' => $monthlyContributions,
+            'totalMonthlyContributions' => $totalMonthlyContributions,
+            'unitAverageContributionDates' => $unitAverageContributionDates
         ]);
     }
     public function index(){
@@ -309,5 +407,155 @@ class AdminCotroller extends Controller
     }
     public function destroy(){
         
+    }
+
+    private function getUnitAverageContributionDates()
+    {
+        // Get all units
+        $units = \App\Models\Unit::orderBy('name')->get();
+        $result = [];
+
+        // Get previous month periode
+        $previousMonth = Carbon::now()->subMonth();
+        $previousPeriode = $previousMonth->format('Y-m');
+
+        foreach ($units as $unit) {
+            // Get current year and month
+            $currentYear = Carbon::now()->year;
+            $currentMonth = Carbon::now()->month;
+            $currentPeriode = sprintf('%04d-%02d', $currentYear, $currentMonth);
+
+            // Check if previous month contribution exists
+            $previousContributionExists = \App\Models\Contribution::where('unit_id', $unit->id)
+                ->where('periode', $previousPeriode)
+                ->exists();
+
+            // Get 6 months back
+            $sixMonthsAgo = Carbon::now()->subMonths(6);
+            $sixMonthsAgoPeriode = $sixMonthsAgo->format('Y-m');
+
+            // Get past contributions (excluding current period)
+            $pastContributions = \App\Models\Contribution::where('unit_id', $unit->id)
+                ->where('periode', '!=', $currentPeriode)
+                ->whereBetween('periode', [
+                    $sixMonthsAgoPeriode,
+                    $previousPeriode
+                ])
+                ->get();
+
+            if ($pastContributions->isEmpty()) {
+                // No historical data - show with "Belum Ada Data Kontribusi" label
+                $comparisonLabel = "Belum Ada Data Kontribsi Sama Sekali";
+                $comparisonClass = 'badge bg-info';
+                $displayCreatedDate = null;
+                $averageDay = null;
+                $monthName = null;
+                
+                $result[] = [
+                    'unit_id' => $unit->id,
+                    'unit_name' => $unit->name,
+                    'average_day' => $averageDay,
+                    'month_name' => $monthName,
+                    'previous_period_exists' => $previousContributionExists,
+                    'comparison_label' => $comparisonLabel,
+                    'comparison_class' => $comparisonClass,
+                    'display_created_date' => $displayCreatedDate
+                ];
+                continue;
+            }
+
+            // Collect day of month from created_at dates
+            $createdDays = [];
+            foreach ($pastContributions as $contribution) {
+                $createdDate = Carbon::parse($contribution->created_at);
+                $day = $createdDate->day;
+                $createdDays[] = $day;
+            }
+
+            // Calculate average day
+            $averageDay = round(array_sum($createdDays) / count($createdDays));
+
+            // Get month name for average day (using current month as reference)
+            $monthName = Carbon::now()->locale('id')->translatedFormat('F');
+
+            // Get previous month contribution for comparison
+            $previousContribution = \App\Models\Contribution::where('unit_id', $unit->id)
+                ->where('periode', $previousPeriode)
+                ->first();
+
+            $comparisonLabel = '';
+            $comparisonClass = '';
+
+            if ($previousContributionExists && $previousContribution) {
+                // Compare from previous month's created_at
+                $previousDay = Carbon::parse($previousContribution->created_at)->day;
+                $daysDifference = abs($previousDay - $averageDay);
+
+                if ($previousDay < $averageDay) {
+                    $comparisonLabel = "Lebih Cepat {$daysDifference} Hari";
+                    $comparisonClass = 'badge bg-success';
+                } else {
+                    $comparisonLabel = "Terlambat {$daysDifference} Hari";
+                    $comparisonClass = 'badge bg-warning text-dark';
+                }
+            } else {
+                // Check if there were any training sessions in previous period
+                $previousMonthStart = $previousMonth->copy()->startOfMonth()->toDateString();
+                $previousMonthEnd = $previousMonth->copy()->endOfMonth()->toDateString();
+                
+                $trainingCount = \App\Models\Attendance::where('unit_id', $unit->id)
+                    ->where('attendance_status', 'training')
+                    ->whereBetween('attendance_date', [$previousMonthStart, $previousMonthEnd])
+                    ->whereNull('deleted_at')
+                    ->count();
+                
+                if ($trainingCount == 0) {
+                    // No training sessions in previous month
+                    $comparisonLabel = "Tidak Ada Latihan";
+                    $comparisonClass = 'badge bg-danger';
+                } else {
+                    // Previous period doesn't exist but there are training sessions
+                    // Compare from current date instead
+                    $currentDay = Carbon::now()->day;
+                    $daysDifference = abs($currentDay - $averageDay);
+
+                    $comparisonLabel = "Periode Terakhir Belum Dihitung";
+                    
+                    if ($currentDay < $averageDay) {
+                        $comparisonLabel .= ", Lebih Cepat {$daysDifference} Hari";
+                        $comparisonClass = 'badge bg-secondary';
+                    } else {
+                        $comparisonLabel .= ", Terlambat {$daysDifference} Hari";
+                        $comparisonClass = 'badge bg-secondary';
+                    }
+                }
+            }
+
+            // Get created_at date for display (use previous contribution's created_at or current date)
+            $displayCreatedDate = $previousContribution 
+                ? $previousContribution->created_at->locale('id')->translatedFormat('d F Y')
+                : null;
+
+            $result[] = [
+                'unit_id' => $unit->id,
+                'unit_name' => $unit->name,
+                'average_day' => $averageDay,
+                'month_name' => $monthName,
+                'previous_period_exists' => $previousContributionExists,
+                'comparison_label' => $comparisonLabel,
+                'comparison_class' => $comparisonClass,
+                'display_created_date' => $displayCreatedDate
+            ];
+        }
+        // dd($result);
+
+        // Convert periode to Indonesian format (e.g., "2026-01" to "Januari 2026")
+        $periodeCarbon = Carbon::createFromFormat('Y-m', $previousPeriode);
+        $periodeFormatted = $periodeCarbon->locale('id')->translatedFormat('F Y');
+
+        return [
+            "periode" => $periodeFormatted,
+            "data" => $result
+        ];
     }
 }
