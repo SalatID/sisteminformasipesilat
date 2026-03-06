@@ -8,6 +8,34 @@
 @endsection
 @section('content')
     @if(auth()->user()->hasRole('super-admin') || (!($existingContribution->is_transfer ?? false) && ($existingContribution->created_by ?? auth()->user()->id) == auth()->user()->id))
+    <!-- Alert Messages -->
+    @if($errors->any())
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="alert alert-danger alert-dismissible fade show">
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    <h4 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Validasi Error</h4>
+                    <ul class="mb-0">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if(session('message'))
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="alert alert-{{ session('error') ? 'danger' : 'success' }} alert-dismissible fade show">
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    <i class="fas fa-{{ session('error') ? 'times-circle' : 'check-circle' }}"></i> {{ session('message') }}
+                </div>
+            </div>
+        </div>
+    @endif
+
     <!-- Filter Section -->
     <div class="row mb-4">
         <div class="col-12">
@@ -18,7 +46,7 @@
                         <div class="row">
                             <div class="col-md-2 mb-3">
                                 <label for="unit_id" class="form-label">Unit</label>
-                                <select class="form-control" id="unit_id" name="unit_id" required>
+                                <select class="form-control @error('unit_id') is-invalid @enderror" id="unit_id" name="unit_id" required>
                                     <option value="">Pilih Unit</option>
                                     @foreach ($units as $unitItem)
                                         <option value="{{ $unitItem->id }}" {{ request('unit_id') == $unitItem->id ? 'selected' : '' }}>
@@ -26,29 +54,44 @@
                                         </option>
                                     @endforeach
                                 </select>
+                                @error('unit_id')
+                                    <div class="invalid-feedback d-block">
+                                        <i class="fas fa-exclamation-circle"></i> {{ $message }}
+                                    </div>
+                                @enderror
                             </div>
                             <div class="col-md-2 mb-3">
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label for="month" class="form-label">Bulan</label>
-                                        <select class="form-control" id="month" name="month" required>
+                                        <select class="form-control @error('month') is-invalid @enderror" id="month" name="month" required>
                                             @for ($m = 1; $m <= 12; $m++)
                                                 <option value="{{ $m }}" {{ $month == $m ? 'selected' : '' }}>
                                                     {{ \Carbon\Carbon::create()->month($m)->format('F') }}
                                                 </option>
                                             @endfor
                                         </select>
+                                        @error('month')
+                                            <div class="invalid-feedback d-block">
+                                                <i class="fas fa-exclamation-circle"></i> {{ $message }}
+                                            </div>
+                                        @enderror
                                     </div>
 
                                     <div class="col-md-6 mb-3">
                                         <label for="year" class="form-label">Tahun</label>
-                                        <select class="form-control" id="year" name="year" required>
+                                        <select class="form-control @error('year') is-invalid @enderror" id="year" name="year" required>
                                             @for ($y = date('Y') - 2; $y <= date('Y') + 1; $y++)
                                                 <option value="{{ $y }}" {{ $year == $y ? 'selected' : '' }}>
                                                     {{ $y }}
                                                 </option>
                                             @endfor
                                         </select>
+                                        @error('year')
+                                            <div class="invalid-feedback d-block">
+                                                <i class="fas fa-exclamation-circle"></i> {{ $message }}
+                                            </div>
+                                        @enderror
                                     </div>
                                 </div>
 
@@ -56,14 +99,24 @@
                             
                             <div class="col-md-2 mb-3">
                                 <label for="contribution_amount" class="form-label">Uang Kontribusi</label>
-                                <input type="number" class="form-control" id="contribution_amount" name="contribution_amount" value="{{ request('contribution_amount') ?? $contributionAmount }}" required>
+                                <input type="number" class="form-control @error('contribution_amount') is-invalid @enderror" id="contribution_amount" name="contribution_amount" value="{{ request('contribution_amount') ?? $contributionAmount }}" required>
+                                @error('contribution_amount')
+                                    <div class="invalid-feedback d-block">
+                                        <i class="fas fa-exclamation-circle"></i> {{ $message }}
+                                    </div>
+                                @enderror
                             </div>
 
                             <!-- Image Upload Field -->
                             <div class="col-md-3 mb-3">
                                 <label for="contribution_receipt_img" class="form-label">Tanda Terima Kontribusi</label>
-                                <input type="file" class="form-control" id="contribution_receipt_img" name="contribution_receipt_img" accept="image/*" required>
+                                <input type="file" class="form-control @error('contribution_receipt_img') is-invalid @enderror" id="contribution_receipt_img" name="contribution_receipt_img" accept="image/*" required>
                                 <small class="form-text text-muted">Format: JPG, PNG, GIF (Max: 2MB)</small>
+                                @error('contribution_receipt_img')
+                                    <div class="invalid-feedback d-block">
+                                        <i class="fas fa-exclamation-circle"></i> {{ $message }}
+                                    </div>
+                                @enderror
                             </div>
                             @if(auth()->user()->hasRole('super-admin'))
                             <div class="col-md-2 mb-3">

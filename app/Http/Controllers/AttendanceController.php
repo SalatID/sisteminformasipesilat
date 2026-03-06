@@ -248,7 +248,7 @@ class AttendanceController extends Controller
                 'month' => 'required|integer|min:1|max:12',
                 'year' => 'required|integer',
                 'contribution_amount' => 'required|numeric',
-                'contribution_receipt_img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'contribution_receipt_img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10048',
             ]);
 
             // First, calculate all the data
