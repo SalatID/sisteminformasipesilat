@@ -16,21 +16,27 @@ class Coach extends Model
     protected $fillable = [
         'name',
         'ts_id',
-        'coach_exam_date',
-        'coach_exam_at',
         'created_by',
         'updated_by',
         'deleted_by',
     ];
 
-    protected $casts = [
-        'coach_exam_date' => 'date',
-    ];
+    protected $casts = [];
 
     // Relations
     public function attendanceDetails()
     {
         return $this->hasMany(AttendanceDetail::class);
+    }
+
+    public function contributionDetails()
+    {
+        return $this->hasMany(ContributionDetail::class);
+    }
+
+    public function exams()
+    {
+        return $this->hasMany(Exam::class, 'examinee_id')->where('examinee_type', 'coach');
     }
 
     public function ts()
@@ -41,5 +47,10 @@ class Coach extends Model
     public function coachs()
     {
         return $this->belongsTo(Coach::class);
+    }
+
+    public function users()
+    {
+        return $this->hasMany(User::class, 'coach_id');
     }
 }

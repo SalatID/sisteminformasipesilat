@@ -387,6 +387,320 @@ class AdminCotroller extends Controller
             'unitAverageContributionDates' => $unitAverageContributionDates
         ]);
     }
+    // ===== COACH MANAGEMENT =====
+    public function coachIndex(){
+        $coachs = \App\Models\Coach::with([
+            'ts:id,name,ts_seq',
+            'exams' => function($query) {
+                $query->where('examinee_type', 'coach')
+                      ->whereNull('deleted_at')
+                      ->latest('exam_date')
+                      ->limit(1);
+            },
+            'exams.tsBefore:id,name',
+            'exams.tsAfter:id,name'
+        ])
+            ->join('ts', 'ts.id', '=', 'coachs.ts_id')
+            ->select('coachs.*')
+            ->orderBy('ts.ts_seq', 'desc')
+            ->orderBy('coachs.name', 'asc')
+            ->paginate(15);
+        return view('pages.admin.coach.list', compact('coachs'));
+    }
+
+    public function coachCreate(){
+        $ts_list = \App\Models\Ts::orderBy('ts_seq', 'asc')->get();
+        return view('pages.admin.coach.form', compact('ts_list'));
+    }
+
+    public function coachStore(Request $request){
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'ts_id' => ['required', 'uuid', 'exists:ts,id'],
+        ]);
+
+        $validated['created_by'] = auth()->user()->id;
+
+        if(\App\Models\Coach::create($validated)){
+            return redirect()->route('coach.index')->with([
+                'error' => false,
+                'message' => 'Coach berhasil ditambahkan'
+            ]);
+        }
+
+        return redirect()->back()->with([
+            'error' => true,
+            'message' => 'Gagal menambahkan coach'
+        ])->withInput();
+    }
+
+    public function coachShow(Request $request, $id){
+        $coach = \App\Models\Coach::with([
+            'ts:id,name,ts_seq',
+            'attendanceDetails.attendance:id,attendance_date,attendance_status,unit_id',
+            'attendanceDetails.attendance.unit:id,name',
+            'contributionDetails.contribution:id,periode,unit_id,contribution_amount'
+        ])->find($id);
+
+        if(!$coach){
+            return redirect()->route('coach.index')->with([
+                'error' => true,
+                'message' => 'Coach tidak ditemukan'
+            ]);
+        }
+
+        // Set default date ranges for attendance
+        $now = Carbon::now();
+        $currentMonthStart = $now->clone()->startOfMonth();
+        $currentMonthEnd = $now->clone()->endOfMonth();
+
+        // Get date filter parameters for attendance
+        $attendanceStartDate = $request->get('attendance_start_date', $currentMonthStart->toDateString());
+        $attendanceEndDate = $request->get('attendance_end_date', $currentMonthEnd->toDateString());
+        
+        // Get periode filter parameter for contribution
+        $selectedPeriode = $request->get('contribution_periode', $now->clone()->subMonth()->format('Y-m'));
+
+        // Get attendance history with date filter
+        $attendanceHistory = \App\Models\AttendanceDetail::where('coach_id', $id)
+            ->with('attendance:id,attendance_date,attendance_status,unit_id')
+            ->with('attendance.unit:id,name')
+            ->whereHas('attendance', function($query) use ($attendanceStartDate, $attendanceEndDate) {
+                $query->whereBetween('attendance_date', [$attendanceStartDate, $attendanceEndDate]);
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+
+        // Get contribution history with periode filter
+        $contributionHistory = \App\Models\ContributionDetail::where('coach_id', $id)
+            ->with('contribution:id,periode,unit_id,contribution_amount')
+            ->with('contribution.unit:id,name')
+            ->whereHas('contribution', function($query) use ($selectedPeriode) {
+                $query->where('periode', $selectedPeriode);
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+
+        // Get exam history
+        $examHistory = \App\Models\Exam::where('examinee_type', 'coach')
+            ->where('examinee_id', $id)
+            ->with(['tsBefore:id,name', 'tsAfter:id,name'])
+            ->orderBy('exam_date', 'desc')
+            ->paginate(10);
+
+        // Get TS list for exam form
+        $ts_list = \App\Models\Ts::orderBy('ts_seq', 'asc')->get();
+
+        // Calculate attendance summary for selected date range
+        $attendanceSummary = \App\Models\AttendanceDetail::where('coach_id', $id)
+            ->with('attendance:id,attendance_date,unit_id')
+            ->with('attendance.unit:id,name')
+            ->whereHas('attendance', function($query) use ($attendanceStartDate, $attendanceEndDate) {
+                $query->whereBetween('attendance_date', [$attendanceStartDate, $attendanceEndDate]);
+            })
+            ->get();
+
+        $totalAttendance = $attendanceSummary->count();
+        
+        $attendanceByUnit = $attendanceSummary->groupBy('attendance.unit.name')
+            ->map(function($items) {
+                return $items->count();
+            })
+            ->toArray();
+
+        // Calculate contribution summary
+        $totalContribution = \App\Models\ContributionDetail::where('coach_id', $id)
+            ->with('contribution:id,periode')
+            ->whereHas('contribution', function($query) use ($selectedPeriode) {
+                $query->where('periode', $selectedPeriode);
+            })
+            ->get()
+            ->sum('total');
+
+        // Get available periodes for contribution filter
+        $availablePeriodes = \App\Models\ContributionDetail::where('coach_id', $id)
+            ->with('contribution:id,periode')
+            ->get()
+            ->pluck('contribution.periode')
+            ->unique()
+            ->sort()
+            ->reverse()
+            ->values()
+            ->toArray();
+
+        $filterData = [
+            'attendance_start_date' => $attendanceStartDate,
+            'attendance_end_date' => $attendanceEndDate,
+            'contribution_periode' => $selectedPeriode,
+        ];
+
+        return view('pages.admin.coach.show', compact(
+            'coach', 
+            'attendanceHistory', 
+            'contributionHistory', 
+            'examHistory', 
+            'ts_list', 
+            'filterData',
+            'totalAttendance',
+            'attendanceByUnit',
+            'totalContribution',
+            'availablePeriodes'
+        ));
+    }
+
+    public function coachEdit($id){
+        $coach = \App\Models\Coach::find($id);
+        
+        if(!$coach){
+            return redirect()->route('coach.index')->with([
+                'error' => true,
+                'message' => 'Coach tidak ditemukan'
+            ]);
+        }
+
+        $ts_list = \App\Models\Ts::orderBy('ts_seq', 'asc')->get();
+        
+        // Get exam history for the edit page
+        $exams = \App\Models\Exam::where('examinee_type', 'coach')
+            ->where('examinee_id', $id)
+            ->with(['tsBefore:id,name', 'tsAfter:id,name'])
+            ->orderBy('exam_date', 'desc')
+            ->get();
+        
+        return view('pages.admin.coach.form', compact('coach', 'ts_list', 'exams'));
+    }
+
+    public function coachUpdate(Request $request, $id){
+        $coach = \App\Models\Coach::find($id);
+        
+        if(!$coach){
+            return redirect()->route('coach.index')->with([
+                'error' => true,
+                'message' => 'Coach tidak ditemukan'
+            ]);
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'ts_id' => ['required', 'uuid', 'exists:ts,id'],
+        ]);
+
+        $validated['updated_by'] = auth()->user()->id;
+
+        if($coach->update($validated)){
+            return redirect()->route('coach.index')->with([
+                'error' => false,
+                'message' => 'Coach berhasil diperbarui'
+            ]);
+        }
+
+        return redirect()->back()->with([
+            'error' => true,
+            'message' => 'Gagal memperbarui coach'
+        ])->withInput();
+    }
+
+    public function coachDestroy($id){
+        $coach = \App\Models\Coach::find($id);
+        
+        if(!$coach){
+            return redirect()->route('coach.index')->with([
+                'error' => true,
+                'message' => 'Coach tidak ditemukan'
+            ]);
+        }
+
+        // Check if coach has users associated
+        if($coach->users()->count() > 0){
+            return redirect()->back()->with([
+                'error' => true,
+                'message' => 'Tidak dapat menghapus coach yang masih memiliki pengguna terdaftar'
+            ]);
+        }
+
+        $coach->deleted_by = auth()->user()->id;
+        $coach->save();
+        
+        if($coach->delete()){
+            return redirect()->route('coach.index')->with([
+                'error' => false,
+                'message' => 'Coach berhasil dihapus'
+            ]);
+        }
+
+        return redirect()->back()->with([
+            'error' => true,
+            'message' => 'Gagal menghapus coach'
+        ]);
+    }
+
+    // ===== EXAM MANAGEMENT (for coaches and members) =====
+    public function coachExamStore(Request $request, $coachId){
+        $coach = \App\Models\Coach::find($coachId);
+        
+        if(!$coach){
+            return redirect()->back()->with([
+                'error' => true,
+                'message' => 'Coach tidak ditemukan'
+            ]);
+        }
+
+        $validated = $request->validate([
+            'exam_date' => ['required', 'date'],
+            'exam_end_date' => ['required', 'date', 'after_or_equal:exam_date'],
+            'exam_location' => ['required', 'string', 'max:255'],
+            'organizer' => ['nullable', 'string', 'max:255'],
+            'ts_before' => ['nullable', 'uuid', 'exists:ts,id'],
+            'ts_after' => ['nullable', 'uuid', 'exists:ts,id'],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        $validated['examinee_id'] = $coachId;
+        $validated['examinee_type'] = 'coach';
+        $validated['created_by'] = auth()->user()->id;
+
+        if(\App\Models\Exam::create($validated)){
+            return redirect()->route('coach.show', $coachId)->with([
+                'error' => false,
+                'message' => 'Riwayat ujian berhasil ditambahkan'
+            ]);
+        }
+
+        return redirect()->back()->with([
+            'error' => true,
+            'message' => 'Gagal menambahkan riwayat ujian'
+        ])->withInput();
+    }
+
+    public function coachExamDestroy($coachId, $examId){
+        $exam = \App\Models\Exam::where('id', $examId)
+            ->where('examinee_type', 'coach')
+            ->where('examinee_id', $coachId)
+            ->first();
+        
+        if(!$exam){
+            return redirect()->back()->with([
+                'error' => true,
+                'message' => 'Riwayat ujian tidak ditemukan'
+            ]);
+        }
+
+        $exam->deleted_by = auth()->user()->id;
+        $exam->save();
+        
+        if($exam->delete()){
+            return redirect()->route('coach.show', $coachId)->with([
+                'error' => false,
+                'message' => 'Riwayat ujian berhasil dihapus'
+            ]);
+        }
+
+        return redirect()->back()->with([
+            'error' => true,
+            'message' => 'Gagal menghapus riwayat ujian'
+        ]);
+    }
+
     public function index(){
 
     }

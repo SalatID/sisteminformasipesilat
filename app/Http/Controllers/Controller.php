@@ -183,6 +183,42 @@ class Controller extends BaseController
                     ],
                 ],
             ],
+            [
+                "id"=>"4",
+                "icon"=>"fas fa-users",
+                "name"=>"Manajemen Pesilat",
+                "src"=>"#",
+                "permision"=>["attendance-coach_list","report-attendance-unit_list","report-attendance-percentage_list","receipt-contribution-unit_list"],
+                "children"=>[
+                    [
+                        "icon"=>"fas fa-user",
+                        "name"=>"Anggota",
+                        "permision"=>["member_list"],
+                        "src"=>"member.index"
+                    ],
+                    [
+                        "icon"=>"fas fa-user",
+                        "name"=>"Pelatih",
+                        "permision"=>["coach_list"],
+                        "src"=>"coach.index"
+                    ],
+                ],
+            ],
+            [
+                "id"=>"4",
+                "icon"=>"fas fa-cogs",
+                "name"=>"Master Data",
+                "src"=>"#",
+                "permision"=>["training_center_list"],
+                "children"=>[
+                    [
+                        "icon"=>"fas fa-dumbbell",
+                        "name"=>"Manajemen TC",
+                        "permision"=>["training_center_list"],
+                        "src"=>"training-center.index"
+                    ],
+                ],
+            ],
         ];
         return $menu;
     }

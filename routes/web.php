@@ -4,6 +4,10 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\WebController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminCotroller;
+use App\Http\Controllers\MemberController;
+use App\Http\Controllers\MemberRegistrationController;
+use App\Http\Controllers\TrainingCenterController;
+use App\Http\Controllers\MemberTrainingCenterController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\PermisionController;
 use App\Http\Controllers\RoleController;
@@ -28,6 +32,11 @@ Route::post('/register/newpassword', [UserManagementController::class, 'newPassw
 Route::get('/register/validate/{token}', [UserManagementController::class, 'emailValidation'])->name('email.validation');
 Route::post('/forgot/password', [UserManagementController::class, 'procForgotPassword'])->name('proc.forgot.password');
 Route::get('/forgot/password', [UserManagementController::class, 'forgotPassword'])->name('forgot.password');
+
+// Public Member Registration Routes
+Route::get('/member/register', [MemberRegistrationController::class, 'create'])->name('member.registration.create');
+Route::post('/member/register', [MemberRegistrationController::class, 'store'])->name('member.registration.store');
+Route::get('/member/register/success', [MemberRegistrationController::class, 'success'])->name('member.registration.success');
 
 Route::group(['middleware' => ['auth']], function () {
     Route::get('/dashboard', [AdminCotroller::class, 'dashboard'])->name('dashboard');
@@ -56,7 +65,7 @@ Route::group(['middleware' => ['auth']], function () {
     // Route::post('receipt/contribution-unit/save', [AttendanceController::class, 'saveContributionReceipt'])->name('receipt.contribution.unit.save');
     Route::get('receipt/contribution-history', [AttendanceController::class, 'contributionHistory'])->name('receipt.contribution.history');
     Route::delete('receipt/contribution/{id}', [AttendanceController::class, 'deleteContribution'])->name('receipt.contribution.delete');
-      Route::get('receipt/contribution/approve/{id}', [AttendanceController::class, 'contributionApprove'])->name('receipt.contribution.unit.approve');
+    Route::get('receipt/contribution/approve/{id}', [AttendanceController::class, 'contributionApprove'])->name('receipt.contribution.unit.approve');
 
     Route::resource('users', UserManagementController::class);
     Route::resource('permissions', PermisionController::class);
@@ -71,4 +80,42 @@ Route::group(['middleware' => ['auth']], function () {
         DELETE        /users/{user}               destroy users.destroy
      */
     
+    // Coach Management Routes
+    Route::get('/coach', [AdminCotroller::class, 'coachIndex'])->name('coach.index');
+    Route::get('/coach/create', [AdminCotroller::class, 'coachCreate'])->name('coach.create');
+    Route::post('/coach', [AdminCotroller::class, 'coachStore'])->name('coach.store');
+    Route::get('/coach/{id}', [AdminCotroller::class, 'coachShow'])->name('coach.show');
+    Route::get('/coach/{id}/edit', [AdminCotroller::class, 'coachEdit'])->name('coach.edit');
+    Route::put('/coach/{id}', [AdminCotroller::class, 'coachUpdate'])->name('coach.update');
+    Route::delete('/coach/{id}', [AdminCotroller::class, 'coachDestroy'])->name('coach.destroy');
+    
+    // Coach Exam History Routes
+    Route::post('/coach/{coachId}/exam', [AdminCotroller::class, 'coachExamStore'])->name('coach.exam.store');
+    Route::delete('/coach/{coachId}/exam/{examId}', [AdminCotroller::class, 'coachExamDestroy'])->name('coach.exam.destroy');
+    
+    // Member Management Routes
+    Route::get('/member', [MemberController::class, 'index'])->name('member.index');
+    Route::get('/member/create', [MemberController::class, 'create'])->name('member.create');
+    Route::post('/member', [MemberController::class, 'store'])->name('member.store');
+    Route::get('/member/{id}', [MemberController::class, 'show'])->name('member.show');
+    Route::get('/member/{id}/edit', [MemberController::class, 'edit'])->name('member.edit');
+    Route::put('/member/{id}', [MemberController::class, 'update'])->name('member.update');
+    Route::delete('/member/{id}', [MemberController::class, 'destroy'])->name('member.destroy');
+    
+    // Member Exam History Routes
+    Route::post('/member/{memberId}/exam', [MemberController::class, 'memberExamStore'])->name('member.exam.store');
+    Route::delete('/member/{memberId}/exam/{examId}', [MemberController::class, 'memberExamDestroy'])->name('member.exam.destroy');
+    
+    // Member Registration Approval Routes
+    Route::get('/member/registrations/pending', [MemberController::class, 'pending'])->name('member.registrations.pending');
+    Route::post('/member/registrations/{id}/approve', [MemberController::class, 'approveMember'])->name('member.registration.approve');
+    Route::post('/member/registrations/{id}/reject', [MemberController::class, 'rejectMember'])->name('member.registration.reject');
+    
+    // Training Center Management Routes
+    Route::resource('training-center', TrainingCenterController::class);
+    
+    // Member Training Center Routes
+    Route::post('/member/{memberId}/training-center/attach', [MemberTrainingCenterController::class, 'attach'])->name('member.training-center.attach');
+    Route::delete('/member/{memberId}/training-center/{trainingCenterId}/detach', [MemberTrainingCenterController::class, 'detach'])->name('member.training-center.detach');
+    Route::get('/api/member/{memberId}/available-centers', [MemberTrainingCenterController::class, 'getAvailableCenters']);
 });
