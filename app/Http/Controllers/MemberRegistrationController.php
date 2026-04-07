@@ -75,7 +75,7 @@ class MemberRegistrationController extends Controller
             'picture' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
             'citizen_number' => ['required', 'digits:16', 'unique:members,citizen_number'],
             'family_card_number' => ['required', 'digits:16', 'unique:members,family_card_number'],
-            'bpjs_number' => ['required', 'string', 'max:50', 'unique:members,bpjs_number'],
+            'bpjs_number' => ['nullable', 'string', 'max:50', 'unique:members,bpjs_number'],
             'citizen_img' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
             'family_card_img' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
             'bpjs_img' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
