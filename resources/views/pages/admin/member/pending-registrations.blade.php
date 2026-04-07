@@ -58,8 +58,8 @@
                                         {{ $member->created_at->format('d-m-Y H:i') }}
                                     </td>
                                     <td class="text-center">
-                                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" 
-                                                data-bs-target="#viewModal{{ $member->id }}">
+                                        <button class="btn btn-sm btn-primary" data-toggle="modal" 
+                                                data-target="#viewModal{{ $member->id }}">
                                             <i class="fas fa-eye"></i> Lihat
                                         </button>
                                     </td>
@@ -71,7 +71,7 @@
                                         <div class="modal-content">
                                             <div class="modal-header">
                                                 <h5 class="modal-title">Detail Pendaftaran - {{ $member->name }}</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                <button type="button" class="btn-close" data-dismiss="modal"></button>
                                             </div>
                                             <div class="modal-body">
                                                 <div class="row mb-3">
@@ -137,6 +137,60 @@
 
                                                 <hr>
 
+                                                <!-- Identification Documents -->
+                                                <div class="row mb-3">
+                                                    <div class="col-md-4">
+                                                        <div class="card border-primary">
+                                                            <div class="card-header bg-primary p-2">
+                                                                <h6 class="mb-0 text-white">KTP</h6>
+                                                            </div>
+                                                            <div class="card-body p-2">
+                                                                <small><strong>Nomor KTP:</strong></small>
+                                                                <p class="mb-2" style="font-family: monospace; font-size: 12px;">{{ $member->citizen_number ?? '-' }}</p>
+                                                                @if($member->citizen_img)
+                                                                    <img src="{{ asset($member->citizen_img) }}" alt="KTP" class="img-fluid" style="max-width: 100%; border-radius: 4px;">
+                                                                @else
+                                                                    <small class="text-muted">Belum diupload</small>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <div class="card border-success">
+                                                            <div class="card-header bg-success p-2">
+                                                                <h6 class="mb-0 text-white">Kartu Keluarga</h6>
+                                                            </div>
+                                                            <div class="card-body p-2">
+                                                                <small><strong>Nomor KK:</strong></small>
+                                                                <p class="mb-2" style="font-family: monospace; font-size: 12px;">{{ $member->family_card_number ?? '-' }}</p>
+                                                                @if($member->family_card_img)
+                                                                    <img src="{{ asset($member->family_card_img) }}" alt="Kartu Keluarga" class="img-fluid" style="max-width: 100%; border-radius: 4px;">
+                                                                @else
+                                                                    <small class="text-muted">Belum diupload</small>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <div class="card border-warning">
+                                                            <div class="card-header bg-warning p-2">
+                                                                <h6 class="mb-0">BPJS Kesehatan</h6>
+                                                            </div>
+                                                            <div class="card-body p-2">
+                                                                <small><strong>Nomor BPJS:</strong></small>
+                                                                <p class="mb-2" style="font-family: monospace; font-size: 12px;">{{ $member->bpjs_number ?? '-' }}</p>
+                                                                @if($member->bpjs_img)
+                                                                    <img src="{{ asset($member->bpjs_img) }}" alt="BPJS" class="img-fluid" style="max-width: 100%; border-radius: 4px;">
+                                                                @else
+                                                                    <small class="text-muted">Belum diupload</small>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <hr>
+
                                                 <div class="row mb-3">
                                                     <div class="col-md-12">
                                                         <strong>Tanggal Pendaftaran:</strong>
@@ -154,12 +208,12 @@
                                                 </form>
 
                                                 <!-- Reject Button -->
-                                                <button type="button" class="btn btn-danger" data-bs-toggle="modal" 
-                                                        data-bs-target="#rejectModal{{ $member->id }}">
+                                                <button type="button" class="btn btn-danger" data-toggle="modal" 
+                                                        data-target="#rejectModal{{ $member->id }}">
                                                     <i class="fas fa-times"></i> Tolak
                                                 </button>
 
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">
                                                     Tutup
                                                 </button>
                                             </div>
@@ -173,7 +227,7 @@
                                         <div class="modal-content">
                                             <div class="modal-header">
                                                 <h5 class="modal-title">Tolak Pendaftaran</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                <button type="button" class="btn-close" data-dismiss="modal"></button>
                                             </div>
                                             <form action="{{ route('member.registration.reject', $member->id) }}" method="POST">
                                                 @csrf
@@ -193,7 +247,7 @@
                                                     </div>
                                                 </div>
                                                 <div class="modal-footer">
-                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
                                                         Batal
                                                     </button>
                                                     <button type="submit" class="btn btn-danger">

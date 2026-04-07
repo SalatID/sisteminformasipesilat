@@ -91,6 +91,78 @@
             </div>
         </div>
 
+        <!-- Registration Status Card -->
+        @if($member->is_self_registered)
+        <div class="card mb-3 @if($member->isPending()) border-warning @elseif($member->isApproved()) border-success @else border-danger @endif">
+            <div class="card-header @if($member->isPending()) bg-warning @elseif($member->isApproved()) bg-success @else bg-danger @endif text-white">
+                <h3 class="card-title m-0">
+                    <i class="fas fa-clipboard-list"></i> Status Pendaftaran
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Status:</strong>
+                        <p>
+                            @if($member->isPending())
+                                <span class="badge bg-warning text-dark"><i class="fas fa-hourglass-half"></i> Menunggu Verifikasi</span>
+                            @elseif($member->isApproved())
+                                <span class="badge bg-success"><i class="fas fa-check-circle"></i> Disetujui</span>
+                            @else
+                                <span class="badge bg-danger"><i class="fas fa-times-circle"></i> Ditolak</span>
+                            @endif
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Tanggal Pendaftaran:</strong>
+                        <p>{{ \Carbon\Carbon::parse($member->created_at)->format('d-m-Y H:i:s') }}</p>
+                    </div>
+                </div>
+
+                @if($member->isApproved() || $member->isRejected())
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Diverifikasi Oleh:</strong>
+                        <p>{{ $member->approver->name ?? '-' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Tanggal Verifikasi:</strong>
+                        <p>{{ $member->approved_at ? \Carbon\Carbon::parse($member->approved_at)->format('d-m-Y H:i:s') : '-' }}</p>
+                    </div>
+                </div>
+                @endif
+
+                @if($member->isRejected() && $member->rejection_reason)
+                <div class="alert alert-danger mb-0">
+                    <strong>Alasan Penolakan:</strong>
+                    <p class="mb-0 mt-2">{{ $member->rejection_reason }}</p>
+                </div>
+                @endif
+
+                @if($member->isPending())
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle"></i> Pendaftaran ini sedang menunggu verifikasi dari admin.
+                    <div class="mt-3">
+                        <!-- Approve Form -->
+                        <form action="{{ route('member.registration.approve', $member->id) }}" method="POST" style="display: inline;">
+                            @csrf
+                            <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Setujui pendaftaran ini?')">
+                                <i class="fas fa-check"></i> Setujui Pendaftaran
+                            </button>
+                        </form>
+
+                        <!-- Reject Button -->
+                        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" 
+                                data-bs-target="#rejectModal">
+                            <i class="fas fa-times"></i> Tolak Pendaftaran
+                        </button>
+                    </div>
+                </div>
+                @endif
+            </div>
+        </div>
+        @endif
+
         <!-- Identification Documents Card -->
         <div class="card card-outline mb-3">
             <div class="card-header">
@@ -266,11 +338,6 @@
                             <i class="fas fa-certificate"></i> Riwayat Ujian
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" id="performance-tab" data-toggle="tab" href="#performance" role="tab">
-                            <i class="fas fa-chart-line"></i> Riwayat Performa
-                        </a>
-                    </li>
                 </ul>
             </div>
             <div class="card-body">
@@ -396,63 +463,6 @@
                         @endif
                     </div>
 
-                    <!-- Performance History Tab -->
-                    <div class="tab-pane fade" id="performance" role="tabpanel">
-                        @if($performance_records->isEmpty())
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle"></i> Belum ada riwayat performa untuk pesilat ini.
-                            </div>
-                        @else
-                            <div class="table-responsive">
-                                <table class="table table-striped table-hover table-sm">
-                                    <thead>
-                                        <tr>
-                                            <th class="text-center">#</th>
-                                            <th class="text-center">Tanggal Latihan</th>
-                                            <th class="text-center">Unit</th>
-                                            <th class="text-center">Endurance</th>
-                                            <th class="text-center">Strength</th>
-                                            <th class="text-center">Technique</th>
-                                            <th class="text-center">Hadir</th>
-                                            <th class="text-center">Catatan</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @php($i = 1)
-                                        @foreach($performance_records as $record)
-                                        <tr>
-                                            <td class="text-center">{{ $i++ }}</td>
-                                            <td class="text-center">{{ \Carbon\Carbon::parse($record->training_date)->format('d-m-Y') }}</td>
-                                            <td class="text-center">
-                                                @if($record->unit)
-                                                    <span class="badge bg-primary">{{ $record->unit->name }}</span>
-                                                @else
-                                                    <span class="text-muted">-</span>
-                                                @endif
-                                            </td>
-                                            <td class="text-center">
-                                                <span class="badge bg-secondary">{{ $record->endurance }}</span>
-                                            </td>
-                                            <td class="text-center">
-                                                <span class="badge bg-secondary">{{ $record->strength }}</span>
-                                            </td>
-                                            <td class="text-center">
-                                                <span class="badge bg-secondary">{{ $record->technique }}</span>
-                                            </td>
-                                            <td class="text-center">
-                                                @if($record->attended)
-                                                    <span class="badge bg-success"><i class="fas fa-check"></i> Ya</span>
-                                                @else
-                                                    <span class="badge bg-danger"><i class="fas fa-times"></i> Tidak</span>
-                                                @endif
-                                            </td>
-                                            <td class="text-center">{{ Str::limit($record->notes, 30) ?? '-' }}</td>
-                                        </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        @endif
                     </div>
                 </div>
             </div>
@@ -466,6 +476,49 @@
         </div>
     </div>
 </div>
+
+<!-- Reject Modal (for pending registrations) -->
+@if($member->is_self_registered && $member->isPending())
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i> Tolak Pendaftaran
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ route('member.registration.reject', $member->id) }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <p>Anda akan menolak pendaftaran <strong>{{ $member->name }}</strong></p>
+                    <p class="text-muted small">Silakan berikan alasan penolakan untuk memberikan feedback kepada pendaftar.</p>
+                    <div class="form-group">
+                        <label for="rejection_reason" class="form-label">Alasan Penolakan <span class="text-danger">*</span></label>
+                        <textarea class="form-control @error('rejection_reason') is-invalid @enderror" 
+                                  id="rejection_reason" 
+                                  name="rejection_reason" 
+                                  rows="4"
+                                  placeholder="Jelaskan alasan penolakan pendaftaran (contoh: Data tidak lengkap, Dokumen tidak valid, dll)"
+                                  required></textarea>
+                        @error('rejection_reason')
+                            <span class="invalid-feedback">{{ $message }}</span>
+                        @enderror
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Batal
+                    </button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-check"></i> Tolak Pendaftaran
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
 
 <style>
     .info-box-icon {

@@ -89,6 +89,11 @@ class MemberController extends Controller
             'exams.tsBefore:id,name',
             'exams.tsAfter:id,name'
         ])
+            ->where(function($query) {
+                // Exclude pending self-registered members
+                $query->where('registration_status', '!=', 'pending')
+                      ->orWhere('is_self_registered', false);
+            })
             ->join('ts', 'ts.id', '=', 'members.ts_id')
             ->select('members.*')
             ->orderBy('ts.ts_seq', 'desc')

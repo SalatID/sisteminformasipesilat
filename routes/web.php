@@ -7,6 +7,7 @@ use App\Http\Controllers\AdminCotroller;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\MemberRegistrationController;
 use App\Http\Controllers\TrainingCenterController;
+use App\Http\Controllers\TrainingCenterReportController;
 use App\Http\Controllers\MemberTrainingCenterController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\PermisionController;
@@ -118,4 +119,13 @@ Route::group(['middleware' => ['auth']], function () {
     Route::post('/member/{memberId}/training-center/attach', [MemberTrainingCenterController::class, 'attach'])->name('member.training-center.attach');
     Route::delete('/member/{memberId}/training-center/{trainingCenterId}/detach', [MemberTrainingCenterController::class, 'detach'])->name('member.training-center.detach');
     Route::get('/api/member/{memberId}/available-centers', [MemberTrainingCenterController::class, 'getAvailableCenters']);
+    
+    // Training Center Report Routes
+    Route::get('/training-center-report', [TrainingCenterReportController::class, 'index'])->name('training-center-report.index');
+    Route::get('/training-center-report/create', [TrainingCenterReportController::class, 'create'])->name('training-center-report.create');
+    Route::post('/training-center-report/add', [TrainingCenterReportController::class, 'add'])->name('training-center-report.add');
+    Route::get('/training-center-report/{id}', [TrainingCenterReportController::class, 'show'])->name('training-center-report.show');
+    Route::get('/training-center-report/{id}/edit', [TrainingCenterReportController::class, 'edit'])->name('training-center-report.edit');
+    Route::post('/training-center-report/store', [TrainingCenterReportController::class, 'store'])->name('training-center-report.store');
+    Route::post('/training-center-report/{id}/update', [TrainingCenterReportController::class, 'update'])->name('training-center-report.update');
 });

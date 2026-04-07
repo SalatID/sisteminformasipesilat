@@ -202,6 +202,12 @@ class Controller extends BaseController
                         "permision"=>["coach_list"],
                         "src"=>"coach.index"
                     ],
+                    [
+                        "icon"=>"fas fa-chart-line",
+                        "name"=>"Buat Laporan TC",
+                        "permision"=>["member_list"],
+                        "src"=>"training-center-report.index"
+                    ],
                 ],
             ],
             [

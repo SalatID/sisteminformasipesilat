@@ -77,6 +77,11 @@ class Member extends Model
             ->withPivot(['joined_date']);
     }
 
+    public function approver()
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
     // Scopes for filtering
     public function scopePending($query)
     {

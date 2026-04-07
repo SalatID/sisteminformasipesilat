@@ -15,12 +15,14 @@ class MemberPerformanceRecord extends Model
 
     protected $fillable = [
         'member_id',
+        'training_center_id',
         'training_date',
-        'unit_id',
+        'training_type',
         'endurance',
         'strength',
         'technique',
         'attended',
+        'kas',
         'notes',
         'created_by',
         'updated_by',
@@ -30,6 +32,7 @@ class MemberPerformanceRecord extends Model
     protected $casts = [
         'training_date' => 'date',
         'attended' => 'boolean',
+        'kas' => 'boolean',
     ];
 
     // Relations
@@ -38,9 +41,9 @@ class MemberPerformanceRecord extends Model
         return $this->belongsTo(Member::class);
     }
 
-    public function unit()
+    public function trainingCenter()
     {
-        return $this->belongsTo(Unit::class);
+        return $this->belongsTo(TrainingCenter::class);
     }
 
     // Scopes

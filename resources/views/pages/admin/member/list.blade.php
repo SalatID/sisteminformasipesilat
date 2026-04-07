@@ -8,7 +8,16 @@
 @endsection
 @section('content')
 <div class="row">
-    <div class="col-12 d-flex justify-content-end my-3">
+    <div class="col-12 d-flex justify-content-between align-items-center my-3">
+        <div>
+            @php($pending_count = \App\Models\Member::pending()->where('is_self_registered', true)->count())
+            @if($pending_count > 0)
+                <a href="{{ route('member.registrations.pending') }}" class="btn btn-warning btn-sm">
+                    <i class="fas fa-hourglass-half"></i> Verifikasi Pendaftaran
+                    <span class="badge bg-danger">{{ $pending_count }}</span>
+                </a>
+            @endif
+        </div>
         <a href="{{ route('member.create') }}" class="btn btn-success btn-sm"> 
             <i class="fas fa-plus"></i> Tambah Pesilat
         </a>

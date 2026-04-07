@@ -297,13 +297,18 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group mb-3">
-                            <label for="citizen_number" class="form-label">Nomor KTP <span class="text-danger">*</span></label>
+                            <label for="citizen_number" class="form-label">NIK <span class="text-danger">*</span></label>
                             <input type="text" 
                                    class="form-control @error('citizen_number') is-invalid @enderror" 
                                    id="citizen_number" 
                                    name="citizen_number" 
                                    value="{{ old('citizen_number') }}"
-                                   placeholder="Masukkan nomor KTP"
+                                   placeholder="Masukkan NIK"
+                                   pattern="[0-9]{16}"
+                                   maxlength="16"
+                                   minlength="16"
+                                   inputmode="numeric"
+                                   title="NIK harus 16 digit angka"
                                    required>
                             @error('citizen_number')
                                 <span class="invalid-feedback">{{ $message }}</span>
@@ -337,6 +342,11 @@
                                    name="family_card_number" 
                                    value="{{ old('family_card_number') }}"
                                    placeholder="Masukkan nomor kartu keluarga"
+                                   pattern="[0-9]{16}"
+                                   maxlength="16"
+                                   minlength="16"
+                                   inputmode="numeric"
+                                   title="Nomor Kartu Keluarga harus 16 digit angka"
                                    required>
                             @error('family_card_number')
                                 <span class="invalid-feedback">{{ $message }}</span>
@@ -363,14 +373,13 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group mb-3">
-                            <label for="bpjs_number" class="form-label">Nomor BPJS Kesehatan <span class="text-danger">*</span></label>
+                            <label for="bpjs_number" class="form-label">Nomor BPJS Kesehatan</label>
                             <input type="text" 
                                    class="form-control @error('bpjs_number') is-invalid @enderror" 
                                    id="bpjs_number" 
                                    name="bpjs_number" 
                                    value="{{ old('bpjs_number') }}"
-                                   placeholder="Masukkan nomor BPJS kesehatan"
-                                   required>
+                                   placeholder="Masukkan nomor BPJS kesehatan">
                             @error('bpjs_number')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
