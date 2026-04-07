@@ -87,6 +87,17 @@
 
                                                 <div class="row mb-3">
                                                     <div class="col-md-6">
+                                                        <strong>Tempat Lahir:</strong>
+                                                        <p>{{ $member->birth_place ?? '-' }}</p>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <strong>Tanggal Lahir:</strong>
+                                                        <p>{{ $member->birth_date ? $member->birth_date->format('d-m-Y') : '-' }}</p>
+                                                    </div>
+                                                </div>
+
+                                                <div class="row mb-3">
+                                                    <div class="col-md-6">
                                                         <strong>Tingkat Sabuk:</strong>
                                                         <p><span class="badge bg-info">{{ $member->ts->name ?? '-' }}</span></p>
                                                     </div>

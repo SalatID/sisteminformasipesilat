@@ -114,6 +114,8 @@ class MemberController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'birth_date' => ['nullable', 'date', 'before:today'],
+            'birth_place' => ['nullable', 'string', 'max:255'],
             'ts_id' => ['required', 'uuid', 'exists:ts,id'],
             'joined_date' => ['required', 'date'],
             'unit_id' => ['nullable', 'uuid', 'exists:units,id'],
@@ -249,7 +251,7 @@ class MemberController extends Controller
 
         // Get performance records
         $performance_records = \App\Models\MemberPerformanceRecord::where('member_id', $id)
-            ->with('unit:id,name')
+            ->with('trainingCenter:id,name')
             ->orderBy('training_date', 'desc')
             ->get();
 
@@ -349,6 +351,8 @@ class MemberController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'birth_date' => ['nullable', 'date', 'before:today'],
+            'birth_place' => ['nullable', 'string', 'max:255'],
             'member_id' => ['required', 'string', 'max:50', 'unique:members,member_id,' . $id . ',id'],
             'ts_id' => ['required', 'uuid', 'exists:ts,id'],
             'joined_date' => ['required', 'date'],

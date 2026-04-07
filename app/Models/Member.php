@@ -15,6 +15,8 @@ class Member extends Model
 
     protected $fillable = [
         'name',
+        'birth_date',
+        'birth_place',
         'ts_id',
         'joined_date',
         'member_id',
@@ -39,6 +41,7 @@ class Member extends Model
     ];
 
     protected $casts = [
+        'birth_date' => 'date',
         'joined_date' => 'date',
         'approved_at' => 'datetime',
         'is_self_registered' => 'boolean',

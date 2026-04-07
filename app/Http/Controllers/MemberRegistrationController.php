@@ -67,6 +67,8 @@ class MemberRegistrationController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'birth_date' => ['required', 'date', 'before:today'],
+            'birth_place' => ['required', 'string', 'max:255'],
             'ts_id' => ['required', 'uuid', 'exists:ts,id'],
             'joined_date' => ['required', 'date'],
             'unit_id' => ['nullable', 'uuid', 'exists:units,id'],

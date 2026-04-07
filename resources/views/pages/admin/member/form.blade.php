@@ -55,6 +55,37 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group mb-3">
+                                <label for="birth_place" class="form-label">Tempat Lahir</label>
+                                <input type="text" 
+                                       class="form-control @error('birth_place') is-invalid @enderror" 
+                                       id="birth_place" 
+                                       name="birth_place" 
+                                       value="{{ old('birth_place', $member->birth_place ?? '') }}"
+                                       placeholder="Masukkan tempat lahir">
+                                @error('birth_place')
+                                    <span class="invalid-feedback">{{ $message }}</span>
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="birth_date" class="form-label">Tanggal Lahir</label>
+                                <input type="date" 
+                                       class="form-control @error('birth_date') is-invalid @enderror" 
+                                       id="birth_date" 
+                                       name="birth_date" 
+                                       value="{{ old('birth_date', $member->birth_date ? $member->birth_date->format('Y-m-d') : '') }}"
+                                       max="{{ date('Y-m-d') }}">
+                                @error('birth_date')
+                                    <span class="invalid-feedback">{{ $message }}</span>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
                                 <label for="ts_id" class="form-label">Tingkat Sabuk (TS) <span class="text-danger">*</span></label>
                                 <select class="form-control @error('ts_id') is-invalid @enderror" 
                                         id="ts_id" 

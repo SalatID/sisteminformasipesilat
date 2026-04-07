@@ -57,11 +57,6 @@ class MemberPerformanceRecord extends Model
         return $query->whereDate('training_date', $date);
     }
 
-    public function scopeForUnit($query, $unitId)
-    {
-        return $query->where('unit_id', $unitId);
-    }
-
     // Get average performance
     public function scopeAveragePerformance($query)
     {

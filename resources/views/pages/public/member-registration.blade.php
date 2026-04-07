@@ -179,6 +179,40 @@
                     @enderror
                 </div>
 
+                <!-- Tempat dan Tanggal Lahir -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label for="birth_place" class="form-label">Tempat Lahir <span class="text-danger">*</span></label>
+                            <input type="text" 
+                                   class="form-control @error('birth_place') is-invalid @enderror" 
+                                   id="birth_place" 
+                                   name="birth_place" 
+                                   value="{{ old('birth_place') }}"
+                                   placeholder="Masukkan tempat lahir"
+                                   required>
+                            @error('birth_place')
+                                <span class="invalid-feedback">{{ $message }}</span>
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label for="birth_date" class="form-label">Tanggal Lahir <span class="text-danger">*</span></label>
+                            <input type="date" 
+                                   class="form-control @error('birth_date') is-invalid @enderror" 
+                                   id="birth_date" 
+                                   name="birth_date" 
+                                   value="{{ old('birth_date') }}"
+                                   max="{{ date('Y-m-d') }}"
+                                   required>
+                            @error('birth_date')
+                                <span class="invalid-feedback">{{ $message }}</span>
+                            @enderror
+                        </div>
+                    </div>
+                </div>
+
                 <!-- TS dan Tanggal Bergabung -->
                 <div class="row">
                     <div class="col-md-6">

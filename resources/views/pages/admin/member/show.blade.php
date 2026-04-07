@@ -50,6 +50,16 @@
                         </div>
                         <div class="row mb-2">
                             <div class="col-md-6">
+                                <strong>Tempat Lahir:</strong>
+                                <p>{{ $member->birth_place ?? '-' }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Tanggal Lahir:</strong>
+                                <p>{{ $member->birth_date ? $member->birth_date->format('d-m-Y') : '-' }}</p>
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-md-6">
                                 <strong>Tingkat Sabuk (TS):</strong>
                                 <p><span class="badge bg-success">{{ $member->ts->name ?? '-' }}</span></p>
                             </div>
