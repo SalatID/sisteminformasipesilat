@@ -188,7 +188,7 @@ class Controller extends BaseController
                 "icon"=>"fas fa-users",
                 "name"=>"Manajemen Pesilat",
                 "src"=>"#",
-                "permision"=>["attendance-coach_list","report-attendance-unit_list","report-attendance-percentage_list","receipt-contribution-unit_list"],
+                "permision"=>["member_list","coach_list","tc-report_list"],
                 "children"=>[
                     [
                         "icon"=>"fas fa-user",
@@ -205,7 +205,7 @@ class Controller extends BaseController
                     [
                         "icon"=>"fas fa-chart-line",
                         "name"=>"Buat Laporan TC",
-                        "permision"=>["member_list"],
+                        "permision"=>["tc-report_list"],
                         "src"=>"training-center-report.index"
                     ],
                 ],
