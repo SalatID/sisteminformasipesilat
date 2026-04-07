@@ -74,7 +74,7 @@ class MemberRegistrationController extends Controller
             'unit_id' => ['nullable', 'uuid', 'exists:units,id'],
             'gender' => ['nullable', 'in:male,female'],
             'school_level' => ['nullable', 'in:SD,SMP,SMA/K,Kuliah,Bekerja'],
-            'picture' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
+            'picture' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:10048'],
             'citizen_number' => ['required', 'digits:16', 'unique:members,citizen_number'],
             'family_card_number' => ['required', 'digits:16', 'unique:members,family_card_number'],
             'bpjs_number' => ['nullable', 'string', 'max:50', 'unique:members,bpjs_number'],
