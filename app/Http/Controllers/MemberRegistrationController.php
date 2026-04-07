@@ -111,7 +111,7 @@ class MemberRegistrationController extends Controller
                 $dir = base_path('../../public_html/sip/members/');
             } else {
                 // Local development: standard public folder
-                $dir = public_path('storage/members/');
+                $dir = public_path('members/');
             }
             
             if (!file_exists($dir)) {
@@ -120,7 +120,7 @@ class MemberRegistrationController extends Controller
             
             $imageName = 'member_' . time() . '.' . $image->getClientOriginalExtension();
             $image->move($dir, $imageName);
-            $validated['picture'] = 'storage/members/' . $imageName;
+            $validated['picture'] = 'members/' . $imageName;
         }
 
         // Handle document images
