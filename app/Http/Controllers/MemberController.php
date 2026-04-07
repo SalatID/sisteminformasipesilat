@@ -105,26 +105,27 @@ class MemberController extends Controller
 
     public function create()
     {
+        $member = null; // For create mode
         $ts_list = \App\Models\Ts::orderBy('ts_seq', 'asc')->get();
         $units = \App\Models\Unit::orderBy('name', 'asc')->get();
-        return view('pages.admin.member.form', compact('ts_list', 'units'));
+        return view('pages.admin.member.form', compact('member', 'ts_list', 'units'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'birth_date' => ['nullable', 'date', 'before:today'],
-            'birth_place' => ['nullable', 'string', 'max:255'],
+            'birth_date' => ['required', 'date', 'before:today'],
+            'birth_place' => ['required', 'string', 'max:255'],
             'ts_id' => ['required', 'uuid', 'exists:ts,id'],
             'joined_date' => ['required', 'date'],
             'unit_id' => ['nullable', 'uuid', 'exists:units,id'],
             'gender' => ['nullable', 'in:male,female'],
             'school_level' => ['nullable', 'in:SD,SMP,SMA/K,Kuliah,Bekerja'],
             'picture' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
-            'citizen_number' => ['required', 'string', 'max:50', 'unique:members,citizen_number'],
-            'family_card_number' => ['required', 'string', 'max:50', 'unique:members,family_card_number'],
-            'bpjs_number' => ['required', 'string', 'max:50', 'unique:members,bpjs_number'],
+            'citizen_number' => ['nullable', 'string', 'max:50', 'unique:members,citizen_number'],
+            'family_card_number' => ['nullable', 'string', 'max:50', 'unique:members,family_card_number'],
+            'bpjs_number' => ['nullable', 'string', 'max:50', 'unique:members,bpjs_number'],
             'citizen_img' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
             'family_card_img' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
             'bpjs_img' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],

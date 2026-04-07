@@ -313,7 +313,7 @@
                            id="picture" 
                            name="picture"
                            accept="image/*">
-                    <small class="form-text">Format: JPG, PNG, GIF (Max: 2MB)</small>
+                    <small class="form-text">Format: JPG, PNG, GIF (Max: 10MB)</small>
                     @error('picture')
                         <span class="invalid-feedback d-block">{{ $message }}</span>
                     @enderror

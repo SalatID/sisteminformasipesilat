@@ -74,7 +74,7 @@
                                        class="form-control @error('birth_date') is-invalid @enderror" 
                                        id="birth_date" 
                                        name="birth_date" 
-                                       value="{{ old('birth_date', $member->birth_date ? $member->birth_date->format('Y-m-d') : '') }}"
+                                       value="{{ old('birth_date', $member && $member->birth_date ? $member->birth_date->format('Y-m-d') : '') }}"
                                        max="{{ date('Y-m-d') }}">
                                 @error('birth_date')
                                     <span class="invalid-feedback">{{ $message }}</span>
@@ -111,7 +111,7 @@
                                        class="form-control @error('joined_date') is-invalid @enderror" 
                                        id="joined_date" 
                                        name="joined_date" 
-                                       value="{{ old('joined_date', isset($member) ? $member->joined_date->format('Y-m-d') : '') }}"
+                                       value="{{ old('joined_date', $member && $member->joined_date ? $member->joined_date->format('Y-m-d') : '') }}"
                                        required>
                                 @error('joined_date')
                                     <span class="invalid-feedback">{{ $message }}</span>
@@ -184,7 +184,7 @@
                                        id="picture" 
                                        name="picture"
                                        accept="image/*">
-                                <small class="text-muted">Format: JPG, PNG, GIF (Max: 2MB)</small>
+                                <small class="text-muted">Format: JPG, PNG, GIF (Max: 10MB)</small>
                                 @error('picture')
                                     <span class="invalid-feedback">{{ $message }}</span>
                                 @enderror
@@ -218,8 +218,7 @@
                                                id="citizen_number" 
                                                name="citizen_number" 
                                                value="{{ old('citizen_number', $member->citizen_number ?? '') }}"
-                                               placeholder="Masukkan nomor KTP"
-                                               required>
+                                               placeholder="Masukkan nomor KTP">
                                         @error('citizen_number')
                                             <span class="invalid-feedback">{{ $message }}</span>
                                         @enderror
@@ -263,8 +262,7 @@
                                                id="family_card_number" 
                                                name="family_card_number" 
                                                value="{{ old('family_card_number', $member->family_card_number ?? '') }}"
-                                               placeholder="Masukkan nomor kartu keluarga"
-                                               required>
+                                               placeholder="Masukkan nomor kartu keluarga">
                                         @error('family_card_number')
                                             <span class="invalid-feedback">{{ $message }}</span>
                                         @enderror
@@ -308,8 +306,7 @@
                                                id="bpjs_number" 
                                                name="bpjs_number" 
                                                value="{{ old('bpjs_number', $member->bpjs_number ?? '') }}"
-                                               placeholder="Masukkan nomor BPJS kesehatan"
-                                               required>
+                                               placeholder="Masukkan nomor BPJS kesehatan">
                                         @error('bpjs_number')
                                             <span class="invalid-feedback">{{ $message }}</span>
                                         @enderror
