@@ -70,6 +70,7 @@ class UserManagementController extends Controller
             }
             // dd($params);
             $users->update($params);
+            $users->syncRoles([$params['role']]);
             if ($users){
                 if($oldEmail != request('email')){
                     $this->sendEmail($users);
