@@ -123,6 +123,7 @@ Route::group(['middleware' => ['auth']], function () {
     // Training Center Report Routes
     Route::get('/training-center-report', [TrainingCenterReportController::class, 'index'])->name('training-center-report.index');
     Route::get('/training-center-report/create', [TrainingCenterReportController::class, 'create'])->name('training-center-report.create');
+    Route::post('/training-center-report/get-members', [TrainingCenterReportController::class, 'getMembers'])->name('training-center-report.get-members');
     Route::post('/training-center-report/add', [TrainingCenterReportController::class, 'add'])->name('training-center-report.add');
     Route::get('/training-center-report/{id}', [TrainingCenterReportController::class, 'show'])->name('training-center-report.show');
     Route::get('/training-center-report/{id}/edit', [TrainingCenterReportController::class, 'edit'])->name('training-center-report.edit');

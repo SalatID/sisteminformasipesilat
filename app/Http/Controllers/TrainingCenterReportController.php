@@ -25,12 +25,25 @@ class TrainingCenterReportController extends Controller
     public function create()
     {
         $training_centers = \App\Models\TrainingCenter::orderBy('name', 'asc')->get();
+        $training_center = null;
+        $training_date = null;
+        $training_type = null;
+        $members = collect();
+        $existingRecords = [];
         
-        return view('pages.admin.training-center-report.create', compact('training_centers'));
+        return view('pages.admin.training-center-report.create', compact(
+            'training_centers',
+            'training_center',
+            'training_date',
+            'training_type',
+            'members',
+            'existingRecords'
+        ));
     }
 
     /**
      * Show input form for creating new report with members list
+     * @deprecated Use create() method instead - kept for backward compatibility
      */
     public function add(Request $request)
     {
@@ -66,13 +79,56 @@ class TrainingCenterReportController extends Controller
     }
 
     /**
+     * Get members for a training center (AJAX endpoint)
+     */
+    public function getMembers(Request $request)
+    {
+        $validated = $request->validate([
+            'training_center_id' => ['required', 'uuid', 'exists:training_centers,id'],
+            'training_date' => ['required', 'date'],
+        ]);
+
+        $training_center = \App\Models\TrainingCenter::findOrFail($validated['training_center_id']);
+        
+        // Get members associated with this training center
+        $members = $training_center->members()
+            ->with(['ts:id,name'])
+            ->orderBy('members.name', 'asc')
+            ->get();
+
+        // Check if records already exist for this date
+        $existingRecords = \App\Models\MemberPerformanceRecord::where('training_center_id', $validated['training_center_id'])
+            ->whereDate('training_date', $validated['training_date'])
+            ->get()
+            ->keyBy('member_id');
+
+        return response()->json([
+            'success' => true,
+            'training_center' => $training_center,
+            'members' => $members,
+            'existing_records' => $existingRecords,
+        ]);
+    }
+
+    /**
      * Show report with saved data (read-only display)
      */
-    public function show($training_center_id)
+    public function show(Request $request, $training_center_id)
     {
-        $records = \App\Models\MemberPerformanceRecord::with(['trainingCenter', 'member'])
-            ->where('training_center_id', $training_center_id)
-            ->orderBy('training_date', 'desc')
+        $query = \App\Models\MemberPerformanceRecord::with(['trainingCenter', 'member'])
+            ->where('training_center_id', $training_center_id);
+
+        // Filter by date if provided
+        if ($request->has('date')) {
+            $query->whereDate('training_date', $request->date);
+        }
+
+        // Filter by type if provided
+        if ($request->has('type')) {
+            $query->where('training_type', $request->type);
+        }
+
+        $records = $query->orderBy('training_date', 'desc')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -143,8 +199,8 @@ class TrainingCenterReportController extends Controller
             'training_type' => ['required', 'in:online,offline'],
             'members' => ['required', 'array'],
             'members.*.member_id' => ['required', 'uuid', 'exists:members,id'],
-            'members.*.attended' => ['required', 'boolean'],
-            'members.*.kas' => ['required', 'boolean'],
+            'members.*.attended' => ['nullable', 'in:1'],
+            'members.*.kas' => ['nullable', 'in:1'],
             'members.*.endurance' => ['nullable', 'integer', 'min:0', 'max:100'],
             'members.*.strength' => ['nullable', 'integer', 'min:0', 'max:100'],
             'members.*.technique' => ['nullable', 'integer', 'min:0', 'max:100'],
@@ -157,6 +213,7 @@ class TrainingCenterReportController extends Controller
         // Delete existing records for this date/center (refresh)
         \App\Models\MemberPerformanceRecord::where('training_center_id', $training_center_id)
             ->whereDate('training_date', $training_date)
+            ->where('training_type', $training_type)
             ->delete();
 
         // Create new records
@@ -166,8 +223,8 @@ class TrainingCenterReportController extends Controller
                 'training_center_id' => $training_center_id,
                 'training_date' => $training_date,
                 'training_type' => $training_type,
-                'attended' => $memberData['attended'],
-                'kas' => $memberData['kas'],
+                'attended' => isset($memberData['attended']) && $memberData['attended'] == '1',
+                'kas' => isset($memberData['kas']) && $memberData['kas'] == '1',
                 'endurance' => $memberData['endurance'] ?? null,
                 'strength' => $memberData['strength'] ?? null,
                 'technique' => $memberData['technique'] ?? null,
@@ -191,8 +248,8 @@ class TrainingCenterReportController extends Controller
             'training_type' => ['required', 'in:online,offline'],
             'members' => ['required', 'array'],
             'members.*.member_id' => ['required', 'uuid', 'exists:members,id'],
-            'members.*.attended' => ['required', 'boolean'],
-            'members.*.kas' => ['required', 'boolean'],
+            'members.*.attended' => ['nullable', 'in:1'],
+            'members.*.kas' => ['nullable', 'in:1'],
             'members.*.endurance' => ['nullable', 'integer', 'min:0', 'max:100'],
             'members.*.strength' => ['nullable', 'integer', 'min:0', 'max:100'],
             'members.*.technique' => ['nullable', 'integer', 'min:0', 'max:100'],
@@ -201,9 +258,10 @@ class TrainingCenterReportController extends Controller
         $training_date = $validated['training_date'];
         $training_type = $validated['training_type'];
 
-        // Delete existing records for this date/center
+        // Delete existing records for this date/center/type
         \App\Models\MemberPerformanceRecord::where('training_center_id', $training_center_id)
             ->whereDate('training_date', $training_date)
+            ->where('training_type', $training_type)
             ->delete();
 
         // Create new records
@@ -213,8 +271,8 @@ class TrainingCenterReportController extends Controller
                 'training_center_id' => $training_center_id,
                 'training_date' => $training_date,
                 'training_type' => $training_type,
-                'attended' => $memberData['attended'],
-                'kas' => $memberData['kas'],
+                'attended' => isset($memberData['attended']) && $memberData['attended'] == '1',
+                'kas' => isset($memberData['kas']) && $memberData['kas'] == '1',
                 'endurance' => $memberData['endurance'] ?? null,
                 'strength' => $memberData['strength'] ?? null,
                 'technique' => $memberData['technique'] ?? null,

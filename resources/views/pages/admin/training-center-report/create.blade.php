@@ -9,7 +9,7 @@
 @endsection
 @section('content')
 <div class="row">
-    <div class="col-md-8 offset-md-2">
+    <div class="col-md-12">
         <div class="card">
             <div class="card-header">
                 <h3 class="card-title">
@@ -34,105 +34,10 @@
                     </div>
                 @endif
 
-                <form action="{{ route('training-center-report.add') }}" method="POST">
+                <form action="{{ route('training-center-report.store') }}" method="POST" id="reportForm">
                     @csrf
 
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> Pilih Pusat Pelatihan dan Tanggal untuk membuat laporan performa anggota
-                    </div>
-
-                    <!-- Training Center -->
-                    <div class="form-group mb-3">
-                        <label for="training_center_id" class="form-label">Pusat Pelatihan <span class="text-danger">*</span></label>
-                        <select class="form-control @error('training_center_id') is-invalid @enderror" 
-                                id="training_center_id"
-                                name="training_center_id" 
-                                required>
-                            <option value="">-- Pilih Pusat Pelatihan --</option>
-                            @foreach($training_centers as $center)
-                                <option value="{{ $center->id }}" {{ old('training_center_id') == $center->id ? 'selected' : '' }}>
-                                    {{ $center->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('training_center_id')
-                            <span class="invalid-feedback">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    <!-- Training Date -->
-                    <div class="form-group mb-3">
-                        <label for="training_date" class="form-label">Tanggal Pelatihan <span class="text-danger">*</span></label>
-                        <input type="date" 
-                               class="form-control @error('training_date') is-invalid @enderror" 
-                               id="training_date" 
-                               name="training_date"
-                               value="{{ old('training_date') }}"
-                               required>
-                        @error('training_date')
-                            <span class="invalid-feedback">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    <!-- Training Type -->
-                    <div class="form-group mb-3">
-                        <label for="training_type" class="form-label">Jenis Pelatihan <span class="text-danger">*</span></label>
-                        <select class="form-control @error('training_type') is-invalid @enderror" 
-                                id="training_type"
-                                name="training_type" 
-                                required>
-                            <option value="">-- Pilih Jenis Pelatihan --</option>
-                            <option value="offline" {{ old('training_type') == 'offline' ? 'selected' : '' }}>
-                                <i class="fas fa-map-marker-alt"></i> Offline (Tatap Muka)
-                            </option>
-                            <option value="online" {{ old('training_type') == 'online' ? 'selected' : '' }}>
-                                <i class="fas fa-video"></i> Online (Virtual)
-                            </option>
-                        </select>
-                        @error('training_type')
-                            <span class="invalid-feedback">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    <div class="form-group">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-arrow-right"></i> Lanjut ke Laporan Performa
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-@endsection
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-chart-bar"></i> Laporan Performa Pelatihan
-                </h3>
-                <div class="card-tools">
-                    <a href="{{ route('training-center-report.index') }}" class="btn btn-sm btn-secondary">
-                        <i class="fas fa-arrow-left"></i> Kembali
-                    </a>
-                </div>
-            </div>
-            <div class="card-body">
-                @if ($errors->any())
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <strong><i class="fas fa-exclamation-circle"></i> Validasi Gagal!</strong>
-                        <ul class="mb-0 mt-2">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                @endif
-
-                <form action="{{ $training_center ? route('training-center-report.store') : route('training-center-report.create') }}" method="POST">
-                    @csrf
-
-                    <!-- Selection Form -->
+                    <!-- Selection Section -->
                     <div class="card card-info mb-4">
                         <div class="card-header">
                             <h3 class="card-title">
@@ -150,14 +55,14 @@
                                                 name="training_center_id" 
                                                 required>
                                             <option value="">-- Pilih Pusat Pelatihan --</option>
-                                            @foreach($training_centers as $tc)
-                                                <option value="{{ $tc->id }}" {{ $training_center && $training_center->id === $tc->id ? 'selected' : '' }}>
-                                                    {{ $tc->name }}
+                                            @foreach($training_centers as $center)
+                                                <option value="{{ $center->id }}" {{ old('training_center_id') == $center->id ? 'selected' : '' }}>
+                                                    {{ $center->name }}
                                                 </option>
                                             @endforeach
                                         </select>
                                         @error('training_center_id')
-                                            <div class="invalid-feedback">{{ $message }}</div>
+                                            <span class="invalid-feedback">{{ $message }}</span>
                                         @enderror
                                     </div>
                                 </div>
@@ -168,12 +73,12 @@
                                         <label for="training_date" class="form-label">Tanggal Pelatihan <span class="text-danger">*</span></label>
                                         <input type="date" 
                                                class="form-control @error('training_date') is-invalid @enderror" 
-                                               id="training_date"
-                                               name="training_date" 
-                                               value="{{ $training_date ?? old('training_date') }}"
+                                               id="training_date" 
+                                               name="training_date"
+                                               value="{{ old('training_date') }}"
                                                required>
                                         @error('training_date')
-                                            <div class="invalid-feedback">{{ $message }}</div>
+                                            <span class="invalid-feedback">{{ $message }}</span>
                                         @enderror
                                     </div>
                                 </div>
@@ -187,30 +92,34 @@
                                                 name="training_type" 
                                                 required>
                                             <option value="">-- Pilih Jenis --</option>
-                                            <option value="online" {{ $training_type === 'online' ? 'selected' : '' }}>
-                                                <i class="fas fa-video"></i> Online
-                                            </option>
-                                            <option value="offline" {{ $training_type === 'offline' ? 'selected' : '' }}>
-                                                <i class="fas fa-map-marker-alt"></i> Offline
-                                            </option>
+                                            <option value="offline" {{ old('training_type') == 'offline' ? 'selected' : '' }}>Offline (Tatap Muka)</option>
+                                            <option value="online" {{ old('training_type') == 'online' ? 'selected' : '' }}>Online (Virtual)</option>
                                         </select>
                                         @error('training_type')
-                                            <div class="invalid-feedback">{{ $message }}</div>
+                                            <span class="invalid-feedback">{{ $message }}</span>
                                         @enderror
                                     </div>
                                 </div>
                             </div>
 
                             <div class="mt-3">
-                                <button type="submit" name="action" value="preview" class="btn btn-primary">
-                                    <i class="fas fa-eye"></i> Lihat Data Anggota
+                                <button type="button" id="loadMembersBtn" class="btn btn-primary" disabled>
+                                    <i class="fas fa-sync-alt"></i> <span id="loadBtnText">Muat Data Anggota</span>
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Info Boxes (shown when training_center is selected) -->
-                    @if($training_center)
+                    <!-- Loading Indicator -->
+                    <div id="loadingIndicator" class="text-center mb-4" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                        <p class="mt-2">Memuat data anggota...</p>
+                    </div>
+
+                    <!-- Training Center Info (shown after loading) -->
+                    <div id="trainingCenterInfo" style="display: none;">
                         <div class="row mb-4 g-3">
                             <div class="col-12 col-sm-6 col-lg-4">
                                 <div class="info-box">
@@ -219,7 +128,7 @@
                                     </span>
                                     <div class="info-box-content">
                                         <span class="info-box-text">Pusat Pelatihan</span>
-                                        <span class="info-box-number d-block text-truncate">{{ $training_center->name }}</span>
+                                        <span class="info-box-number d-block text-truncate" id="tcName"></span>
                                     </div>
                                 </div>
                             </div>
@@ -230,7 +139,7 @@
                                     </span>
                                     <div class="info-box-content">
                                         <span class="info-box-text">Tanggal Pelatihan</span>
-                                        <span class="info-box-number">{{ \Carbon\Carbon::parse($training_date)->format('d-m-Y') }}</span>
+                                        <span class="info-box-number" id="tcDate"></span>
                                     </div>
                                 </div>
                             </div>
@@ -241,140 +150,67 @@
                                     </span>
                                     <div class="info-box-content">
                                         <span class="info-box-text">Jumlah Anggota</span>
-                                        <span class="info-box-number">{{ $members->count() }}</span>
+                                        <span class="info-box-number" id="memberCount">0</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Performance Input Table -->
-                        @if($members->isEmpty())
-                            <div class="alert alert-warning">
-                                <i class="fas fa-exclamation-triangle"></i> Tidak ada anggota yang terdaftar di Pusat Pelatihan ini.
+                    <!-- Members Performance Table (dynamically populated) -->
+                    <div id="membersTableContainer" style="display: none;">
+                        <div class="card card-primary mb-4">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i class="fas fa-edit"></i> Input Performa Anggota
+                                </h3>
                             </div>
-                        @else
-                            <div class="card card-primary mb-4">
-                                <div class="card-header">
-                                    <h3 class="card-title">
-                                        <i class="fas fa-input-numeric"></i> Input Performa Anggota
-                                    </h3>
+                            <div class="card-body">
+                                <div id="noMembersAlert" class="alert alert-warning" style="display: none;">
+                                    <i class="fas fa-exclamation-triangle"></i> Tidak ada anggota yang terdaftar di Pusat Pelatihan ini.
                                 </div>
-                                <div class="card-body">
-                                    <input type="hidden" name="training_center_id" value="{{ $training_center->id }}">
-                                    <input type="hidden" name="training_date" value="{{ $training_date }}">
-                                    <input type="hidden" name="training_type" value="{{ $training_type }}">
 
-                                    <div class="table-responsive">
-                                        <table class="table table-bordered table-striped table-hover table-sm" id="performanceTable">
-                                            <thead class="table-dark sticky-top">
-                                                <tr>
-                                                    <th class="text-center" style="min-width: 30px;">#</th>
-                                                    <th style="min-width: 180px;">Nama Pesilat</th>
-                                                    <th class="text-center d-none d-sm-table-cell" style="min-width: 90px;">
-                                                        <i class="fas fa-check-circle"></i> <span class="d-none d-lg-inline">Absensi</span><span class="d-lg-none">Hadir</span>
-                                                    </th>
-                                                    <th class="text-center" style="min-width: 90px;">
-                                                        <i class="fas fa-money-bill"></i> <span class="d-lg-inline">Kas</span>
-                                                    </th>
-                                                    <th class="text-center d-none d-md-table-cell" style="min-width: 90px;">
-                                                        <i class="fas fa-dumbbell"></i> <span class="d-lg-inline">Endurance</span><span class="d-none d-lg-inline">End.</span>
-                                                    </th>
-                                                    <th class="text-center d-none d-md-table-cell" style="min-width: 90px;">
-                                                        <i class="fas fa-fist-raised"></i> <span class="d-lg-inline">Strength</span><span class="d-none d-lg-inline">Str.</span>
-                                                    </th>
-                                                    <th class="text-center" style="min-width: 90px;">
-                                                        <i class="fas fa-karate"></i> <span class="d-lg-inline">Technique</span><span class="d-none d-lg-inline">Tech.</span>
-                                                    </th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @php($i = 1)
-                                                @foreach($members as $member)
-                                                @php($record = $existingRecords[$member->id] ?? null)
-                                                <tr>
-                                                    <td class="text-center">{{ $i++ }}</td>
-                                                    <td>
-                                                        <strong class="d-block">{{ $member->name }}</strong>
-                                                        <small class="text-muted">{{ $member->member_id }}</small>
-                                                    </td>
-                                                    <td class="text-center d-none d-sm-table-cell">
-                                                        <div class="form-check form-check-inline m-0">
-                                                            <input class="form-check-input" 
-                                                                   type="checkbox" 
-                                                                   name="members[{{ $loop->index }}][member_id]" 
-                                                                   value="{{ $member->id }}"
-                                                                   id="attended_{{ $member->id }}"
-                                                                   {{ $record && $record->attended ? 'checked' : '' }}>
-                                                            <label class="form-check-label" for="attended_{{ $member->id }}">
-                                                            </label>
-                                                        </div>
-                                                    </td>
-                                                    <td class="text-center">
-                                                        <div class="form-check form-check-inline m-0">
-                                                            <input class="form-check-input" 
-                                                                   type="checkbox" 
-                                                                   name="members[{{ $loop->index }}][kas]" 
-                                                                   id="kas_{{ $member->id }}"
-                                                                   {{ $record && $record->kas ? 'checked' : '' }}>
-                                                            <label class="form-check-label" for="kas_{{ $member->id }}">
-                                                            </label>
-                                                        </div>
-                                                    </td>
-                                                    <td class="text-center d-none d-md-table-cell">
-                                                        <input type="number" 
-                                                               name="members[{{ $loop->index }}][endurance]" 
-                                                               class="form-control form-control-sm text-center" 
-                                                               min="0" 
-                                                               max="100"
-                                                               placeholder="0-100"
-                                                               value="{{ $record ? $record->endurance : '' }}">
-                                                    </td>
-                                                    <td class="text-center d-none d-md-table-cell">
-                                                        <input type="number" 
-                                                               name="members[{{ $loop->index }}][strength]" 
-                                                               class="form-control form-control-sm text-center" 
-                                                               min="0" 
-                                                               max="100"
-                                                               placeholder="0-100"
-                                                               value="{{ $record ? $record->strength : '' }}">
-                                                    </td>
-                                                    <td class="text-center">
-                                                        <input type="number" 
-                                                               name="members[{{ $loop->index }}][technique]" 
-                                                               class="form-control form-control-sm text-center" 
-                                                               min="0" 
-                                                               max="100"
-                                                               placeholder="0-100"
-                                                               value="{{ $record ? $record->technique : '' }}">
-                                                    </td>
-                                                </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
-
-                                    <!-- Hidden fields to maintain checkbox state -->
-                                    @php($i = 0)
-                                    @foreach($members as $member)
-                                    <input type="hidden" name="members[{{ $i }}][member_id]" value="{{ $member->id }}" id="hidden_member_{{ $member->id }}">
-                                    <input type="hidden" name="members[{{ $i }}][attended]" value="0" id="attended_value_{{ $member->id }}">
-                                    <input type="hidden" name="members[{{ $i }}][kas]" value="0" id="kas_value_{{ $member->id }}">
-                                    @php($i++)
-                                    @endforeach
+                                <div class="table-responsive" id="membersTableWrapper">
+                                    <table class="table table-bordered table-striped table-hover table-sm" id="performanceTable">
+                                        <thead class="table-dark sticky-top">
+                                            <tr>
+                                                <th class="text-center" style="min-width: 30px;">#</th>
+                                                <th style="min-width: 180px;">Nama Pesilat</th>
+                                                <th class="text-center" style="min-width: 90px;">
+                                                    <i class="fas fa-check-circle"></i> Absensi
+                                                </th>
+                                                <th class="text-center" style="min-width: 90px;">
+                                                    <i class="fas fa-money-bill"></i> Kas
+                                                </th>
+                                                <th class="text-center d-none d-md-table-cell" style="min-width: 90px;">
+                                                    <i class="fas fa-dumbbell"></i> Endurance
+                                                </th>
+                                                <th class="text-center d-none d-md-table-cell" style="min-width: 90px;">
+                                                    <i class="fas fa-fist-raised"></i> Strength
+                                                </th>
+                                                <th class="text-center" style="min-width: 90px;">
+                                                    <i class="fas fa-karate"></i> Technique
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="membersTableBody">
+                                            <!-- Rows will be populated by JavaScript -->
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
+                        </div>
 
-                            <!-- Action Buttons -->
-                            <div class="mt-4 d-flex flex-column flex-md-row gap-2">
-                                <button type="submit" name="action" value="save" class="btn btn-success btn-lg flex-grow-1 flex-md-grow-0" style="min-width: 200px;">
-                                    <i class="fas fa-save"></i> <span class="d-none d-sm-inline">Simpan Laporan</span><span class="d-sm-none">Simpan</span>
-                                </button>
-                                <a href="{{ route('training-center-report.index') }}" class="btn btn-secondary btn-lg flex-grow-1 flex-md-grow-0" style="min-width: 120px;">
-                                    <i class="fas fa-times"></i> <span class="d-sm-inline">Batal</span>
-                                </a>
-                            </div>
-                        @endif
-                    @endif
+                        <!-- Action Buttons -->
+                        <div class="mt-4 d-flex flex-column flex-md-row gap-2">
+                            <button type="submit" class="btn btn-success btn-lg flex-grow-1 flex-md-grow-0" style="min-width: 200px;">
+                                <i class="fas fa-save"></i> <span class="d-none d-sm-inline">Simpan Laporan</span><span class="d-sm-none">Simpan</span>
+                            </button>
+                            <a href="{{ route('training-center-report.index') }}" class="btn btn-secondary btn-lg flex-grow-1 flex-md-grow-0" style="min-width: 120px;">
+                                <i class="fas fa-times"></i> <span class="d-sm-inline">Batal</span>
+                            </a>
+                        </div>
+                    </div>
                 </form>
             </div>
         </div>
@@ -447,51 +283,179 @@
         top: 0;
         z-index: 10;
     }
+
+    .gap-2 {
+        gap: 0.5rem;
+    }
 </style>
 
 <script>
-// Update hidden attended field when checkbox changes
-document.querySelectorAll('input[name*="[member_id]"]').forEach(checkbox => {
-    const memberId = checkbox.value;
-    const attendedValue = document.getElementById('attended_value_' + memberId);
-    
-    checkbox.addEventListener('change', function() {
-        if (attendedValue) {
-            attendedValue.value = this.checked ? '1' : '0';
-        }
-    });
-});
+    // Enable/disable load button based on form completion
+    const trainingCenterId = document.getElementById('training_center_id');
+    const trainingDate = document.getElementById('training_date');
+    const trainingType = document.getElementById('training_type');
+    const loadMembersBtn = document.getElementById('loadMembersBtn');
 
-// Update hidden kas field when checkbox changes
-document.querySelectorAll('input[id^="kas_"]').forEach(checkbox => {
-    const memberId = checkbox.id.replace('kas_', '');
-    const kasValue = document.getElementById('kas_value_' + memberId);
-    
-    checkbox.addEventListener('change', function() {
-        if (kasValue) {
-            kasValue.value = this.checked ? '1' : '0';
+    function checkFormCompletion() {
+        if (trainingCenterId.value && trainingDate.value && trainingType.value) {
+            loadMembersBtn.disabled = false;
+        } else {
+            loadMembersBtn.disabled = true;
         }
-    });
-});
+    }
 
-// Initialize hidden fields on page load
-document.addEventListener('DOMContentLoaded', function() {
-    @php($i = 0)
-    @foreach($members as $member)
-    @php($record = $existingRecords[$member->id] ?? null)
-    const attendedCheckbox = document.getElementById('attended_{{ $member->id }}');
-    const kasCheckbox = document.getElementById('kas_{{ $member->id }}');
-    const attendedValue = document.getElementById('attended_value_{{ $member->id }}');
-    const kasValue = document.getElementById('kas_value_{{ $member->id }}');
-    
-    if (attendedCheckbox && attendedValue) {
-        attendedValue.value = attendedCheckbox.checked ? '1' : '0';
+    trainingCenterId.addEventListener('change', checkFormCompletion);
+    trainingDate.addEventListener('change', checkFormCompletion);
+    trainingType.addEventListener('change', checkFormCompletion);
+
+    // Load members via AJAX
+    loadMembersBtn.addEventListener('click', function() {
+        const centerId = trainingCenterId.value;
+        const date = trainingDate.value;
+        const type = trainingType.value;
+
+        // Show loading indicator
+        document.getElementById('loadingIndicator').style.display = 'block';
+        document.getElementById('trainingCenterInfo').style.display = 'none';
+        document.getElementById('membersTableContainer').style.display = 'none';
+
+        // Get CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+                         document.querySelector('input[name="_token"]').value;
+
+        // Make AJAX request
+        fetch('{{ route("training-center-report.get-members") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                training_center_id: centerId,
+                training_date: date
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Hide loading indicator
+            document.getElementById('loadingIndicator').style.display = 'none';
+
+            if (data.success) {
+                // Update training center info
+                document.getElementById('tcName').textContent = data.training_center.name;
+                document.getElementById('tcDate').textContent = formatDate(date);
+                document.getElementById('memberCount').textContent = data.members.length;
+                document.getElementById('trainingCenterInfo').style.display = 'block';
+
+                // Check if there are members
+                if (data.members.length === 0) {
+                    document.getElementById('noMembersAlert').style.display = 'block';
+                    document.getElementById('membersTableWrapper').style.display = 'none';
+                } else {
+                    document.getElementById('noMembersAlert').style.display = 'none';
+                    document.getElementById('membersTableWrapper').style.display = 'block';
+                    
+                    // Populate members table
+                    populateMembersTable(data.members, data.existing_records);
+                }
+
+                // Show members table container
+                document.getElementById('membersTableContainer').style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('loadingIndicator').style.display = 'none';
+            alert('Terjadi kesalahan saat memuat data anggota. Silakan coba lagi.');
+        });
+    });
+
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}-${month}-${year}`;
     }
-    if (kasCheckbox && kasValue) {
-        kasValue.value = kasCheckbox.checked ? '1' : '0';
+
+    function populateMembersTable(members, existingRecords) {
+        const tbody = document.getElementById('membersTableBody');
+        tbody.innerHTML = ''; // Clear existing rows
+
+        members.forEach((member, index) => {
+            const record = existingRecords[member.id] || null;
+            const row = document.createElement('tr');
+            
+            row.innerHTML = `
+                <td class="text-center">${index + 1}</td>
+                <td>
+                    <strong class="d-block">${escapeHtml(member.name)}</strong>
+                    <small class="text-muted">${escapeHtml(member.member_id)}</small>
+                </td>
+                <td class="text-center">
+                    <div class="form-check form-check-inline m-0">
+                        <input class="form-check-input attended-checkbox" 
+                               type="checkbox" 
+                               name="members[${index}][attended]" 
+                               value="1"
+                               id="attended_${member.id}"
+                               ${record && record.attended ? 'checked' : ''}>
+                    </div>
+                </td>
+                <td class="text-center">
+                    <div class="form-check form-check-inline m-0">
+                        <input class="form-check-input kas-checkbox" 
+                               type="checkbox" 
+                               name="members[${index}][kas]" 
+                               value="1"
+                               id="kas_${member.id}"
+                               ${record && record.kas ? 'checked' : ''}>
+                    </div>
+                </td>
+                <td class="text-center d-none d-md-table-cell">
+                    <input type="number" 
+                           name="members[${index}][endurance]" 
+                           class="form-control form-control-sm text-center" 
+                           min="0" 
+                           max="100"
+                           placeholder="0-100"
+                           value="${record && record.endurance ? record.endurance : ''}">
+                </td>
+                <td class="text-center d-none d-md-table-cell">
+                    <input type="number" 
+                           name="members[${index}][strength]" 
+                           class="form-control form-control-sm text-center" 
+                           min="0" 
+                           max="100"
+                           placeholder="0-100"
+                           value="${record && record.strength ? record.strength : ''}">
+                </td>
+                <td class="text-center">
+                    <input type="number" 
+                           name="members[${index}][technique]" 
+                           class="form-control form-control-sm text-center" 
+                           min="0" 
+                           max="100"
+                           placeholder="0-100"
+                           value="${record && record.technique ? record.technique : ''}">
+                </td>
+                <input type="hidden" name="members[${index}][member_id]" value="${member.id}">
+            `;
+            
+            tbody.appendChild(row);
+        });
     }
-    @php($i++)
-    @endforeach
-});
+
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
 </script>
 @endsection

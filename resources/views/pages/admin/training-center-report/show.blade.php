@@ -22,6 +22,62 @@
                 </div>
             </div>
             <div class="card-body">
+                @if($grouped->count() === 1 && $grouped->first()->count() === 1)
+                    <!-- Single date/type view - show summary -->
+                    @php($date = $grouped->keys()->first())
+                    @php($type = $grouped->first()->keys()->first())
+                    @php($totalMembers = $records->count())
+                    @php($totalAttended = $records->where('attended', true)->count())
+                    @php($totalKas = $records->where('kas', true)->count())
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-3 col-sm-6">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-info">
+                                    <i class="fas fa-calendar"></i>
+                                </span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Tanggal</span>
+                                    <span class="info-box-number">{{ \Carbon\Carbon::parse($date)->format('d-m-Y') }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="info-box">
+                                <span class="info-box-icon {{ $type === 'online' ? 'bg-primary' : 'bg-secondary' }}">
+                                    <i class="fas {{ $type === 'online' ? 'fa-video' : 'fa-map-marker-alt' }}"></i>
+                                </span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Jenis</span>
+                                    <span class="info-box-number">{{ ucfirst($type) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-success">
+                                    <i class="fas fa-user-check"></i>
+                                </span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Hadir</span>
+                                    <span class="info-box-number">{{ $totalAttended }}/{{ $totalMembers }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-warning">
+                                    <i class="fas fa-money-bill"></i>
+                                </span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Kas</span>
+                                    <span class="info-box-number">{{ $totalKas }}/{{ $totalMembers }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
                 @forelse($grouped as $date => $typeGroup)
                     <div class="card card-primary mb-4">
                         <div class="card-header">

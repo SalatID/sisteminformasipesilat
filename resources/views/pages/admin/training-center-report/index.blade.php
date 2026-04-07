@@ -65,8 +65,8 @@
                                             <span class="badge bg-warning">{{ $groupRecords->where('kas', true)->count() }} Kas</span>
                                         </td>
                                         <td class="text-center">
-                                            <a href="{{ route('training-center-report.show', $firstRecord->training_center_id) }}" class="btn btn-sm btn-info">
-                                                <i class="fas fa-eye"></i> Lihat
+                                            <a href="{{ route('training-center-report.show', ['id' => $firstRecord->training_center_id, 'date' => $firstRecord->training_date, 'type' => $firstRecord->training_type]) }}" class="btn btn-sm btn-info">
+                                                <i class="fas fa-eye"></i> Detail
                                             </a>
                                         </td>
                                     </tr>
