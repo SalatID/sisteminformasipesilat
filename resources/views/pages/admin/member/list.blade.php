@@ -28,6 +28,55 @@
                 <h3 class="card-title">Daftar Pesilat (Member)</h3>
             </div>
             <div class="card-body">
+                <!-- Search Form -->
+                <form method="GET" action="{{ route('member.index') }}" class="mb-4">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="search_name">Cari Nama Pesilat</label>
+                                <input type="text" class="form-control" id="search_name" name="search_name" 
+                                       placeholder="Masukkan nama pesilat..." value="{{ request('search_name') }}">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="search_ts">Filter Tingkat Sabuk (TS)</label>
+                                <select class="form-control" id="search_ts" name="search_ts">
+                                    <option value="">-- Semua Tingkat Sabuk --</option>
+                                    @foreach($ts_list as $ts)
+                                        <option value="{{ $ts->id }}" {{ request('search_ts') == $ts->id ? 'selected' : '' }}>
+                                            {{ $ts->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="search_unit">Filter Unit</label>
+                                <select class="form-control" id="search_unit" name="search_unit">
+                                    <option value="">-- Semua Unit --</option>
+                                    @foreach($units as $unit)
+                                        <option value="{{ $unit->id }}" {{ request('search_unit') == $unit->id ? 'selected' : '' }}>
+                                            {{ $unit->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="fas fa-search"></i> Cari
+                            </button>
+                            <a href="{{ route('member.index') }}" class="btn btn-secondary btn-sm">
+                                <i class="fas fa-redo"></i> Reset
+                            </a>
+                        </div>
+                    </div>
+                </form>
+
                 @if($members->isEmpty())
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i> Tidak ada data pesilat.

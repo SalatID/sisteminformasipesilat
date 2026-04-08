@@ -75,9 +75,9 @@ class MemberController extends Controller
         return $yearMonth . str_pad($newSeq, 3, '0', STR_PAD_LEFT);
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $members = \App\Models\Member::with([
+        $query = \App\Models\Member::with([
             'ts:id,name,ts_seq',
             'unit:id,name',
             'exams' => function($query) {
@@ -95,12 +95,32 @@ class MemberController extends Controller
                       ->orWhere('is_self_registered', false);
             })
             ->join('ts', 'ts.id', '=', 'members.ts_id')
-            ->select('members.*')
-            ->orderBy('ts.ts_seq', 'desc')
+            ->select('members.*');
+
+        // Search by name
+        if ($request->filled('search_name')) {
+            $query->where('members.name', 'like', '%' . $request->search_name . '%');
+        }
+
+        // Search by unit
+        if ($request->filled('search_unit')) {
+            $query->where('members.unit_id', $request->search_unit);
+        }
+
+        // Search by ts (Tingkat Sabuk)
+        if ($request->filled('search_ts')) {
+            $query->where('members.ts_id', $request->search_ts);
+        }
+
+        $members = $query->orderBy('ts.ts_seq', 'desc')
             ->orderBy('members.name', 'asc')
             ->paginate(15);
+
+        // Get units and ts for filter dropdowns
+        $units = \App\Models\Unit::orderBy('name', 'asc')->get();
+        $ts_list = \App\Models\Ts::orderBy('ts_seq', 'asc')->get();
         
-        return view('pages.admin.member.list', compact('members'));
+        return view('pages.admin.member.list', compact('members', 'units', 'ts_list'));
     }
 
     public function create()
