@@ -36,7 +36,7 @@ class MemberRegistrationController extends Controller
         if (app()->environment('production')) {
             $dir = base_path('../../public_html/sip/members/documents/');
         } else {
-            $dir = public_path('storage/members/documents/');
+            $dir = public_path('members/documents/');
         }
         
         if (!file_exists($dir)) {
@@ -46,7 +46,7 @@ class MemberRegistrationController extends Controller
         $imageName = 'document_' . $documentType . '_' . time() . '.' . $image->getClientOriginalExtension();
         $image->move($dir, $imageName);
         
-        return 'storage/members/documents/' . $imageName;
+        return 'members/documents/' . $imageName;
     }
 
     /**
