@@ -600,6 +600,58 @@ class MemberController extends Controller
     }
 
     /**
+     * Bulk approve member registrations
+     */
+    public function bulkApproveMember(Request $request)
+    {
+        $validated = $request->validate([
+            'member_ids' => ['required', 'array', 'min:1'],
+            'member_ids.*' => ['exists:members,id'],
+        ]);
+
+        $memberIds = $validated['member_ids'];
+        $approvedCount = 0;
+        $alreadyProcessed = 0;
+        $notFound = 0;
+
+        foreach ($memberIds as $memberId) {
+            $member = \App\Models\Member::find($memberId);
+
+            if (!$member) {
+                $notFound++;
+                continue;
+            }
+
+            if (!$member->isPending()) {
+                $alreadyProcessed++;
+                continue;
+            }
+
+            $member->approve(auth()->user()->id);
+            $approvedCount++;
+        }
+
+        // Build response message
+        $message = '';
+        if ($approvedCount > 0) {
+            $message .= "$approvedCount pendaftaran berhasil disetujui. ";
+        }
+        if ($alreadyProcessed > 0) {
+            $message .= "$alreadyProcessed pendaftaran sudah diproses sebelumnya. ";
+        }
+        if ($notFound > 0) {
+            $message .= "$notFound pendaftaran tidak ditemukan. ";
+        }
+
+        $hasError = $approvedCount === 0;
+
+        return redirect()->back()->with([
+            'error' => $hasError,
+            'message' => $message ?: 'Tidak ada pendaftaran yang diproses'
+        ]);
+    }
+
+    /**
      * Reject member registration
      */
     public function rejectMember(Request $request, $id)

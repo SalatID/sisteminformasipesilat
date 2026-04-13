@@ -109,6 +109,7 @@ Route::group(['middleware' => ['auth']], function () {
     
     // Member Registration Approval Routes
     Route::get('/member/registrations/pending', [MemberController::class, 'pending'])->name('member.registrations.pending');
+    Route::post('/member/registrations/bulk-approve', [MemberController::class, 'bulkApproveMember'])->name('member.registration.bulkApprove');
     Route::post('/member/registrations/{id}/approve', [MemberController::class, 'approveMember'])->name('member.registration.approve');
     Route::post('/member/registrations/{id}/reject', [MemberController::class, 'rejectMember'])->name('member.registration.reject');
     

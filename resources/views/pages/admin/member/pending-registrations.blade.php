@@ -26,10 +26,20 @@
                         <i class="fas fa-info-circle"></i> Tidak ada pendaftaran yang menunggu verifikasi.
                     </div>
                 @else
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover">
+                    <form id="bulkApproveForm" action="{{ route('member.registration.bulkApprove') }}" method="POST">
+                        @csrf
+                        <div class="mb-3">
+                            <button type="submit" class="btn btn-success" id="bulkApproveBtn" disabled>
+                                <i class="fas fa-check-double"></i> Setujui yang Dipilih (<span id="selectedCount">0</span>)
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
                             <thead>
                                 <tr>
+                                    <th class="text-center" style="width: 50px;">
+                                        <input type="checkbox" id="selectAll" class="" style="cursor: pointer;">
+                                    </th>
                                     <th class="text-center">#</th>
                                     <th class="text-center">Nama</th>
                                     <th class="text-center">ID Member</th>
@@ -44,6 +54,9 @@
                                 @php($i = ($pending_members->currentPage() - 1) * $pending_members->perPage() + 1)
                                 @foreach ($pending_members as $member)
                                 <tr>
+                                    <td class="text-center">
+                                        <input type="checkbox" name="member_ids[]" value="{{ $member->id }}" class="member-checkbox " style="cursor: pointer;">
+                                    </td>
                                     <td class="text-center">{{ $i++ }}</td>
                                     <td>{{ $member->name }}</td>
                                     <td class="text-center">
@@ -278,9 +291,60 @@
                     <div class="d-flex justify-content-center mt-3">
                         {{ $pending_members->links() }}
                     </div>
+                    </form>
                 @endif
             </div>
         </div>
     </div>
 </div>
+@endsection
+
+@section('script')
+<script>
+$(document).ready(function() {
+    // Handle select all checkbox
+    $('#selectAll').on('change', function() {
+        const isChecked = $(this).is(':checked');
+        $('.member-checkbox').prop('checked', isChecked);
+        updateBulkApproveButton();
+    });
+
+    // Handle individual checkbox changes
+    $('.member-checkbox').on('change', function() {
+        updateSelectAllState();
+        updateBulkApproveButton();
+    });
+
+    // Update the "Select All" checkbox state
+    function updateSelectAllState() {
+        const totalCheckboxes = $('.member-checkbox').length;
+        const checkedCheckboxes = $('.member-checkbox:checked').length;
+        
+        $('#selectAll').prop('checked', totalCheckboxes === checkedCheckboxes && totalCheckboxes > 0);
+    }
+
+    // Enable/disable bulk approve button and update count
+    function updateBulkApproveButton() {
+        const checkedCount = $('.member-checkbox:checked').length;
+        $('#selectedCount').text(checkedCount);
+        $('#bulkApproveBtn').prop('disabled', checkedCount === 0);
+    }
+
+    // Confirm before bulk approve
+    $('#bulkApproveForm').on('submit', function(e) {
+        const checkedCount = $('.member-checkbox:checked').length;
+        
+        if (checkedCount === 0) {
+            e.preventDefault();
+            alert('Pilih minimal satu pesilat untuk disetujui');
+            return false;
+        }
+
+        if (!confirm(`Anda yakin ingin menyetujui ${checkedCount} pendaftaran pesilat?`)) {
+            e.preventDefault();
+            return false;
+        }
+    });
+});
+</script>
 @endsection
