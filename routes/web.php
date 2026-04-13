@@ -96,6 +96,7 @@ Route::group(['middleware' => ['auth']], function () {
     
     // Member Management Routes
     Route::get('/member', [MemberController::class, 'index'])->name('member.index');
+    Route::get('/member/export-pdf', [MemberController::class, 'exportPdf'])->name('member.export.pdf');
     Route::get('/member/create', [MemberController::class, 'create'])->name('member.create');
     Route::post('/member', [MemberController::class, 'store'])->name('member.store');
     Route::get('/member/{id}', [MemberController::class, 'show'])->name('member.show');

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class MemberController extends Controller
 {
@@ -374,7 +375,6 @@ class MemberController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'birth_date' => ['nullable', 'date', 'before:today'],
             'birth_place' => ['nullable', 'string', 'max:255'],
-            'member_id' => ['required', 'string', 'max:50', 'unique:members,member_id,' . $id . ',id'],
             'ts_id' => ['required', 'uuid', 'exists:ts,id'],
             'joined_date' => ['required', 'date'],
             'unit_id' => ['nullable', 'uuid', 'exists:units,id'],
@@ -682,5 +682,100 @@ class MemberController extends Controller
             'error' => false,
             'message' => 'Pendaftaran ' . $member->name . ' berhasil ditolak!'
         ]);
+    }
+
+    /**
+     * Export members to PDF
+     */
+    public function exportPdf(Request $request)
+    {
+        // Build query similar to index method
+        $query = \App\Models\Member::with([
+            'ts:id,name,ts_seq',
+            'unit:id,name'
+        ])
+            ->where(function($query) {
+                // Exclude pending self-registered members
+                $query->where('registration_status', '!=', 'pending')
+                      ->orWhere('is_self_registered', false);
+            })
+            ->join('ts', 'ts.id', '=', 'members.ts_id')
+            ->select('members.*');
+
+        // Apply filters
+        if ($request->filled('search_name')) {
+            $query->where('members.name', 'like', '%' . $request->search_name . '%');
+        }
+
+        if ($request->filled('search_unit')) {
+            $query->where('members.unit_id', $request->search_unit);
+        }
+
+        if ($request->filled('search_ts')) {
+            $query->where('members.ts_id', $request->search_ts);
+        }
+
+        $members = $query->orderBy('ts.ts_seq', 'desc')
+            ->orderBy('members.name', 'asc')
+            ->get();
+
+        // Get all units and TS for summary
+        $units = \App\Models\Unit::orderBy('name', 'asc')->get();
+        $ts_list = \App\Models\Ts::orderBy('ts_seq', 'asc')->get();
+
+        // Determine if we should show summary page (when no unit filter is applied)
+        $showSummary = !$request->filled('search_unit');
+
+        // Group members by unit
+        $membersByUnit = [];
+        
+        if ($showSummary) {
+            // Group by all units
+            foreach ($units as $unit) {
+                $unitMembers = $members->where('unit_id', $unit->id);
+                if ($unitMembers->count() > 0) {
+                    $membersByUnit[$unit->name] = $unitMembers->values();
+                }
+            }
+        } else {
+            // Single unit filter applied
+            $selectedUnit = \App\Models\Unit::find($request->search_unit);
+            if ($selectedUnit && $members->count() > 0) {
+                $membersByUnit[$selectedUnit->name] = $members->values();
+            }
+        }
+
+        // Build summary data (TS x Unit matrix)
+        $summary = [];
+        if ($showSummary) {
+            foreach ($ts_list as $ts) {
+                $summary[$ts->id] = [];
+                foreach ($units as $unit) {
+                    $count = $members->where('ts_id', $ts->id)
+                                    ->where('unit_id', $unit->id)
+                                    ->count();
+                    $summary[$ts->id][$unit->id] = $count;
+                }
+            }
+        }
+
+        // Generate PDF
+        $pdf = Pdf::loadView('pages.admin.member.pdf.export', compact(
+            'members',
+            'membersByUnit',
+            'units',
+            'ts_list',
+            'summary',
+            'showSummary'
+        ));
+
+        // Set paper size and orientation
+        $pdf->setPaper('A4', 'portrait');
+
+        // Generate filename
+        $filename = 'Daftar_Pesilat_' . date('Y-m-d_His') . '.pdf';
+
+        // Download PDF
+        return $pdf->download($filename);
     }
 }

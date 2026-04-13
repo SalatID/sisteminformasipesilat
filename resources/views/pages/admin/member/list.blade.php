@@ -73,6 +73,10 @@
                             <a href="{{ route('member.index') }}" class="btn btn-secondary btn-sm">
                                 <i class="fas fa-redo"></i> Reset
                             </a>
+                            <a href="{{ route('member.export.pdf', ['search_name' => request('search_name'), 'search_ts' => request('search_ts'), 'search_unit' => request('search_unit')]) }}" 
+                               class="btn btn-danger btn-sm" target="_blank">
+                                <i class="fas fa-file-pdf"></i> Export PDF
+                            </a>
                         </div>
                     </div>
                 </form>
