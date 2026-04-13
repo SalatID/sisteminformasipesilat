@@ -117,7 +117,7 @@
                 @foreach($units as $index => $unit)
                     <tr>
                         <td class="text-center">{{ $index + 1 }}</td>
-                        <td>{{ $unit->name }}</td>
+                        <td>{{ strtoupper($unit->name) }}</td>
                         @php($row_total = 0)
                         @foreach($ts_list as $ts_index => $ts)
                             @php($count = $summary[$ts->id][$unit->id] ?? 0)
@@ -149,7 +149,7 @@
     @foreach($membersByUnit as $unit_name => $unit_members)
         <div class="header">
             <h2>DAFTAR PESILAT</h2>
-            <h3>Unit: {{ $unit_name }}</h3>
+            <h3>Unit: {{ strtoupper($unit_name) }}</h3>
             <h3>Tanggal: {{ date('d-m-Y') }}</h3>
         </div>
 
