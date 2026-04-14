@@ -168,7 +168,7 @@
                 @foreach($unit_members as $index => $member)
                     <tr>
                         <td class="text-center">{{ $index + 1 }}</td>
-                        <td>{{ $member->name }}</td>
+                        <td>{{ strtoupper(strtolower($member->name)) }}</td>
                         <td class="text-center">{{ $member->member_id }}</td>
                         <td class="text-center">{{ $member->ts->name ?? '-' }}</td>
                         <td class="text-center">{{ $member->joined_date->format('d-m-Y') }}</td>
