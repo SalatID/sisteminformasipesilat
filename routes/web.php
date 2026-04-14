@@ -39,9 +39,12 @@ Route::get('/member/register', [MemberRegistrationController::class, 'create'])-
 Route::post('/member/register', [MemberRegistrationController::class, 'store'])->name('member.registration.store');
 Route::get('/member/register/success', [MemberRegistrationController::class, 'success'])->name('member.registration.success');
 
-Route::get('/clear-cache', function () {
+Route::get('/deploy-finish', function () {
     Artisan::call('optimize:clear');
-    return 'done';
+    Artisan::call('config:cache');
+    Artisan::call('route:cache');
+    Artisan::call('view:cache');
+    return 'OK';
 });
 
 Route::group(['middleware' => ['auth']], function () {

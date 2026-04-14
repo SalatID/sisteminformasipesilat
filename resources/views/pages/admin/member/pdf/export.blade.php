@@ -117,7 +117,7 @@
                 @foreach($units as $index => $unit)
                     <tr>
                         <td class="text-center">{{ $index + 1 }}</td>
-                        <td>{{ strtoupper($unit->name) }}</td>
+                        <td>{{ strtoupper(strtolower($unit->name)) }}</td>
                         @php($row_total = 0)
                         @foreach($ts_list as $ts_index => $ts)
                             @php($count = $summary[$ts->id][$unit->id] ?? 0)
