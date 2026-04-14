@@ -52,6 +52,14 @@
             text-align: center;
         }
 
+        table tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        table tbody tr:nth-child(odd) {
+            background-color: #ffffff;
+        }
+
         .text-center {
             text-align: center;
         }
