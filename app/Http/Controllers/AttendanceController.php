@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Artisan;
 use Carbon\Carbon;
 use \App\Models\Contribution;
 use \App\Models\ContributionDetail;
+use \Log;
 
 class AttendanceController extends Controller
 {
