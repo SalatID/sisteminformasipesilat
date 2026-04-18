@@ -202,8 +202,8 @@ class SendAttendanceNotificationCommand extends Command
      */
     private function sendTelegramMessage($message)
     {
-        $botToken = env('TELEGRAM_BOT_TOKEN');
-        $chatId = env('TELEGRAM_CHAT_ID');
+        $botToken = config('services.telegram.bot_token');
+        $chatId = config('services.telegram.chat_id');
         Log::info("Attempting to send Telegram token: {$botToken}");
         Log::info("Attempting to send Telegram chat ID: {$chatId}");
         Log::info("Attempting to send Telegram message: {$message}");
