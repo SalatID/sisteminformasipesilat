@@ -136,9 +136,11 @@ class AttendanceController extends Controller
 
     public function resendNotif($id)
     {
-        Artisan::call('attendance:notify', [
+        $artisanlog = Artisan::call('attendance:notify', [
             'attendance_id' => $id,
         ]);
+
+        Log::info("Resend notification for attendance ID $id, Artisan output: " . Artisan::output());
 
         return redirect()->back()->with(["error"=>false,"message"=>"Pengiriman Ulang Notifikasi Berjalan Di Latar Belakang, Mohon Cek Berkala"]);
     }
