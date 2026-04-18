@@ -147,7 +147,7 @@
                     </table>
 
                     <!-- Pagination -->
-                    <div class="d-flex justify-content-center mt-3">
+                    <div class="d-flex justify-content-between mt-3">
                         {{ $members->links() }}
                     </div>
                 @endif
