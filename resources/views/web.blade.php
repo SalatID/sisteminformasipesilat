@@ -6,7 +6,7 @@
         <div class="container">
             <div class="row align-items-center min-vh-100">
                 <div class="col-lg-6">
-                    <h1 class="display-3 fw-bold mb-4">{{env('APP_NAME')}}</h1>
+                    <h1 class="display-3 fw-bold mb-4">{{config('services.webenv.app_name')}}</h1>
                     <p class="lead mb-4">Sistem Manajemen Informasi Pesilat yang Modern dan Terintegrasi</p>
                     <p class="fs-5 mb-5">Platform digital yang dibuat untuk mengelola data pesilat, absensi, dan pelaporan secara efisien dan akurat di PPS Satria Muda Indonesia Komwil Jakarta Barat</p>
                     <div class="d-flex gap-3">

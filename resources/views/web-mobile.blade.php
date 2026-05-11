@@ -9,7 +9,7 @@
                     <div class="mb-4">
                         <img src="{{ asset('assets/dist/img/logo-smi.png') }}" alt="Logo SMI" class="img-fluid mb-3" style="max-width: 150px; opacity: 0.95;">
                     </div>
-                    <h1 class="h2 fw-bold mb-3">{{env('APP_NAME')}}</h1>
+                    <h1 class="h2 fw-bold mb-3">{{config('services.webenv.app_name')}}</h1>
                     <p class="mb-3" style="font-size: 0.95rem;">Sistem Manajemen Informasi Pesilat yang Modern dan Terintegrasi</p>
                     <p class="small mb-4" style="font-size: 0.85rem;">Platform digital untuk mengelola data pesilat, absensi, dan pelaporan di PPS Satria Muda Indonesia Komwil Jakarta Barat</p>
                     <div class="d-grid gap-2 mx-auto" style="max-width: 300px;">

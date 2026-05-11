@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>@yield('title') | {{env('APP_NAME')}}</title>
+  <title>@yield('title') | {{config('services.webenv.app_name')}}</title>
 
   <!-- Google Font: Source Sans Pro -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
@@ -18,7 +18,7 @@
 <body class="hold-transition login-page">
 <div class="login-box">
   <div class="login-logo">
-    <a href="{{route('login')}}">{{env('APP_NAME')}}</a>
+    <a href="{{route('login')}}">{{config('services.webenv.app_name')}}</a>
   </div>
     @yield('content')
 </div>

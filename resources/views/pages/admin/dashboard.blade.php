@@ -42,7 +42,7 @@
         {{-- Header + Filter --}}
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
             <div>
-                <h5>Selamat Datang {{ auth()->user()->fullname }}, di {{ env('APP_NAME') }}</h5>
+                <h5>Selamat Datang {{ auth()->user()->fullname }}, di {{ config('services.webenv.app_name') }}</h5>
             </div>
             <form method="GET" action="{{ route('dashboard') }}" class="d-flex flex-wrap align-items-end gap-2">
                 <div>

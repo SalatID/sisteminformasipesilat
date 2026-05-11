@@ -156,7 +156,7 @@ class UserManagementController extends Controller
     }
     public function sendEmail($user,$subject="Verifikasi Email",$view="mail.register")
     {
-        $url = env('APP_URL').'/register/validate/'.Crypt::encrypt(json_encode(['email'=>$user->email,'expired_at'=>Carbon::now()->addMinutes(30),"from"=>$view]));
+        $url = config('services.webenv.app_url').'/register/validate/'.Crypt::encrypt(json_encode(['email'=>$user->email,'expired_at'=>Carbon::now()->addMinutes(30),"from"=>$view]));
         $data = json_encode([
             "to"=>$user->email,
             "subject"=>$subject,
