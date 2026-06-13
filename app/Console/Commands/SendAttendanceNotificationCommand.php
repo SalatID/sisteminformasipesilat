@@ -293,7 +293,7 @@ class SendAttendanceNotificationCommand extends Command
                "*Pembuat Laporan*: {$reportMaker}\n" .
                "*Anggota Lama*: {$attendance->old_member_cnt}\n" .
                "*Anggota Baru*: {$attendance->new_member_cnt}\n\n" .
-               "*Pelatih*:\n{$coachesList}\n" .
+               "*Pelatih*:\n{$coachesList}\n\n" .
                "*Asisten Pelatih*:\n{$assCoachesList}\n" .
                "*Foto Latihan*:\n{$photoLinks}";
     }
