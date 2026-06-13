@@ -253,14 +253,23 @@ class SendAttendanceNotificationCommand extends Command
         $reportMaker = $attendance->reportMaker ? $attendance->reportMaker->name : 'Unknown';
         $coaches = $attendance->attendanceDetails;
         $coachesList = '';
+        $assCoachesList = '';
         if ($coaches->isNotEmpty()) {
             foreach ($coaches as $index => $detail) {
                 $coach = $detail->coach;
                 $alias = $coach && $coach->ts ? $coach->ts->alias : '';
-                $coachesList .= ($index + 1) . ". {$coach->name} ({$alias})\n";
+                if ($coach->ts->ts_seq > 4) {
+                    $coachesList .= ($index + 1) . ". {$coach->name} ({$alias})\n";
+                } else {
+                    $assCoachesList .= ($index + 1) . ". {$coach->name} ({$alias})\n";
+                }
             }
-        } else {
-            $coachesList = 'Tidak ada';
+        } 
+        if ($coachesList =='') {
+            $coachesList = 'Tidak ada pelatih';
+        }
+        if ($assCoachesList =='') {
+            $assCoachesList = 'Tidak ada asisten pelatih';
         }
 
         $photoLinks = '';
@@ -285,6 +294,7 @@ class SendAttendanceNotificationCommand extends Command
                "*Anggota Lama*: {$attendance->old_member_cnt}\n" .
                "*Anggota Baru*: {$attendance->new_member_cnt}\n\n" .
                "*Pelatih*:\n{$coachesList}\n" .
+               "*Asisten Pelatih*:\n{$assCoachesList}\n" .
                "*Foto Latihan*:\n{$photoLinks}";
     }
 
