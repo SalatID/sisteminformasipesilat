@@ -614,7 +614,7 @@
                             <div class="card shadow-sm h-100 col-12">
                                 <div class="card-header bg-primary d-flex justify-content-between align-items-center">
                                     <div>
-                                        <div class="fw-semibold">Top 10 Pelatih — Kontribusi Terbesar</div>
+                                        <div class="fw-semibold">Top 5 Pelatih — Kontribusi Terbesar</div>
                                     </div>
                                 </div>
                                 <div class="card-body p-0">
@@ -649,7 +649,7 @@
                             <div class="card shadow-sm h-100 col-12">
                                 <div class="card-header bg-warning d-flex justify-content-between align-items-center">
                                     <div>
-                                        <div class="fw-semibold">Top 10 Pelatih — Kontribusi Terendah</div>
+                                        <div class="fw-semibold">Top 5 Pelatih — Kontribusi Terendah</div>
                                     </div>
                                 </div>
                                 <div class="card-body p-0">
@@ -682,13 +682,13 @@
                         </div>
                     </div>
 
-                    {{-- Top 10 Greatest Contributions --}}
+                    {{-- Top 5 Greatest Contributions --}}
                     <div class="col-12 col-md-6 col-lg-3">
                        <div class="row">
                             <div class="card shadow-sm h-100 col-12">
                                 <div class="card-header bg-primary d-flex justify-content-between align-items-center">
                                     <div>
-                                        <div class="fw-semibold">Top 10 Asisten Pelatih — Kontribusi Terbesar</div>
+                                        <div class="fw-semibold">Top 5 Asisten Pelatih — Kontribusi Terbesar</div>
                                     </div>
                                 </div>
                                 <div class="card-body p-0">
@@ -723,7 +723,7 @@
                             <div class="card shadow-sm h-100 col-12">
                                 <div class="card-header bg-warning d-flex justify-content-between align-items-center">
                                     <div>
-                                        <div class="fw-semibold">Top 10 Asisten Pelatih — Kontribusi Terendah</div>
+                                        <div class="fw-semibold">Top 5 Asisten Pelatih — Kontribusi Terendah</div>
                                     </div>
                                 </div>
                                 <div class="card-body p-0">

@@ -253,7 +253,7 @@ class AdminCotroller extends Controller
             GROUP BY c.id, c.name, ts.alias, ts.ts_seq
             HAVING COALESCE(SUM(cd.total), 0) > 0
             ORDER BY total_contribution DESC
-            LIMIT 10",
+            LIMIT 5",
             [$startPeriod, $endPeriod, $startPeriod, $endPeriod]
         );
 
@@ -269,7 +269,7 @@ class AdminCotroller extends Controller
             GROUP BY c.id, c.name, ts.alias, ts.ts_seq
             HAVING COALESCE(SUM(cd.total), 0) > 0
             ORDER BY total_contribution ASC
-            LIMIT 10",
+            LIMIT 5",
             [$startPeriod, $endPeriod, $startPeriod, $endPeriod]
         );
 
@@ -284,7 +284,7 @@ class AdminCotroller extends Controller
             GROUP BY c.id, c.name, ts.alias, ts.ts_seq
             HAVING COALESCE(SUM(cd.total), 0) > 0
             ORDER BY total_contribution DESC
-            LIMIT 10",
+            LIMIT 5",
             [$startPeriod, $endPeriod, $startPeriod, $endPeriod]
         );
 
@@ -300,7 +300,7 @@ class AdminCotroller extends Controller
             GROUP BY c.id, c.name, ts.alias, ts.ts_seq
             HAVING COALESCE(SUM(cd.total), 0) > 0
             ORDER BY total_contribution ASC
-            LIMIT 10",
+            LIMIT 5",
             [$startPeriod, $endPeriod, $startPeriod, $endPeriod]
         );
 
