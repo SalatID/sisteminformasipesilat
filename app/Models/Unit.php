@@ -24,6 +24,7 @@ class Unit extends Model
         'school_level',
         'school_pic_occupation',
         'joined_date',
+        'is_active',
         'created_by',
         'updated_by',
         'deleted_by',
@@ -33,6 +34,7 @@ class Unit extends Model
         'training_hours_start' => 'datetime:H:i',
         'training_hours_end' => 'datetime:H:i',
         'joined_date' => 'date',
+        'is_active' => 'boolean',
     ];
 
     // Relations

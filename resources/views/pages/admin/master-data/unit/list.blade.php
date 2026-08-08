@@ -24,6 +24,7 @@
                     <th class="text-center">PJ Unit</th>
                     <th class="text-center">Tipe Pembayaran</th>
                     <th class="text-center">Tanggal Bergabung</th>
+                    <th class="text-center">Status</th>
                     <th class="text-center">Action</th>
                 </tr>
             </thead>
@@ -48,10 +49,24 @@
                     <td class="text-center">{{$item->paid_fee_type}}</td>
                     <td class="text-center">{{$item->joined_date}}</td>
                     <td class="text-center">
+                        @if($item->is_active)
+                            <span class="badge badge-success">Aktif</span>
+                        @else
+                            <span class="badge badge-danger">Tidak Aktif</span>
+                        @endif
+                    </td>
+                    <td class="text-center">
                        @include('partials.button_action',[
                         "permision"=>"unit",
                         "params" => $item->id,
                         "target"=>"unit"])
+                       <a href="#" class="link mx-1" onclick="toggleUnitStatus('{{Illuminate\Support\Facades\Crypt::encryptString($item->id)}}', {{$item->is_active ? 'false' : 'true'}}); return false;">
+                            @if($item->is_active)
+                                <i class="fas fa-toggle-on text-success" title="Click untuk non-aktifkan"></i>
+                            @else
+                                <i class="fas fa-toggle-off text-secondary" title="Click untuk aktifkan"></i>
+                            @endif
+                       </a>
                     </td>
                 </tr>
                 @endforeach
@@ -184,6 +199,12 @@
                     @if($errors->has('joined_date'))
                         <span class="text-danger">{{ $errors->first('joined_date') }}</span>
                     @endif
+                </div>
+                <div class="form-group">
+                    <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" name="is_active" id="is_active" value="1" checked>
+                        <label class="custom-control-label" for="is_active">Unit Aktif</label>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -322,6 +343,12 @@
                         <span class="text-danger">{{ $errors->first('joined_date') }}</span>
                     @endif
                 </div>
+                <div class="form-group">
+                    <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" name="is_active" id="is_active_edit" value="1">
+                        <label class="custom-control-label" for="is_active_edit">Unit Aktif</label>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -450,6 +477,28 @@
         };
 
         $('#unitsTable').DataTable();
+        
+        function toggleUnitStatus(encryptedId, status) {
+            $.ajax({
+                url: '/unit/' + encryptedId + '/toggle-status',
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    is_active: status
+                },
+                success: function(response) {
+                    if (response.error === false) {
+                        location.reload();
+                    } else {
+                        alert(response.message || 'Error updating unit status');
+                    }
+                },
+                error: function() {
+                    alert('Error updating unit status');
+                }
+            });
+        }
+        
         function editData(e){
             console.log($(e).data('target'))
             $.get($(e).data('target'),function(data){
@@ -466,6 +515,7 @@
                 $('select[name="school_level"]',$('#editUnitModal')).val(data.school_level)
                 $('input[name="school_pic_occupation"]',$('#editUnitModal')).val(data.school_pic_occupation)
                 $('input[name="joined_date"]',$('#editUnitModal')).val(data.joined_date)
+                $('input[name="is_active"]',$('#editUnitModal')).prop('checked', data.is_active)
                 action = $('#editUnitForm').attr('action')
                 $('#editUnitForm').attr('action',action.substring(0, (action.length-1))+id)
                 $('#editUnitModal').modal('show')

@@ -70,6 +70,9 @@ class SendAttendanceNotificationCommand extends Command
          $this->info('Send attendance notifications...');
         $attendances = Attendance::with(['unit', 'reportMaker', 'attendanceDetails.coach.ts'])
             ->where('is_notif_send', false)->where('attendance_status','training')
+            ->whereHas('unit', function ($query) {
+                $query->where('is_active', true);
+            })
             ->get();
 
         if ($attendances->isEmpty()) {
@@ -90,18 +93,20 @@ class SendAttendanceNotificationCommand extends Command
     {
         $attendance = Attendance::with(['unit', 'reportMaker', 'attendanceDetails.coach.ts'])
             ->where('id', $attendanceId)
+            ->whereHas('unit', function ($query) {
+                $query->where('is_active', true);
+            })
             ->first();
 
         if (!$attendance) {
-            $this->error("Attendance ID {$attendanceId} tidak ditemukan.");
-            Log::channel('cron')->error("Attendance ID {$attendanceId} tidak ditemukan.");
+            $this->error("Attendance ID {$attendanceId} tidak ditemukan atau unit tidak aktif.");
+            Log::channel('cron')->error("Attendance ID {$attendanceId} tidak ditemukan atau unit tidak aktif.");
             return Command::FAILURE;
-
-             $attendance->update(['is_notif_send' => true]);
         }
 
         $message = $this->buildAttendanceMessage($attendance);
         $this->sendTelegramMessage($message);
+        $attendance->update(['is_notif_send' => true]);
 
         $this->info("Attendance notification sent for ID: {$attendanceId}");
         Log::channel('cron')->info("Attendance notification sent for ID: {$attendanceId}");
@@ -120,7 +125,9 @@ class SendAttendanceNotificationCommand extends Command
         $todayName = $today->format('l'); // e.g., 'Monday'
         $now = Carbon::now();
 
-        $units = \App\Models\Unit::where('training_day', 'like', "%{$todayName}%")->get();
+        $units = \App\Models\Unit::where('training_day', 'like', "%{$todayName}%")
+            ->where('is_active', true)
+            ->get();
 
         foreach ($units as $unit) {
             // Check if training has ended
@@ -149,7 +156,7 @@ class SendAttendanceNotificationCommand extends Command
         Log::channel('cron')->info('Send attendance overdue reminder...');
         $this->info('Send attendance overdue reminder...');
 
-        $units = \App\Models\Unit::all();
+        $units = \App\Models\Unit::where('is_active', true)->all();
 
         foreach ($units as $unit) {
             $lastTrainingDate = $this->getLastTrainingDate($unit->training_day);

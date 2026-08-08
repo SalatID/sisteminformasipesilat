@@ -46,8 +46,10 @@ class UnitController extends Controller
             'school_level' => ['required', 'string'],
             'school_pic_occupation' => ['required', 'string'],
             'joined_date' => ['required', 'date'],
+            'is_active' => ['nullable', 'boolean'],
         ]);
 
+        $credentials['is_active'] = $request->has('is_active') ? true : false;
         $credentials['created_by'] = auth()->user()->id;
 
         if (Unit::create($credentials)) {
@@ -126,8 +128,10 @@ class UnitController extends Controller
                 'school_level' => ['required', 'string'],
                 'school_pic_occupation' => ['required', 'string'],
                 'joined_date' => ['required', 'date'],
+                'is_active' => ['nullable', 'boolean'],
             ]);
 
+            $credentials['is_active'] = $request->has('is_active') ? true : false;
             $credentials['updated_by'] = auth()->user()->id;
 
             if ($unit->update($credentials)) {
@@ -178,6 +182,39 @@ class UnitController extends Controller
                 'error' => true,
                 'message' => 'Decrypt Failed'
             ]);
+        }
+    }
+
+    /**
+     * Toggle unit active status
+     */
+    public function toggleStatus($id, Request $request)
+    {
+        try {
+            $decrypted = Crypt::decryptString($id);
+            $unit = Unit::find($decrypted);
+
+            if (!$unit) {
+                return response()->json([
+                    'error' => true,
+                    'message' => 'Unit tidak ditemukan'
+                ], 404);
+            }
+
+            $unit->is_active = $request->input('is_active', !$unit->is_active);
+            $unit->updated_by = auth()->user()->id;
+            $unit->save();
+
+            return response()->json([
+                'error' => false,
+                'message' => $unit->is_active ? 'Unit diaktifkan' : 'Unit dinonaktifkan',
+                'is_active' => $unit->is_active
+            ]);
+        } catch (DecryptException $e) {
+            return response()->json([
+                'error' => true,
+                'message' => 'Decrypt Failed'
+            ], 400);
         }
     }
 }

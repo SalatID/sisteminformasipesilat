@@ -128,6 +128,7 @@ Route::group(['middleware' => ['auth']], function () {
     
     // Unit Management Routes
     Route::resource('unit', UnitController::class);
+    Route::post('/unit/{id}/toggle-status', [UnitController::class, 'toggleStatus'])->name('unit.toggle-status');
     
     // Member Training Center Routes
     Route::post('/member/{memberId}/training-center/attach', [MemberTrainingCenterController::class, 'attach'])->name('member.training-center.attach');
