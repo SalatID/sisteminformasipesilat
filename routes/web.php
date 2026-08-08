@@ -12,6 +12,7 @@ use App\Http\Controllers\MemberTrainingCenterController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\PermisionController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\UnitController;
 // use App\Http\Controllers\PesilatController;
 use App\Http\Controllers\AttendanceController;
 
@@ -124,6 +125,9 @@ Route::group(['middleware' => ['auth']], function () {
     
     // Training Center Management Routes
     Route::resource('training-center', TrainingCenterController::class);
+    
+    // Unit Management Routes
+    Route::resource('unit', UnitController::class);
     
     // Member Training Center Routes
     Route::post('/member/{memberId}/training-center/attach', [MemberTrainingCenterController::class, 'attach'])->name('member.training-center.attach');

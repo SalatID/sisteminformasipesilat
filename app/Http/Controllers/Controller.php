@@ -215,13 +215,19 @@ class Controller extends BaseController
                 "icon"=>"fas fa-cogs",
                 "name"=>"Master Data",
                 "src"=>"#",
-                "permision"=>["training_center_list"],
+                "permision"=>["training_center_list","unit_list"],
                 "children"=>[
                     [
                         "icon"=>"fas fa-dumbbell",
                         "name"=>"Manajemen TC",
                         "permision"=>["training_center_list"],
                         "src"=>"training-center.index"
+                    ],
+                    [
+                        "icon"=>"fas fa-building",
+                        "name"=>"Manajemen Unit",
+                        "permision"=>["unit_list"],
+                        "src"=>"unit.index"
                     ],
                 ],
             ],
