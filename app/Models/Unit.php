@@ -28,6 +28,7 @@ class Unit extends Model
         'created_by',
         'updated_by',
         'deleted_by',
+        'is_active',
     ];
 
     protected $casts = [

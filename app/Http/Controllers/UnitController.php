@@ -201,9 +201,13 @@ class UnitController extends Controller
                 ], 404);
             }
 
-            $unit->is_active = $request->input('is_active', !$unit->is_active);
-            $unit->updated_by = auth()->user()->id;
-            $unit->save();
+            $unit->update([
+                'is_active' => $request->input('is_active')?0:1,
+                'updated_by' => auth()->user()->id,
+                'updated_at' => now()
+            ]);
+
+            // dd($unit->is_active);
 
             return response()->json([
                 'error' => false,
