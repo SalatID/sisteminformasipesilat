@@ -3,9 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Models\Attendance;
-use App\Models\Unit;
 use App\Services\Notification\AttendanceMessageBuilder;
 use App\Services\Notification\AttendanceReportDispatcher;
+use App\Services\Notification\MissingAttendanceCollector;
 use App\Services\Notification\NotificationManager;
 use App\Services\Notification\NotificationRunGuard;
 use Carbon\Carbon;
@@ -33,6 +33,12 @@ class SendAttendanceNotificationCommand extends Command
     protected $description = 'Kirim notifikasi absensi (Telegram & WhatsApp) berdasarkan config/notifications.php';
 
     private bool $sentAnything = false;
+
+    public function __construct(
+        private readonly MissingAttendanceCollector $missingAttendanceCollector,
+    ) {
+        parent::__construct();
+    }
 
     public function handle(
         NotificationManager $manager,
@@ -297,96 +303,16 @@ class SendAttendanceNotificationCommand extends Command
     }
 
     /**
-     * Unit yang latihannya sudah selesai hari ini tetapi belum melapor absensi,
-     * serta unit yang terlambat (lewat hari latihan) belum melapor.
+     * Unit yang belum melaporkan absensi selama N hari terakhir
+     * (default 30 hari) berdasarkan jadwal latihan unit.
      *
-     * @return array<int, array{unit: Unit, date: Carbon, type: string}>
+     * @return array<int, array{unit: Unit, date: Carbon, type: string, start: ?string, end: ?string}>
      */
     private function collectReminderItems(): array
     {
-        $today = Carbon::today();
-        $now = Carbon::now();
-        $todayName = $today->format('l');
-        $items = [];
+        $days = (int) config('notifications.reminder_lookback_days', MissingAttendanceCollector::DEFAULT_DAYS);
 
-        $unitsToday = Unit::with('pj')
-            ->where('training_day', 'like', "%{$todayName}%")
-            ->where('is_active', true)
-            ->get();
-
-        foreach ($unitsToday as $unit) {
-            if ($unit->training_hours_end && $now->format('H:i') < $unit->training_hours_end->format('H:i')) {
-                continue;
-            }
-
-            $hasAttendance = Attendance::where('unit_id', $unit->id)
-                ->where('attendance_date', $today->toDateString())
-                ->exists();
-
-            if (!$hasAttendance) {
-                $items[] = ['unit' => $unit, 'date' => $today, 'type' => 'today'];
-            }
-        }
-
-        // Overdue: jadwal terakhir > 6 hari lalu dan belum ada laporan.
-        foreach (Unit::with('pj')->where('is_active', true)->get() as $unit) {
-            $lastTrainingDate = $this->getLastTrainingDate($unit->training_day);
-
-            if (!$lastTrainingDate || !$lastTrainingDate->lt($now->copy()->subDays(6))) {
-                continue;
-            }
-
-            $hasAttendance = Attendance::where('unit_id', $unit->id)
-                ->where('attendance_date', $lastTrainingDate->toDateString())
-                ->exists();
-
-            if ($hasAttendance) {
-                continue;
-            }
-
-            // Hindari duplikasi bila unit juga sudah tercatat pada daftar hari ini.
-            $alreadyListed = collect($items)->contains(fn ($i) => $i['unit']->id === $unit->id);
-
-            if (!$alreadyListed) {
-                $items[] = ['unit' => $unit, 'date' => $lastTrainingDate, 'type' => 'overdue'];
-            }
-        }
-
-        return $items;
-    }
-
-    /**
-     * Tanggal latihan terakhir untuk satu/jumlah hari latihan.
-     */
-    private function getLastTrainingDate(?string $trainingDay): ?Carbon
-    {
-        if (!$trainingDay) {
-            return null;
-        }
-
-        $today = Carbon::today();
-        $days = array_filter(array_map('trim', explode(',', $trainingDay)));
-        $best = null;
-
-        foreach ($days as $day) {
-            try {
-                $dayOfWeek = Carbon::parse("next {$day}")->dayOfWeek;
-            } catch (\Throwable) {
-                continue;
-            }
-
-            $currentDayOfWeek = $today->dayOfWeek;
-
-            $date = $currentDayOfWeek === $dayOfWeek
-                ? $today->copy()
-                : $today->copy()->previous($day);
-
-            if ($best === null || $date->gt($best)) {
-                $best = $date;
-            }
-        }
-
-        return $best;
+        return $this->missingAttendanceCollector->collect($days > 0 ? $days : MissingAttendanceCollector::DEFAULT_DAYS);
     }
 
     private function shouldSendEndMarker(bool $dryRun): bool

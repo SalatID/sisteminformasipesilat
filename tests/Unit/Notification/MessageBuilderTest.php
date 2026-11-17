@@ -67,6 +67,10 @@ class MessageBuilderTest extends TestCase
     #[DataProvider('unitCounts')]
     public function test_n_units_produce_exactly_one_message(int $count): void
     {
+        // 30 unit melewati batas baris bawaan (25) → naikkan batas agar
+        // jumlah baris tetap = jumlah unit input.
+        config(['notifications.reminder_max_lines' => 100]);
+
         $items = [];
         for ($i = 1; $i <= $count; $i++) {
             $items[] = $this->item($this->unit("Unit {$i}", '08:00', '10:00', $this->pj("PJ {$i}", '6281234567890')));
@@ -100,7 +104,7 @@ class MessageBuilderTest extends TestCase
 
         $this->assertStringContainsString('@6289654157132 (Mursalat Asyidiq)', $result['text']);
         $this->assertStringContainsString('@6285713929759 (Revika Zulviani)', $result['text']);
-        $this->assertSame(['6289654157132@c.us', '6285713929759@c.us'], $result['mentions']);
+        $this->assertCount(2, $result['mentions']);
 
         // Setiap @nomor di teks HARUS punya entri di array mentions (konsistensi AC-13)
         preg_match_all('/@(62\d{8,14})/', $result['text'], $m);
@@ -181,7 +185,75 @@ class MessageBuilderTest extends TestCase
         $this->assertStringStartsWith('*Pengingat Absensi Latihan*', $text);
         $this->assertStringNotContainsString('BOT', $text);
         $this->assertStringContainsString('*Pengingat Absensi Latihan*', $text);
-        $this->assertStringContainsString('Tanggal: 17/11/2026', $text);
+        $this->assertStringContainsString('Unit yang belum mengirim laporan absensi:', $text);
+        $this->assertStringContainsString('Mohon lengkapi laporan absensi melalui aplikasi.', $text);
+
+        // Header lama "Tanggal: dd/mm/yyyy" sudah diganti tanggal per baris.
+        $this->assertStringNotContainsString('Tanggal: 17/11/2026', $text);
+    }
+
+    /**
+     * Format final (keputusan 17 Nov 2026): satu baris per sesi terlewat,
+     * dengan tanggal latihan panjang berbahasa Indonesia dan jam latihan.
+     */
+    public function test_reminder_line_matches_requested_format(): void
+    {
+        $items = [$this->item($this->unit('SDN Pegadungan 01', '13:00', '15:00', $this->pj('Zaenal Arifin', null)), 'overdue', '2026-01-01')];
+
+        $text = (new AttendanceMessageBuilder())->buildConsolidatedReminder($items, false, false)['text'];
+
+        $expected = '1. *SDN Pegadungan 01*, Tanggal Latihan : Kamis, 01 Januari 2026, Pukul : 13:00–15:00 — PJ: Zaenal Arifin';
+        $this->assertStringContainsString($expected, $text);
+        $this->assertStringEndsWith("Total: 1 unit.\nMohon lengkapi laporan absensi melalui aplikasi.", $text);
+    }
+
+    public function test_reminder_shows_newest_sessions_first(): void
+    {
+        $items = [
+            $this->item($this->unit('Unit Lama', '08:00', '10:00'), 'overdue', '2026-10-20'),
+            $this->item($this->unit('Unit Baru', '08:00', '10:00'), 'overdue', '2026-11-16'),
+        ];
+
+        $text = (new AttendanceMessageBuilder())->buildConsolidatedReminder($items)['text'];
+
+        $this->assertLessThan(
+            mb_strpos($text, 'Unit Lama'),
+            mb_strpos($text, 'Unit Baru'),
+            'Sesi terbaru harus tampil lebih dulu'
+        );
+        $this->assertStringContainsString('1. *Unit Baru*', $text);
+    }
+
+    public function test_reminder_limits_lines_and_summarizes_the_rest(): void
+    {
+        config(['notifications.reminder_max_lines' => 5]);
+
+        $items = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $items[] = $this->item($this->unit("Unit {$i}", '08:00', '10:00'), 'overdue', '2026-10-' . str_pad((string) $i, 2, '0', STR_PAD_LEFT));
+        }
+
+        $text = (new AttendanceMessageBuilder())->buildConsolidatedReminder($items)['text'];
+
+        preg_match_all('/^\d+\. /m', $text, $m);
+        $this->assertCount(5, $m[0], 'Maksimum 5 baris sesuai config');
+        $this->assertStringContainsString('... dan 7 sesi lainnya.', $text);
+        $this->assertStringContainsString('Total: 12 unit.', $text);
+    }
+
+    public function test_reminder_without_limit_shows_every_session(): void
+    {
+        config(['notifications.reminder_max_lines' => 0]);
+        $items = [];
+        for ($i = 1; $i <= 30; $i++) {
+            $items[] = $this->item($this->unit("Unit {$i}", '08:00', '10:00'));
+        }
+
+        $text = (new AttendanceMessageBuilder())->buildConsolidatedReminder($items)['text'];
+
+        preg_match_all('/^\d+\. /m', $text, $m);
+        $this->assertCount(30, $m[0]);
+        $this->assertStringNotContainsString('sesi lainnya', $text);
     }
 
     // ---------------------------------------------------------------- AC-08
@@ -291,6 +363,9 @@ class MessageBuilderTest extends TestCase
     // ---------------------------------------------------------------- Telegram chunking
     public function test_long_message_is_chunked_under_limit(): void
     {
+        // Batas baris dimatikan agar teks benar-benar panjang.
+        config(['notifications.reminder_max_lines' => 0]);
+
         $items = [];
         for ($i = 1; $i <= 200; $i++) {
             $items[] = $this->item($this->unit("Unit dengan nama panjang sekali nomor {$i}", '08:00', '10:00', $this->pj("PJ {$i}", '6281234567890')));

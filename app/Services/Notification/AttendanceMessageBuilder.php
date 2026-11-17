@@ -22,6 +22,12 @@ class AttendanceMessageBuilder
 
     private const MAX_PHOTO_LINKS = 4;
 
+    /**
+     * Jumlah baris maksimum daftar unit pada pesan pengingat. Bisa
+     * di-override lewat NOTIF_REMINDER_MAX_LINES.
+     */
+    public const MAX_REMINDER_LINES = 25;
+
     public function __construct(
         private readonly bool $mentionEnabled = true,
         private readonly int $mentionMax = 10,
@@ -37,12 +43,24 @@ class AttendanceMessageBuilder
     }
 
     /**
-     * Pengingat absensi untuk SEMUA unit yang belum absen — satu pesan.
+     * Pengingat absensi untuk SEMUA unit yang belum melapor — satu pesan.
+     *
+     * Format (17 Nov 2026):
+     *
+     *   *Pengingat Absensi Latihan*
+     *
+     *   Unit yang belum mengirim laporan absensi:
+     *
+     *   1. *SDN Pegadungan 01*, Tanggal Latihan : Senin, 01 Januari 2026,
+     *      Pukul : 13:00–15:00 — PJ: Zaenal Arifin
+     *   ...
+     *   Total: 3 unit.
+     *   Mohon lengkapi laporan absensi melalui aplikasi.
      *
      * @param  bool  $supportMentions  channel menerima field `mentions` (WhatsApp/WAHA)
      * @param  bool  $supportTags  teks boleh memuat `@<nomor>`; Telegram selalu `false`
      *                              supaya nomor WA tidak tampil sebagai tag yang mati
-     * @param  array<int, array{unit: Unit, date: Carbon, type: string}>  $items
+     * @param  array<int, array{unit: Unit, date: Carbon, type: string, start?: ?string, end?: ?string}>  $items
      * @return array{text: string, mentions: array<int, string>}|null  null bila tidak ada unit
      */
     public function buildConsolidatedReminder(
@@ -55,46 +73,86 @@ class AttendanceMessageBuilder
             return null;
         }
 
-        // Urutkan stabil: jam mulai latihan, lalu nama unit.
+        // Urutkan stabil: TERBARU dulu (tanggal, lalu jam mulai, lalu nama unit),
+        // supaya batas baris menampilkan sesi yang paling mendesak.
         usort($items, function (array $a, array $b) {
-            $startA = $a['unit']->training_hours_start?->format('H:i') ?? '99:99';
-            $startB = $b['unit']->training_hours_start?->format('H:i') ?? '99:99';
+            $dateA = $a['date']->toDateString();
+            $dateB = $b['date']->toDateString();
+            $startA = $this->sessionStart($a) ?? '99:99';
+            $startB = $this->sessionStart($b) ?? '99:99';
 
-            return [$startA, $a['unit']->name] <=> [$startB, $b['unit']->name];
+            return [$dateB, $startB, $b['unit']->name] <=> [$dateA, $startA, $a['unit']->name];
         });
 
         $mentionBudget = ($supportMentions && $supportTags && $this->mentionsAllowed()) ? max(0, $this->mentionMax) : 0;
         $mentions = [];
+
+        // Batasi jumlah baris agar pesan tetap terkirim utuh dan tidak terlihat
+        // seperti spam. Baris TERBARU yang ditampilkan (yang paling mendesak),
+        // sisanya diringkas di baris "… dan N sesi lainnya".
+        $maxLines = (int) (config('notifications.reminder_max_lines') ?? self::MAX_REMINDER_LINES);
+        $maxLines = $maxLines > 0 ? $maxLines : PHP_INT_MAX;
+        $total = count($items);
+        $shown = array_slice($items, 0, $maxLines);
+        $remaining = $total - count($shown);
+
         $lines = [];
         $index = 1;
 
-        foreach ($items as $item) {
+        foreach ($shown as $item) {
             $unit = $item['unit'];
             $pj = $unit->pj;
 
-            $schedule = '';
-            if ($unit->training_hours_start && $unit->training_hours_end) {
-                $schedule = ' (' . $unit->training_hours_start->format('H:i') . '–' . $unit->training_hours_end->format('H:i') . ')';
-            }
+            $tanggalLatihan = $item['date']->copy()->locale('id')->translatedFormat('l, d F Y');
+
+            $start = $this->sessionStart($item);
+            $end = $this->sessionEnd($item);
+            $pukul = ($start !== null && $end !== null) ? "{$start}–{$end}" : '-';
 
             $pjLabel = $this->buildPjLabel($pj, $mentionBudget, count($mentions), $mentions);
 
-            $lines[] = sprintf('%d. *%s*%s — PJ: %s', $index++, $unit->name, $schedule, $pjLabel);
+            $lines[] = sprintf(
+                '%d. *%s*, Tanggal Latihan : %s, Pukul : %s — PJ: %s',
+                $index++,
+                $unit->name,
+                $tanggalLatihan,
+                $pukul,
+                $pjLabel,
+            );
         }
 
-        $tanggal = Carbon::now()->locale('id')->translatedFormat('d/m/Y');
+        if ($remaining > 0) {
+            $lines[] = '... dan ' . $remaining . ' sesi lainnya.';
+        }
 
         $text = "*Pengingat Absensi Latihan*\n\n" .
-            "Tanggal: {$tanggal}\n" .
             "Unit yang belum mengirim laporan absensi:\n\n" .
             implode("\n", $lines) . "\n\n" .
-            'Total: ' . count($items) . ' unit.' . "\n" .
+            'Total: ' . $total . ' unit.' . "\n" .
             'Mohon lengkapi laporan absensi melalui aplikasi.';
 
         return [
             'text' => $text,
             'mentions' => array_values(array_unique($mentions)),
         ];
+    }
+
+    /**
+     * Jam mulai sesi: dari item (hasil collector), atau dari unit.
+     *
+     * @param  array{unit: Unit, date: Carbon, type: string, start?: ?string, end?: ?string}  $item
+     */
+    private function sessionStart(array $item): ?string
+    {
+        return $item['start'] ?? $item['unit']->training_hours_start?->format('H:i');
+    }
+
+    /**
+     * @param  array{unit: Unit, date: Carbon, type: string, start?: ?string, end?: ?string}  $item
+     */
+    private function sessionEnd(array $item): ?string
+    {
+        return $item['end'] ?? $item['unit']->training_hours_end?->format('H:i');
     }
 
     /**

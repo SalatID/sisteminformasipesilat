@@ -42,6 +42,36 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Rentang Pemeriksaan Pengingat (hari)
+    |--------------------------------------------------------------------------
+    |
+    | Pesan pengingat mendaftar setiap sesi latihan yang SUDAH TERLEWAT
+    | dalam NOTIF_REMINDER_LOOKBACK_DAYS hari terakhir (termasuk hari ini)
+    | tetapi belum ada baris absensi pada tanggal tersebut.
+    |
+    | Sesi dihitung dari units.training_day + units.training_hours_end,
+    | sehingga unit yang jadwalnya belum lewat tidak ikut dicela.
+    |
+    */
+
+    'reminder_lookback_days' => (int) env('NOTIF_REMINDER_LOOKBACK_DAYS', 30),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Batas Baris Pesan Pengingat
+    |--------------------------------------------------------------------------
+    |
+    | Maksimum baris daftar unit dalam satu pesan pengingat. Baris TERBARU
+    | yang ditampilkan; sisanya diringkas pada baris "... dan N sesi lainnya".
+    | Tujuannya menjaga pesan tetap utuh (Telegram 4.096 karakter) dan tidak
+    | terlihat seperti spam. Set 0 untuk menampilkan semua.
+    |
+    */
+
+    'reminder_max_lines' => (int) env('NOTIF_REMINDER_MAX_LINES', 25),
+
+    /*
+    |--------------------------------------------------------------------------
     | Test Mode
     |--------------------------------------------------------------------------
     |
