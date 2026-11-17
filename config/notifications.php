@@ -114,6 +114,36 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Balasan Bot: Tandai Sesi Libur (WhatsApp)
+    |--------------------------------------------------------------------------
+    |
+    | Admin membalas pesan *Pengingat Absensi Latihan* di grup, lalu menulis:
+    |
+    |   nomor 1
+    |   Diliburkan Sekolah
+    |   Alasan : Sedang ujian
+    |
+    | Bot menandai sesi tersebut libur dan membalas konfirmasi di grup.
+    | Detail: docs/rencana-implementasi-libur-via-balasan-wa.md
+    |
+    */
+
+    'reply' => [
+        'enabled' => (bool) env('NOTIF_REPLY_ENABLED', true),
+
+        // Nomor yang BOLEH mengubah status absensi. Kosong = tidak ada yang boleh.
+        // Menerima 62812xxx@c.us, 62812xxx, atau 0812xxx (dinormalisasi).
+        'allowed_users' => array_values(array_filter(array_map(
+            fn ($value) => trim($value),
+            explode(',', (string) env('WA_NOTIF_FLAG_HOLIDAY_USERS', ''))
+        ))),
+
+        // Panjang maksimum alasan (kolom attendances.reason = 255 karakter).
+        'reason_max' => (int) env('NOTIF_REPLY_REASON_MAX', 255),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Jeda antar pesan (detik)
     |--------------------------------------------------------------------------
     |
@@ -148,6 +178,14 @@ return [
         'session' => env('WAHA_SESSION', 'default'),
         'chat_id' => env('WAHA_CHAT_ID'),
         'timeout' => (int) env('WAHA_TIMEOUT', 30),
+
+        // Webhook masuk dari WAHA: POST /api/whatsapp/webhook/{secret}.
+        // Kosong = webhook nonaktif (selalu 403).
+        'webhook_secret' => env('WAHA_WEBHOOK_SECRET'),
+
+        // Kunci HMAC yang sama dengan config webhook di WAHA. Kosong =
+        // signature tidak diverifikasi (hanya mengandalkan {secret} di URL).
+        'webhook_hmac_key' => env('WAHA_WEBHOOK_HMAC_KEY'),
     ],
 
 ];

@@ -1,0 +1,35 @@
+{
+  "id": "evt_01JEXAMPLE0000000000000000",
+  "timestamp": 1763360000000,
+  "event": "message",
+  "session": "sessionsmi",
+  "engine": "NOWEB",
+  "metadata": {},
+  "me": {
+    "id": "6289654157132@c.us",
+    "pushName": "SMI Notifikasi"
+  },
+  "payload": {
+    "id": "false_120363000000000000@g.us_3EB0000000000000000001",
+    "timestamp": 1763360000,
+    "from": "120363000000000000@g.us",
+    "fromMe": false,
+    "source": "app",
+    "participant": "6289654157132@c.us",
+    "body": "nomor 1\nDiliburkan Sekolah\nAlasan : Sedang ujian",
+    "hasMedia": false,
+    "ack": 1,
+    "vCards": [],
+    "replyTo": {
+      "id": "true_120363000000000000@g.us_3EB0000000000000000000",
+      "participant": "6289654157132@c.us",
+      "body": "*Pengingat Absensi Latihan*\n\nUnit yang belum mengirim laporan absensi:\n\n1. *SMP/SMA/SMK Cengkareng 1*, Tanggal Latihan : Selasa, 17 November 2026, Pukul : 15:30–17:30 — PJ: @ka catur (Catur Wulandari)\n\nTotal: 1 unit.\nMohon lengkapi laporan absensi melalui aplikasi.",
+      "hasMedia": false
+    }
+  },
+  "environment": {
+    "version": "2026.4.3",
+    "engine": "NOWEB",
+    "tier": "CORE"
+  }
+}

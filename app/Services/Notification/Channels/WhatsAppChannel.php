@@ -46,12 +46,33 @@ class WhatsAppChannel implements NotificationChannel
 
     public function send(string $text, array $mentions = []): ChannelResult
     {
+        $chatId = $this->resolveChatId();
+
+        if ($chatId === null || $chatId === '') {
+            return ChannelResult::failure($this->name(), null, 'WAHA url/session/chat id belum dikonfigurasi.');
+        }
+
+        return $this->sendTo($chatId, $text, $mentions);
+    }
+
+    /**
+     * Kirim ke chat tertentu (mis. membalas di grup tempat balasan admin
+     * masuk). Saat test mode aktif, tujuan tetap dialihkan ke
+     * NOTIF_TEST_CHAT_ID agar grup produksi tidak terganggu.
+     *
+     * @param  array<int, string>  $mentions
+     */
+    public function sendTo(string $chatId, string $text, array $mentions = []): ChannelResult
+    {
         $baseUrl = rtrim((string) config('notifications.whatsapp.url'), '/');
         $apiKey = (string) config('notifications.whatsapp.api_key');
         $session = (string) config('notifications.whatsapp.session');
-        $chatId = $this->resolveChatId();
 
-        if ($baseUrl === '' || $session === '' || $chatId === null || $chatId === '') {
+        if ((bool) config('notifications.test_mode', false)) {
+            $chatId = (string) config('notifications.test_chat_id');
+        }
+
+        if ($baseUrl === '' || $session === '' || $chatId === '') {
             return ChannelResult::failure($this->name(), null, 'WAHA url/session/chat id belum dikonfigurasi.');
         }
 
