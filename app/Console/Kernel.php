@@ -9,10 +9,20 @@ class Kernel extends ConsoleKernel
 {
     /**
      * Define the application's command schedule.
+     *
+     * Notifikasi absensi dijadwalkan setiap 3 jam. Guard berbasis cache di
+     * dalam command memastikan maksimal satu siklus per interval, apa pun
+     * frekuensi cron yang memanggil schedule:run (disarankan * * * * *).
+     *
+     * Lihat config/notifications.php dan
+     * docs/rencana-implementasi-notifikasi-telegram-whatsapp.md
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        $schedule->command('attendance:notify')
+            ->everyThreeHours()
+            ->withoutOverlapping()
+            ->appendOutputTo(storage_path('logs/cron/schedule.log'));
     }
 
     /**

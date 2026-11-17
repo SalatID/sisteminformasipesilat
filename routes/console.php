@@ -2,7 +2,6 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Schedule;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,19 +15,11 @@ Artisan::command('inspire', function () {
 
 /*
 |--------------------------------------------------------------------------
-| Notifikasi Absensi (Telegram & WhatsApp)
+| Penjadwalan notifikasi absensi
 |--------------------------------------------------------------------------
 |
-| Dijadwalkan setiap 3 jam. Guard berbasis cache di dalam command memastikan
-| maksimal satu siklus per interval, apa pun frekuensi cron yang memanggil
-| schedule:run (disarankan * * * * * php artisan schedule:run).
-|
-| Lihat config/notifications.php dan docs/rencana-implementasi-notifikasi-telegram-whatsapp.md
+| Definisi jadwal ada di app/Console/Kernel.php (method schedule()).
+| Sengaja tidak memakai `Illuminate\Support\Facades\Schedule` agar tetap
+| kompatibel dengan Laravel 10 ke bawah pada shared hosting.
 |
 */
-
-Schedule::command('attendance:notify')
-    ->everyThreeHours()
-    ->withoutOverlapping()
-    ->onOneServer()
-    ->appendOutputTo(storage_path('logs/cron/schedule.log'));

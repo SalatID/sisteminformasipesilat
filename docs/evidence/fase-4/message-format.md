@@ -38,7 +38,6 @@ Query: unit aktif, `training_day` = hari ini, belum ada attendance.
 
 ```
 === ITEM: 4 unit belum absen ===
-*[BOT ASSISTEN PELATIH]*
 *Pengingat Absensi Latihan*
 
 Tanggal: 17/11/2026

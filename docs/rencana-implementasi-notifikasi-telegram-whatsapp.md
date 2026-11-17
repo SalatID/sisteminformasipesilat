@@ -3,7 +3,7 @@
 | Item | Keterangan |
 |---|---|
 | **Repositori** | `sisteminformasipesilat` (`D:\Project\web-base\sisteminformasipesilat`) |
-| **Versi dokumen** | **1.5** (lihat Riwayat Perubahan, Bagian 11) |
+| **Versi dokumen** | **1.8** (lihat Riwayat Perubahan, Bagian 11) |
 | **Tanggal** | 17 November 2026 |
 | **Status** | **Fase 0–8 diimplementasikan, diuji ulang 51 gate (51 PASS), dan diceklist; menunggu soak test 7 hari + persetujuan go-live grup** |
 | **Pemilik proses** | Tim aplikasi SIP (Asisten Pelatih) |
@@ -415,10 +415,11 @@ php artisan tinker --execute="
 5. Sisipkan `@<phone>` pada baris unit yang PJ-nya punya nomor valid; kumpulkan `mentions[]`; batasi jumlah tag sesuai config; fallback nama biasa (AC-14).
 6. Batasi link foto pada laporan (maks 4 atau ringkas) untuk bot-safety (R5).
 
+> **Kebijakan header (keputusan pemilik proses, 17 Nov 2026):** header `*[BOT ASSISTEN PELATIH]*` **dihapus** dari semua pesan karena kata "BOT" berisiko memicu filter spam WhatsApp dan menandai nomor sebagai automation unofficial. Pesan kini langsung dimulai dari judul jenis pesan (`*Pengingat Absensi Latihan*` atau `*Absensi Latihan*`).
+
 **Contoh keluaran reminder (WhatsApp):**
 
 ```
-*[BOT ASSISTEN PELATIH]*
 *Pengingat Absensi Latihan*
 
 Tanggal: 17/11/2026
@@ -710,3 +711,6 @@ php artisan attendance:notify {id} --force
 | 1.3 | 17 Nov 2026 | **Implementasi Fase 0–8 selesai & tervalidasi.** Deliverable: `config/notifications.php`; `NotificationChannel`/`ChannelResult`/`NotificationManager`; `TelegramChannel`; `WhatsAppChannel`; `AttendanceMessageBuilder`; `AttendanceReportDispatcher`; `NotificationRunGuard`; migrasi `notif_sent_channels`; refactor `attendance:notify` (`--type`/`--dry-run`/`--force`); scheduler 3 jam; `.env.example`. **54 unit test lulus (151 assertions)**, UAT **12/12**. **Koreksi penting:** field WAHA yang benar adalah `mentions` (bukan `mentioned`). Bug diperbaiki: T-01, T-02, T-03, T-04, T-08, `Keterlambatan Absen` negatif/float, guard `diffInMinutes` Carbon 3, `mention.enabled` runtime. Status: **soak test 7 hari + persetujuan go-live grup masih menunggu.** |
 | 1.4 | 17 Nov 2026 | **Validasi ulang seluruh exit gate + koreksi dokumentasi.** 51 gate diuji ulang lewat eksekusi nyata (39 gate inti + 12 gate form/migrasi/integritas) — semua **PASS**; unit test **54 passed (151 assertions)**. Koreksi: sisa `mentioned` pada contoh payload Bagian 4/4.3 dan langkah Fase 2 diganti `mentions`; langkah backfill Fase 3 ditandai selesai (17/18 = 94,4%); tiap item exit gate yang tercentang diberi tanda validasi ulang merujuk `docs/evidence/revalidasi-exit-gate.md`; status header diperbarui. Terbuka: soak test 7 hari & persetujuan go-live grup. |
 | 1.5 | 17 Nov 2026 | **Kebijakan tag per channel.** Notifikasi Telegram tidak lagi memuat tag `@<nomor>` — nama PJ tampil polos `PJ: Mursalat Asyidiq`; tag `@<nomor>` + field `mentions` hanya untuk WhatsApp. Implementasi: parameter `$supportTags` pada builder (terpisah dari `$supportMentions`) dan parameter `$textWithoutTags` pada `NotificationManager::send()`. `--dry-run` kini mencetak kedua varian. AC-16 ditambahkan. Total **56 unit test (161 assertions)** lulus; verifikasi payload nyata: **6/6 gate PASS**. |
+| 1.6 | 17 Nov 2026 | **Header `[BOT ASSISTEN PELATIH]` dihapus.** Alasan: kata "BOT" berisiko memicu word filter spam WhatsApp (>4.000 kata kunci) dan menandai nomor sebagai automation unofficial. Pesan reminder & laporan kini langsung dimulai dari judul (`*Pengingat Absensi Latihan*` / `*Absensi Latihan*`). Test `test_reminder_uses_canonical_bold_format` diperketat: header harus berada di baris pertama dan pesan tidak boleh memuat "BOT". **56 unit test (162 assertions) lulus**; verifikasi `--dry-run` untuk reminder & laporan bersih dari header. |
+| 1.7 | 17 Nov 2026 | **Perbaikan kompatibilitas shared hosting.** `routes/console.php` memakai `Illuminate\Support\Facades\Schedule` yang hanya ada di Laravel 11+. Di server error `Class "Illuminate\Support\Facades\Schedule" not found`. Perbaikan: definisi jadwal dipindah ke `app/Console/Kernel::schedule()` (kompatibel Laravel 10 ke bawah), `routes/console.php` hanya berisi command closure `inspire`. `onOneServer()` dihapus (butuh cache driver atomik, tidak perlu pada deployment single-server). Tambah `deploy-once.php` untuk deploy tanpa terminal (whitelist perintah + token, harus dihapus setelah dipakai). `php artisan schedule:list` tetap `0 */3 * * *`. **56 unit test (162 assertions) lulus**, 39 gate inti PASS. |
+| 1.8 | 17 Nov 2026 | **Command deploy disesuaikan dengan pola cron shared hosting yang dipakai** (`/usr/local/bin/php <path>/artisan <perintah> >> <log> 2>&1`). `deploy-once.php` diubah: dipanggil lewat Cron Job (bukan browser), menolak akses `PHP_SAPI !== 'cli'`, memakai prefix path absolut `/home/smip6738/repositories/sisteminformasipesilat`, dan menulis log per langkah ke `storage/logs/cron/deploy-*.log`. Diuji lokal: `[SEMUA BERHASIL]`, migrasi `Nothing to migrate`, dry-run 0 pesan terkirim. |
