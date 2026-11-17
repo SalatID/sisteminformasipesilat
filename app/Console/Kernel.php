@@ -2,6 +2,7 @@
 
 namespace App\Console;
 
+use App\Console\Support\InProcessCommand;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -20,6 +21,17 @@ class Kernel extends ConsoleKernel
      *  2. Pengingat absensi — tiap NOTIF_INTERVAL_HOURS jam (default 3),
      *     hanya dalam jendela 07:00–21:59.
      *
+     * Sejak 17 Nov 2026 BUKAN lagi `$schedule->command()`. Alasan:
+     * `->command()` menjalankan perintah sebagai subprocess lewat
+     * `proc_open`, yang dinonaktifkan di shared hosting sehingga
+     * `schedule:run` gagal dengan:
+     *
+     *   The Process class relies on proc_open, which is not available
+     *   on your PHP installation.
+     *
+     * InProcessCommand menjalankan artisan di dalam proses ini dan menulis
+     * sendiri file log (format sama dengan appendOutputTo()).
+     *
      * Prasyarat: cron pemanggil `schedule:run` harus berjalan tiap menit.
      *
      * Lihat config/notifications.php dan
@@ -27,17 +39,29 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        $schedule->command('attendance:notify --type=report')
+        // ── 1. Laporan absensi: tiap menit, in-process (tanpa proc_open)
+        InProcessCommand::artisan(
+            $schedule,
+            'attendance:notify',
+            ['--type' => 'report'],
+            storage_path('logs/cron/schedule-report.log'),
+        )
             ->everyMinute()
-            ->withoutOverlapping()
-            ->appendOutputTo(storage_path('logs/cron/schedule-report.log'));
+            ->name('attendance:notify --type=report')
+            ->withoutOverlapping();
 
         $interval = max(1, (int) config('notifications.interval_hours', 3));
 
-        $schedule->command('attendance:notify --type=reminder')
+        // ── 2. Pengingat absensi: tiap NOTIF_INTERVAL_HOURS jam
+        InProcessCommand::artisan(
+            $schedule,
+            'attendance:notify',
+            ['--type' => 'reminder'],
+            storage_path('logs/cron/schedule-reminder.log'),
+        )
             ->cron('0 */' . $interval . ' * * *')
-            ->withoutOverlapping()
-            ->appendOutputTo(storage_path('logs/cron/schedule-reminder.log'));
+            ->name('attendance:notify --type=reminder')
+            ->withoutOverlapping();
     }
 
     /**

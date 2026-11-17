@@ -83,12 +83,12 @@ class CommandTest extends TestCase
         config(['notifications.interval_hours' => 3]);
 
         $events = collect(app(Schedule::class)->events())
-            ->filter(fn ($e) => str_contains($e->command ?? '', 'attendance:notify'));
+            ->filter(fn ($e) => str_contains($e->getSummaryForDisplay() ?? '', 'attendance:notify'));
 
         $this->assertCount(2, $events, 'Laporan & pengingat harus dijadwalkan terpisah');
 
-        $report = $events->first(fn ($e) => str_contains($e->command, '--type=report'));
-        $reminder = $events->first(fn ($e) => str_contains($e->command, '--type=reminder'));
+        $report = $events->first(fn ($e) => str_contains($e->getSummaryForDisplay(), '--type=report'));
+        $reminder = $events->first(fn ($e) => str_contains($e->getSummaryForDisplay(), '--type=reminder'));
 
         $this->assertNotNull($report, 'Jadwal laporan tidak ditemukan');
         $this->assertNotNull($reminder, 'Jadwal pengingat tidak ditemukan');
@@ -111,9 +111,37 @@ class CommandTest extends TestCase
         $method->invoke($kernel, $schedule);
 
         $reminder = collect($schedule->events())
-            ->first(fn ($e) => str_contains($e->command ?? '', '--type=reminder'));
+            ->first(fn ($e) => str_contains($e->getSummaryForDisplay() ?? '', '--type=reminder'));
 
         $this->assertNotNull($reminder);
         $this->assertSame('0 */4 * * *', $reminder->expression);
+    }
+
+    /**
+     * Shared hosting menonaktifkan proc_open, sehingga $schedule->command()
+     * (subprocess) gagal di schedule:run. Jadwal harus memakai event
+     * in-process dan tanpa perintah shell.
+     */
+    public function test_schedule_never_uses_subprocess(): void
+    {
+        $events = collect(app(Schedule::class)->events())
+            ->filter(fn ($e) => str_contains($e->getSummaryForDisplay() ?? '', 'attendance:notify'));
+
+        $this->assertCount(2, $events);
+
+        foreach ($events as $event) {
+            $this->assertInstanceOf(
+                \App\Console\Support\InProcessCommandEvent::class,
+                $event,
+                'Jadwal notifikasi wajib dijalankan in-process (proc_open dinonaktifkan di hosting)'
+            );
+
+            $this->assertEmpty($event->command ?? null, 'Event in-process tidak boleh membangun perintah shell');
+            $this->assertTrue($event->withoutOverlapping, 'Lock anti-overlap harus tetap aktif');
+        }
+
+        // Menetapkan nama (description) wajib agar mutex dilepas setelah selesai.
+        $this->assertSame('attendance:notify --type=report', $events->first()->description);
+        $this->assertSame('attendance:notify --type=reminder', $events->last()->description);
     }
 }
