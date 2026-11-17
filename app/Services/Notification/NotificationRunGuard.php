@@ -42,7 +42,7 @@ class NotificationRunGuard
     {
         $hour ??= (int) now()->format('H');
 
-        return $hour >= 7 && $hour <= 21;
+        return $hour >= 6 && $hour <= 21;
     }
 
     /**
