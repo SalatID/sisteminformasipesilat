@@ -35,6 +35,18 @@
                                 <span class="badge bg-info">{{ $coach->ts->name }}</span>
                             </div>
                         </div>
+                        <div class="row mb-2">
+                            <div class="col-sm-4">
+                                <strong>Nomor WhatsApp:</strong>
+                            </div>
+                            <div class="col-sm-8">
+                                @if($coach->nomor_whatsapp)
+                                    <i class="fab fa-whatsapp text-success"></i> +{{ $coach->nomor_whatsapp }}
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="row mt-3">

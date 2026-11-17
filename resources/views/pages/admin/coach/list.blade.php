@@ -29,6 +29,7 @@
                             <tr>
                                 <th class="text-center">#</th>
                                 <th class="text-center">Nama Pelatih</th>
+                                <th class="text-center">Nomor WhatsApp</th>
                                 <th class="text-center">Tingkat Sabuk (TS)</th>
                                 <th class="text-center">Ujian Terakhir</th>
                                 <th class="text-center">Tanggal Dibuat</th>
@@ -41,6 +42,13 @@
                             <tr>
                                 <td class="text-center">{{ $i++ }}</td>
                                 <td class="text-center">{{ $coach->name }}</td>
+                                <td class="text-center">
+                                    @if($coach->nomor_whatsapp)
+                                        <i class="fab fa-whatsapp text-success"></i> +{{ $coach->nomor_whatsapp }}
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
                                 <td class="text-center">
                                     <span class="badge bg-info">{{ $coach->ts->name ?? '-' }}</span>
                                 </td>

@@ -66,6 +66,20 @@
                         @enderror
                     </div>
 
+                    <div class="form-group mb-3">
+                        <label for="nomor_whatsapp" class="form-label">Nomor WhatsApp</label>
+                        <input type="text"
+                               class="form-control @error('nomor_whatsapp') is-invalid @enderror"
+                               id="nomor_whatsapp"
+                               name="nomor_whatsapp"
+                               value="{{ old('nomor_whatsapp', $coach->nomor_whatsapp ?? '') }}"
+                               placeholder="Contoh: 081234567890 / +6281234567890">
+                        <small class="form-text text-muted">Opsional. Digunakan untuk men-tag PJ pada pengingat absensi via WhatsApp; otomatis dinormalisasi ke format 62812…</small>
+                        @error('nomor_whatsapp')
+                            <span class="invalid-feedback">{{ $message }}</span>
+                        @enderror
+                    </div>
+
                     <div class="form-group">
                         <button type="submit" class="btn btn-primary me-2">
                             <i class="fas fa-save"></i> {{ isset($coach) ? 'Perbarui' : 'Simpan' }}

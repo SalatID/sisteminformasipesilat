@@ -417,9 +417,18 @@ class AdminCotroller extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'ts_id' => ['required', 'uuid', 'exists:ts,id'],
+            'nomor_whatsapp' => [
+                'nullable', 'string', 'max:25',
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    if (!\App\Support\PhoneNormalizer::isValidInput($value)) {
+                        $fail('Format nomor WhatsApp tidak valid. Gunakan contoh: 081234567890 / +6281234567890.');
+                    }
+                },
+            ],
         ]);
 
         $validated['created_by'] = auth()->user()->id;
+        $validated['nomor_whatsapp'] = \App\Support\PhoneNormalizer::normalize($validated['nomor_whatsapp'] ?? null);
 
         if(\App\Models\Coach::create($validated)){
             return redirect()->route('coach.index')->with([
@@ -583,9 +592,18 @@ class AdminCotroller extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'ts_id' => ['required', 'uuid', 'exists:ts,id'],
+            'nomor_whatsapp' => [
+                'nullable', 'string', 'max:25',
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    if (!\App\Support\PhoneNormalizer::isValidInput($value)) {
+                        $fail('Format nomor WhatsApp tidak valid. Gunakan contoh: 081234567890 / +6281234567890.');
+                    }
+                },
+            ],
         ]);
 
         $validated['updated_by'] = auth()->user()->id;
+        $validated['nomor_whatsapp'] = \App\Support\PhoneNormalizer::normalize($validated['nomor_whatsapp'] ?? null);
 
         if($coach->update($validated)){
             return redirect()->route('coach.index')->with([

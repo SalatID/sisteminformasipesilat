@@ -16,6 +16,7 @@ class Coach extends Model
     protected $fillable = [
         'name',
         'ts_id',
+        'nomor_whatsapp',
         'created_by',
         'updated_by',
         'deleted_by',

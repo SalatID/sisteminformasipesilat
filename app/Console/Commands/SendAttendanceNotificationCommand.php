@@ -2,137 +2,282 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use App\Models\Attendance;
+use App\Models\Unit;
+use App\Services\Notification\AttendanceMessageBuilder;
+use App\Services\Notification\AttendanceReportDispatcher;
+use App\Services\Notification\NotificationManager;
+use App\Services\Notification\NotificationRunGuard;
 use Carbon\Carbon;
-
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class SendAttendanceNotificationCommand extends Command
 {
-    private $notif_send = false;
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'attendance:notify {attendance_id? : ID attendance yang ingin dikirim}';
+    protected $signature = 'attendance:notify
+                            {attendance_id? : ID attendance yang ingin dikirim ulang (melewati guard)}
+                            {--type=all : Jenis notifikasi: all|report|reminder}
+                            {--dry-run : Tampilkan pesan tanpa mengirim}
+                            {--force : Abaikan guard interval maupun jendela jam}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Send attendance notifications to Telegram for unsent records';
+    protected $description = 'Kirim notifikasi absensi (Telegram & WhatsApp) berdasarkan config/notifications.php';
 
-    /**
-     * Execute the console command.
-     */
-    public function handle()
-    {
+    private bool $sentAnything = false;
+
+    public function handle(
+        NotificationManager $manager,
+        AttendanceReportDispatcher $reportDispatcher,
+        NotificationRunGuard $guard,
+    ): int {
         $attendanceId = $this->argument('attendance_id');
-        $now = Carbon::now();
-        
+        $type = strtolower((string) $this->option('type'));
+        $dryRun = (bool) $this->option('dry-run');
+        $force = (bool) $this->option('force');
+
+        if (!in_array($type, ['all', 'report', 'reminder'], true)) {
+            $this->error("Opsi --type tidak valid: {$type}. Gunakan all|report|reminder.");
+
+            return Command::FAILURE;
+        }
+
+        if ($manager->activeProviders() === []) {
+            $this->warn('Tidak ada provider notifikasi aktif (NOTIF_PROVIDERS kosong). Tidak ada yang dikirim.');
+
+            return Command::SUCCESS;
+        }
+
+        $this->info('Provider aktif: ' . implode(', ', $manager->activeProviders()) . ($dryRun ? ' [DRY-RUN]' : ''));
+
+        // Resend manual: selalu jalan, tidak memakai guard interval.
         if ($attendanceId) {
-            $this->sendSingleAttendanceNotification($attendanceId);
-        } else {
-            // 1. Send existing attendance notifications
-            $this->sendExistingNotifications();
-            // 2. Send reminders for today's training without attendance
-            $this->sendTodaysTrainingReminders();
-
-            // 3. Send reminders for overdue trainings
-            if ($now->hour === 19) {
-                $this->sendOverdueTrainingReminders();
-            }
-        }        
-        if ($this->notif_send) {
-            // 4. Add Separator
-            $this->sendEndOffProcessMessage();
-            Log::channel('cron')->info('Attendance notification process completed.');
-            $this->info('Attendance notification process completed.');
-        } else {
-            Log::channel('cron')->info('No attendance notifications were sent.');
-            $this->info('No attendance notifications were sent.');
+            return $this->sendSingle($attendanceId, $reportDispatcher, $dryRun);
         }
-    
-        Log::channel('cron')->info('All notification processes completed.');
-        $this->info('All notification processes completed.');
+
+        $outcome = $guard->runOnce(function () use ($type, $dryRun, $manager, $reportDispatcher) {
+            $result = ['reports' => 0, 'reminders' => 0];
+
+            if ($type === 'all' || $type === 'report') {
+                $result['reports'] = $this->sendReports($reportDispatcher, $dryRun);
+            }
+
+            if ($type === 'all' || $type === 'reminder') {
+                $result['reminders'] = $this->sendConsolidatedReminder($manager, $dryRun);
+            }
+
+            return $result;
+        }, $force);
+
+        if (!$outcome['executed']) {
+            $reason = match ($outcome['reason']) {
+                'outside_window' => 'di luar jendela pengiriman (07:00–21:59)',
+                'interval' => 'guard interval: sisa ' . $guard->minutesUntilNextRun() . ' menit',
+                'locked' => 'proses lain sedang berjalan',
+                default => (string) $outcome['reason'],
+            };
+
+            $message = "Siklus notifikasi dilewati ({$reason}).";
+            $this->warn($message);
+            Log::channel('cron')->info("attendance:notify skipped: {$reason}");
+
+            return Command::SUCCESS;
+        }
+
+        $this->info("Selesai: {$outcome['result']['reports']} laporan, {$outcome['result']['reminders']} pesan pengingat.");
+        Log::channel('cron')->info('attendance:notify selesai', $outcome['result']);
+
+        if ($this->shouldSendEndMarker($dryRun)) {
+            $this->sendEndMarker($manager);
+        }
+
+        return Command::SUCCESS;
     }
 
-    /**
-     * Send notifications for existing attendance records.
-     */
-    private function sendExistingNotifications()
+    private function sendSingle(string $attendanceId, AttendanceReportDispatcher $dispatcher, bool $dryRun): int
     {
-         Log::channel('cron')->info('Send attendance notifications...');
-         $this->info('Send attendance notifications...');
-        $attendances = Attendance::with(['unit', 'reportMaker', 'attendanceDetails.coach.ts'])
-            ->where('is_notif_send', false)->where('attendance_status','training')
-            ->whereHas('unit', function ($query) {
-                $query->where('is_active', true);
-            })
-            ->get();
-
-        if ($attendances->isEmpty()) {
-            Log::channel('cron')->info('No unsent attendance notifications found.');
-            $this->info('No unsent attendance notifications found.');
-        }else{
-            foreach ($attendances as $attendance) {
-                $message = $this->buildAttendanceMessage($attendance);
-                $this->sendTelegramMessage($message);
-                $attendance->update(['is_notif_send' => true]);
-                Log::channel('cron')->info("Attendance notification sent for ID: {$attendance->id}");
-                $this->info("Attendance notification sent for ID: {$attendance->id}");
-            }
-        }
-    }
-
-    private function sendSingleAttendanceNotification($attendanceId)
-    {
-        $attendance = Attendance::with(['unit', 'reportMaker', 'attendanceDetails.coach.ts'])
+        $attendance = Attendance::with(['unit.pj', 'reportMaker', 'attendanceDetails.coach.ts'])
             ->where('id', $attendanceId)
-            ->whereHas('unit', function ($query) {
-                $query->where('is_active', true);
-            })
+            ->whereHas('unit', fn ($q) => $q->where('is_active', true))
             ->first();
 
         if (!$attendance) {
             $this->error("Attendance ID {$attendanceId} tidak ditemukan atau unit tidak aktif.");
-            Log::channel('cron')->error("Attendance ID {$attendanceId} tidak ditemukan atau unit tidak aktif.");
+            Log::channel('cron')->error("attendance:notify resend gagal: ID {$attendanceId} tidak ditemukan.");
+
             return Command::FAILURE;
         }
 
-        $message = $this->buildAttendanceMessage($attendance);
-        $this->sendTelegramMessage($message);
-        $attendance->update(['is_notif_send' => true]);
+        if ($dryRun) {
+            $report = AttendanceMessageBuilder::fromConfig()->buildAttendanceReport($attendance, true);
+            $plainReport = AttendanceMessageBuilder::fromConfig()->buildAttendanceReport($attendance, false, false);
+            $this->line('[WhatsApp — ber-tag]');
+            $this->line($report['text']);
+            $this->line('Mentions: ' . json_encode($report['mentions']));
+            $this->line('[Telegram — tanpa tag]');
+            $this->line($plainReport['text']);
 
-        $this->info("Attendance notification sent for ID: {$attendanceId}");
-        Log::channel('cron')->info("Attendance notification sent for ID: {$attendanceId}");
-        return Command::SUCCESS;
+            return Command::SUCCESS;
+        }
+
+        $result = $dispatcher->dispatch($attendance, true);
+
+        foreach ($result['results'] as $channelResult) {
+            $line = sprintf(
+                '  %-9s : %s%s',
+                $channelResult->provider,
+                $channelResult->success ? 'OK' : 'GAGAL',
+                $channelResult->error ? ' — ' . $channelResult->error : ''
+            );
+            $channelResult->success ? $this->line($line) : $this->error($line);
+        }
+
+        $this->sentAnything = $result['success'];
+
+        return $result['success'] ? Command::SUCCESS : Command::FAILURE;
     }
 
+    private function sendReports(AttendanceReportDispatcher $dispatcher, bool $dryRun): int
+    {
+        $attendances = Attendance::with(['unit.pj', 'reportMaker', 'attendanceDetails.coach.ts'])
+            ->where('attendance_status', 'training')
+            ->whereHas('unit', fn ($q) => $q->where('is_active', true))
+            ->where('is_notif_send', false)
+            ->get();
+
+        if ($attendances->isEmpty()) {
+            $this->line('Tidak ada laporan absensi yang perlu dikirim.');
+
+            return 0;
+        }
+
+        $count = 0;
+        $builder = AttendanceMessageBuilder::fromConfig();
+
+        foreach ($attendances as $attendance) {
+            if ($dryRun) {
+                $report = $builder->buildAttendanceReport($attendance, true);
+                $plainReport = $builder->buildAttendanceReport($attendance, false, false);
+                $this->line(str_repeat('-', 40));
+                $this->line('[WhatsApp — ber-tag]');
+                $this->line($report['text']);
+                $this->line('[Telegram — tanpa tag]');
+                $this->line($plainReport['text']);
+                $count++;
+                continue;
+            }
+
+            if ($dispatcher->pendingProviders($attendance) === []) {
+                continue;
+            }
+
+            $result = $dispatcher->dispatch($attendance);
+
+            if ($result['success']) {
+                $count++;
+                $this->line("Laporan terkirim: {$attendance->id}");
+            } else {
+                $this->warn("Laporan gagal sebagian: {$attendance->id} — akan di-retry provider yang belum sukses.");
+            }
+
+            $this->pace();
+        }
+
+        $this->sentAnything = $this->sentAnything || $count > 0;
+
+        return $count;
+    }
+
+    private function sendConsolidatedReminder(NotificationManager $manager, bool $dryRun): int
+    {
+        $items = $this->collectReminderItems();
+
+        if ($items === []) {
+            $this->line('Tidak ada unit yang perlu diingatkan.');
+
+            return 0;
+        }
+
+        $builder = AttendanceMessageBuilder::fromConfig();
+        $payload = $builder->buildConsolidatedReminder($items, $manager->supportsMentions());
+
+        if ($payload === null) {
+            return 0;
+        }
+
+        // Tag `@<nomor>` hanya untuk channel pendukung mention (WhatsApp);
+        // Telegram menerima versi teks tanpa tag sama sekali.
+        $taggedText = $payload['text'];
+        $plainPayload = $builder->buildConsolidatedReminder($items, false, false);
+        $plainText = $plainPayload['text'] ?? $taggedText;
+        $telegramChunks = $builder->chunkForTelegram($plainText);
+
+        if ($dryRun) {
+            $this->line(str_repeat('=', 40));
+            $this->line('[WhatsApp — ber-tag]');
+            $this->line($taggedText);
+            $this->line('Mentions: ' . json_encode($payload['mentions']));
+            $this->line('[Telegram — tanpa tag]');
+            $this->line($plainText);
+            $this->line('Telegram chunks: ' . count($telegramChunks));
+
+            return 0;
+        }
+
+        $sent = 0;
+
+        foreach ($manager->activeChannels() as $channel) {
+            if (!$channel->supportsMentions()) {
+                // Channel tanpa tag (Telegram): teks tanpa `@<nomor>` sama sekali.
+                $allOk = true;
+                foreach ($telegramChunks as $chunk) {
+                    $results = $manager->send($chunk, [], [$channel->name()]);
+                    $allOk = $allOk && $manager->allSucceeded($results);
+                    $this->pace();
+                }
+                $sent += $allOk ? 1 : 0;
+                continue;
+            }
+
+            $results = $manager->send($taggedText, $payload['mentions'], [$channel->name()]);
+            $sent += $manager->allSucceeded($results) ? 1 : 0;
+        }
+
+        $this->sentAnything = $this->sentAnything || $sent > 0;
+        $this->line('Pengingat gabungan diproses untuk ' . count($items) . ' unit.');
+
+        return $sent > 0 ? 1 : 0;
+    }
 
     /**
-     * Send reminders for units with training today but no attendance.
+     * Unit yang latihannya sudah selesai hari ini tetapi belum melapor absensi,
+     * serta unit yang terlambat (lewat hari latihan) belum melapor.
+     *
+     * @return array<int, array{unit: Unit, date: Carbon, type: string}>
      */
-    private function sendTodaysTrainingReminders()
+    private function collectReminderItems(): array
     {
-        Log::channel('cron')->info('Send attendance reminder...');
-        $this->info('Send attendance reminder...');
         $today = Carbon::today();
-        $todayName = $today->format('l'); // e.g., 'Monday'
         $now = Carbon::now();
+        $todayName = $today->format('l');
+        $items = [];
 
-        $units = \App\Models\Unit::where('training_day', 'like', "%{$todayName}%")
+        $unitsToday = Unit::with('pj')
+            ->where('training_day', 'like', "%{$todayName}%")
             ->where('is_active', true)
             ->get();
 
-        foreach ($units as $unit) {
-            // Check if training has ended
+        foreach ($unitsToday as $unit) {
             if ($unit->training_hours_end && $now->format('H:i') < $unit->training_hours_end->format('H:i')) {
-                continue; // Training not yet ended
+                continue;
             }
 
             $hasAttendance = Attendance::where('unit_id', $unit->id)
@@ -140,201 +285,94 @@ class SendAttendanceNotificationCommand extends Command
                 ->exists();
 
             if (!$hasAttendance) {
-                $message = $this->buildReminderMessage($unit, $today, 'today');
-                $this->sendTelegramMessage($message);
-                Log::channel('cron')->info("Today's training reminder sent for unit: {$unit->name}");
-                $this->info("Today's training reminder sent for unit: {$unit->name}");
+                $items[] = ['unit' => $unit, 'date' => $today, 'type' => 'today'];
             }
         }
-    }
 
-    /**
-     * Send reminders for overdue trainings (more than 7 days past training day without attendance).
-     */
-    private function sendOverdueTrainingReminders()
-    {
-        Log::channel('cron')->info('Send attendance overdue reminder...');
-        $this->info('Send attendance overdue reminder...');
-
-        $units = \App\Models\Unit::where('is_active', true)->all();
-
-        foreach ($units as $unit) {
+        // Overdue: jadwal terakhir > 6 hari lalu dan belum ada laporan.
+        foreach (Unit::with('pj')->where('is_active', true)->get() as $unit) {
             $lastTrainingDate = $this->getLastTrainingDate($unit->training_day);
 
-            if ($lastTrainingDate && $lastTrainingDate->lt(Carbon::now()->subDays(6))) {
-                $hasAttendance = Attendance::where('unit_id', $unit->id)
-                    ->where('attendance_date', $lastTrainingDate->toDateString())
-                    ->exists();
+            if (!$lastTrainingDate || !$lastTrainingDate->lt($now->copy()->subDays(6))) {
+                continue;
+            }
 
-                if (!$hasAttendance) {
-                    $message = $this->buildReminderMessage($unit, $lastTrainingDate, 'overdue');
-                    $this->sendTelegramMessage($message);
-                    Log::channel('cron')->info("Overdue training reminder sent for unit: {$unit->name} on {$lastTrainingDate->toDateString()}");
-                    $this->info("Overdue training reminder sent for unit: {$unit->name} on {$lastTrainingDate->toDateString()}");
-                }
+            $hasAttendance = Attendance::where('unit_id', $unit->id)
+                ->where('attendance_date', $lastTrainingDate->toDateString())
+                ->exists();
+
+            if ($hasAttendance) {
+                continue;
+            }
+
+            // Hindari duplikasi bila unit juga sudah tercatat pada daftar hari ini.
+            $alreadyListed = collect($items)->contains(fn ($i) => $i['unit']->id === $unit->id);
+
+            if (!$alreadyListed) {
+                $items[] = ['unit' => $unit, 'date' => $lastTrainingDate, 'type' => 'overdue'];
             }
         }
-    }
 
-    private function sendEndOffProcessMessage()
-    {
-        $now = Carbon::now();
-        $separatorMessage = "----------------------------------------\n" .
-                            "End of Attendance Notification Process {$now}\n" .
-                            "----------------------------------------";
-        $this->sendTelegramMessage($separatorMessage);
-        Log::channel('cron')->info('End of Attendance Notification Process message sent.');
-        $this->info('End of Attendance Notification Process message sent.');
+        return $items;
     }
 
     /**
-     * Get the date of the last training day.
+     * Tanggal latihan terakhir untuk satu/jumlah hari latihan.
      */
-    private function getLastTrainingDate($trainingDay)
+    private function getLastTrainingDate(?string $trainingDay): ?Carbon
     {
+        if (!$trainingDay) {
+            return null;
+        }
+
         $today = Carbon::today();
-        $dayOfWeek = Carbon::parse("next {$trainingDay}")->dayOfWeek;
-        $currentDayOfWeek = $today->dayOfWeek;
-        if ($currentDayOfWeek === $dayOfWeek) {
-            return $today;
-        } elseif ($currentDayOfWeek > $dayOfWeek) {
-            return $today->previous($trainingDay);
-        } else {
-            return $today->previous($trainingDay);
+        $days = array_filter(array_map('trim', explode(',', $trainingDay)));
+        $best = null;
+
+        foreach ($days as $day) {
+            try {
+                $dayOfWeek = Carbon::parse("next {$day}")->dayOfWeek;
+            } catch (\Throwable) {
+                continue;
+            }
+
+            $currentDayOfWeek = $today->dayOfWeek;
+
+            $date = $currentDayOfWeek === $dayOfWeek
+                ? $today->copy()
+                : $today->copy()->previous($day);
+
+            if ($best === null || $date->gt($best)) {
+                $best = $date;
+            }
         }
+
+        return $best;
+    }
+
+    private function shouldSendEndMarker(bool $dryRun): bool
+    {
+        return !$dryRun
+            && $this->sentAnything
+            && (bool) config('notifications.send_end_marker', false);
+    }
+
+    private function sendEndMarker(NotificationManager $manager): void
+    {
+        $message = "---\nEnd of Attendance Notification Process " . Carbon::now()->format('d/m/Y H:i') . "\n---";
+        $manager->send($message);
+        Log::channel('cron')->info('End marker terkirim.');
     }
 
     /**
-     * Send message to Telegram.
+     * Jeda antar pesan untuk menjaga pola pengiriman tetap manusiawi.
      */
-    private function sendTelegramMessage($message)
+    private function pace(): void
     {
-        $botToken = config('services.telegram.bot_token');
-        $chatId = config('services.telegram.chat_id');
-        Log::info("Attempting to send Telegram token: {$botToken}");
-        Log::info("Attempting to send Telegram chat ID: {$chatId}");
-        Log::info("Attempting to send Telegram message: {$message}");
+        $seconds = (int) config('notifications.send_delay_seconds', 3);
 
-        if (!$botToken || !$chatId) {
-            $this->error('Telegram bot token or chat ID not configured.');
-            return;
+        if ($seconds > 0) {
+            sleep($seconds);
         }
-
-        try {
-            $response = Http::post("https://api.telegram.org/bot{$botToken}/sendMessage", [
-                'chat_id' => $chatId,
-                // 'text' => $this->escapeMarkdown($message),
-                'text' => $message,
-                'parse_mode' => 'html',
-            ]);
-
-            if (!$response->successful()) {
-                $this->error('Failed to send Telegram message.');
-                $this->error('Telegram send failed: ' . $response->body());
-                Log::channel('cron')->error('Telegram send failed: ' . $response->body());
-            }
-            $this->notif_send = true;
-        } catch (\Exception $e) {
-            $this->error('Error sending Telegram message: ' . $e->getMessage());
-            Log::channel('cron')->error('SendAttendanceNotificationCommand error: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Build the attendance notification message.
-     */
-    private function buildAttendanceMessage($attendance)
-    {
-        $unitName = $attendance->unit ? $attendance->unit->name : 'Unknown';
-        if($attendance->unit){
-            $trainingTime = $attendance->unit->training_hours_start && $attendance->unit->training_hours_end
-                ? $attendance->unit->training_hours_start->format('H:i') . ' - ' . $attendance->unit->training_hours_end->format('H:i')
-                : 'Unknown';
-        }
-        $pjUnit = $attendance->unit && $attendance->unit->pj ? $attendance->unit->pj->name : 'Unknown';
-        $trainingDate = $attendance->attendance_date ? Carbon::parse($attendance->attendance_date)->format('d/m/Y') : 'Unknown';
-        $createdAt = $attendance->created_at ? Carbon::parse($attendance->created_at)->format('d/m/Y') : 'Unknown';
-        $delayDays = $attendance->created_at && $attendance->attendance_date
-            ? Carbon::parse($attendance->created_at)->diffInDays(Carbon::parse($attendance->attendance_date))
-            : 0;
-        $reportMaker = $attendance->reportMaker ? $attendance->reportMaker->name : 'Unknown';
-        $coaches = $attendance->attendanceDetails;
-        $coachesList = '';
-        $assCoachesList = '';
-        if ($coaches->isNotEmpty()) {
-            foreach ($coaches as $index => $detail) {
-                $coach = $detail->coach;
-                $alias = $coach && $coach->ts ? $coach->ts->alias : '';
-                if ($coach->ts->ts_seq > 4) {
-                    $coachesList .= ($index + 1) . ". {$coach->name} ({$alias})\n";
-                } else {
-                    $assCoachesList .= ($index + 1) . ". {$coach->name} ({$alias})\n";
-                }
-            }
-        } 
-        if ($coachesList =='') {
-            $coachesList = 'Tidak ada pelatih';
-        }
-        if ($assCoachesList =='') {
-            $assCoachesList = 'Tidak ada asisten pelatih';
-        }
-
-        $photoLinks = '';
-        if ($attendance->attendance_image) {
-            $images = array_filter(array_map('trim', explode(',', $attendance->attendance_image)));
-            foreach ($images as $index => $image) {
-                $photoLinks .= ($index + 1) . ". <a href=\"{$image}\">$image</a>\n";
-            }
-        } else {
-            $photoLinks = 'Tidak ada';
-        }
-
-        return "*[BOT ASSISTEN PELATIH]*\n" .
-               "*Absensi Latihan*\n\n" .
-               "*Unit*: {$unitName}\n" .
-               "*PJ Unit*: {$pjUnit}\n" .
-               "*Tanggal Latihan*: {$trainingDate}\n" .
-               "*Tanggal Absen*: {$createdAt}\n" .
-               "*Keterlambatan Absen*: {$delayDays} hari\n" .
-               "*Jam Latihan*: {$trainingTime}\n" .
-               "*Pembuat Laporan*: {$reportMaker}\n" .
-               "*Anggota Lama*: {$attendance->old_member_cnt}\n" .
-               "*Anggota Baru*: {$attendance->new_member_cnt}\n\n" .
-               "*Pelatih*:\n{$coachesList}\n\n" .
-               "*Asisten Pelatih*:\n{$assCoachesList}\n" .
-               "*Foto Latihan*:\n{$photoLinks}";
-    }
-
-    /**
-     * Build the reminder message for missing attendance.
-     */
-    private function buildReminderMessage($unit, $date, $type)
-    {
-        $unitName = $unit->name;
-        $pjUnit = $unit->pj ? $unit->pj->name : 'Unknown';
-        $dateStr = $date->format('d/m/Y');
-
-        if ($type === 'today') {
-            $title = 'Pengingat: Absensi Latihan Hari Ini';
-            $message = "Unit {$unitName} memiliki jadwal latihan hari ini ({$dateStr}), namun laporan absensi belum diterima.";
-        } elseif ($type === 'overdue') {
-            $title = 'Pengingat: Absensi Latihan Terlambat';
-            $daysOverdue = Carbon::now()->diffInDays($date);
-            $message = "Unit {$unitName} memiliki jadwal latihan pada {$dateStr} ({$daysOverdue} hari yang lalu), namun laporan absensi belum diterima.";
-        } else {
-            return '';
-        }
-
-        return "*[BOT ASSISTEN PELATIH]*\n" .
-               "*{$title}*\n\n" .
-               "*Unit*: {$unitName}\n" .
-               "*PJ Unit*: {$pjUnit}\n" .
-               "{$message}";
-    }
-
-    private function escapeMarkdown($text)
-    {
-        $specialChars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
-        return str_replace($specialChars, array_map(fn($c) => '\\'.$c, $specialChars), $text);
     }
 }

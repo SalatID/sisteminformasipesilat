@@ -20,6 +20,7 @@ class Attendance extends Model
         'report_maker_id',
         'attendance_image',
         'is_notif_send',
+        'notif_sent_channels',
         'created_at',
         'created_by',
         'updated_by',
@@ -31,6 +32,8 @@ class Attendance extends Model
         'attendance_date' => 'date',
         'new_member_cnt' => 'integer',
         'old_member_cnt' => 'integer',
+        'is_notif_send' => 'boolean',
+        'notif_sent_channels' => 'array',
     ];
 
     public static $attendanceStatusMap = [

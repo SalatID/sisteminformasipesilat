@@ -1,0 +1,74 @@
+[
+    {
+        "no": 1,
+        "name": "dry-run reminder",
+        "pass": true,
+        "detail": "teks gabungan tercetak, tidak ada pengiriman"
+    },
+    {
+        "no": 2,
+        "name": "WhatsApp test mode",
+        "pass": true,
+        "detail": "HTTP 201, chatId=6289654157132@c.us, prefix [TEST]"
+    },
+    {
+        "no": 3,
+        "name": "Telegram bold",
+        "pass": true,
+        "detail": "message_id 8102"
+    },
+    {
+        "no": 4,
+        "name": "Dua provider",
+        "pass": true,
+        "detail": "telegram:OK, whatsapp:OK"
+    },
+    {
+        "no": 5,
+        "name": "API key WAHA salah",
+        "pass": true,
+        "detail": "telegram OK=true, whatsapp gagal=true"
+    },
+    {
+        "no": 6,
+        "name": "Run 2x berurutan",
+        "pass": true,
+        "detail": "run1 executed, run2 reason=interval"
+    },
+    {
+        "no": 7,
+        "name": "attendance:notify {id}",
+        "pass": true,
+        "detail": "Provider aktif: telegram, whatsapp telegram : OK whatsapp : OK"
+    },
+    {
+        "no": 8,
+        "name": "Data pelatih\/ts kosong",
+        "pass": true,
+        "detail": "attendance normal (tidak ada data kosong di DB)"
+    },
+    {
+        "no": 9,
+        "name": "30 unit -> 1 pesan",
+        "pass": true,
+        "detail": "panjang=1635 char, mentions dibatasi=10"
+    },
+    {
+        "no": 10,
+        "name": "Test mode off -> produksi",
+        "pass": true,
+        "detail": "chatId=120363404437691633@g.us"
+    },
+    {
+        "no": 11,
+        "name": "PJ bernomor vs tanpa nomor",
+        "pass": true,
+        "detail": "Eko Purwanto=6285714060554 (tag) | Zaenal Arifin=tanpa nomor (nama biasa)"
+    },
+    {
+        "no": 12,
+        "name": "NOTIF_WA_MENTION_ENABLED=false",
+        "pass": true,
+        "detail": "mentions=[]"
+    }
+]
