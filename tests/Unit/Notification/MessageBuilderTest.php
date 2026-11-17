@@ -178,7 +178,8 @@ class MessageBuilderTest extends TestCase
 
         $text = (new AttendanceMessageBuilder())->buildConsolidatedReminder($items)['text'];
 
-        $this->assertStringContainsString('*[BOT ASSISTEN PELATIH]*', $text);
+        $this->assertStringStartsWith('*Pengingat Absensi Latihan*', $text);
+        $this->assertStringNotContainsString('BOT', $text);
         $this->assertStringContainsString('*Pengingat Absensi Latihan*', $text);
         $this->assertStringContainsString('Tanggal: 17/11/2026', $text);
     }

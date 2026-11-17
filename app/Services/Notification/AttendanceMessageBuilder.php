@@ -84,8 +84,7 @@ class AttendanceMessageBuilder
 
         $tanggal = Carbon::now()->locale('id')->translatedFormat('d/m/Y');
 
-        $text = "*[BOT ASSISTEN PELATIH]*\n" .
-            "*Pengingat Absensi Latihan*\n\n" .
+        $text = "*Pengingat Absensi Latihan*\n\n" .
             "Tanggal: {$tanggal}\n" .
             "Unit yang belum mengirim laporan absensi:\n\n" .
             implode("\n", $lines) . "\n\n" .
@@ -146,8 +145,7 @@ class AttendanceMessageBuilder
 
         $photoLinks = $this->buildPhotoLinks($attendance->attendance_image);
 
-        $text = "*[BOT ASSISTEN PELATIH]*\n" .
-            "*Absensi Latihan*\n\n" .
+        $text = "*Absensi Latihan*\n\n" .
             "*Unit*: {$unitName}\n" .
             "*PJ Unit*: {$pjLabel}\n" .
             "*Tanggal Latihan*: {$trainingDate}\n" .
