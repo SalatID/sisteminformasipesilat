@@ -40,14 +40,14 @@ Route::get('/member/register', [MemberRegistrationController::class, 'create'])-
 Route::post('/member/register', [MemberRegistrationController::class, 'store'])->name('member.registration.store');
 Route::get('/member/register/success', [MemberRegistrationController::class, 'success'])->name('member.registration.success');
 
-Route::get('/deploy-finish', function () {
-    \Illuminate\Support\Facades\Artisan::call('optimize:clear');
-    \Illuminate\Support\Facades\Artisan::call('config:cache');
-    \Illuminate\Support\Facades\Artisan::call('route:cache');
-    \Illuminate\Support\Facades\Artisan::call('view:cache');
+// Route::get('/deploy-finish', function () {
+//     \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+//     \Illuminate\Support\Facades\Artisan::call('config:cache');
+//     \Illuminate\Support\Facades\Artisan::call('route:cache');
+//     \Illuminate\Support\Facades\Artisan::call('view:cache');
 
-    return 'OK';
-});
+//     return 'OK';
+// });
 
 Route::group(['middleware' => ['auth']], function () {
     Route::get('/dashboard', [AdminCotroller::class, 'dashboard'])->name('dashboard');
