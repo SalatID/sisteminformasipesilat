@@ -41,10 +41,11 @@ Route::post('/member/register', [MemberRegistrationController::class, 'store'])-
 Route::get('/member/register/success', [MemberRegistrationController::class, 'success'])->name('member.registration.success');
 
 Route::get('/deploy-finish', function () {
-    Artisan::call('optimize:clear');
-    Artisan::call('config:cache');
-    Artisan::call('route:cache');
-    Artisan::call('view:cache');
+    \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+    \Illuminate\Support\Facades\Artisan::call('config:cache');
+    \Illuminate\Support\Facades\Artisan::call('route:cache');
+    \Illuminate\Support\Facades\Artisan::call('view:cache');
+
     return 'OK';
 });
 
