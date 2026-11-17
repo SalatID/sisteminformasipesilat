@@ -57,6 +57,16 @@ class HolidayReplyPreviewCommand extends Command
 
         if (! $parsed->ok) {
             $this->line('── Hasil ─────────────────────────────────────');
+
+            // Tanpa awalan /libur, pesan apa pun dianggap obrolan biasa dan
+            // diabaikan diam-diam oleh webhook. Pratinjau menampilkan hal sama.
+            if ($parsed->error === 'missing_prefix') {
+                $this->warn('BUKAN PERINTAH — tidak ada awalan /libur, bot akan diam.');
+                $this->line('Tambahkan baris pertama: '.WaReplyCommand::PREFIX);
+
+                return Command::SUCCESS;
+            }
+
             $this->warn('DITOLAK saat parsing: '.$parsed->error);
             $this->line('── Balasan bot ───────────────────────────────');
             $this->line($responder->forParseError($parsed));

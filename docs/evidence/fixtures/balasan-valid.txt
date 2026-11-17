@@ -1,3 +1,4 @@
-nomor 1
+/libur
+Nomor 1
 Diliburkan Sekolah
 Alasan : Sedang ujian

@@ -7,26 +7,29 @@ use Illuminate\Support\Facades\Log;
 /**
  * Mem-parse balasan admin di grup WhatsApp menjadi perintah penandaan libur.
  *
- * Format baku (3 baris):
+ * Format baku (4 baris):
  *
- *   nomor 1
+ *   /libur
+ *   Nomor 1
  *   Diliburkan Sekolah
  *   Alasan : Sedang ujian
  *
- * Aturan (keputusan pemilik proses, 18 Nov 2026):
- *   - `nomor` harus huruf kecil (menulis `Nomor 1` ditolak).
- *   - Status TIDAK case-sensitive: `Diliburkan Sekolah`, `DILIBURKAN SEKOLAH`,
- *     `Diliburkan sekolah` semuanya diterima. Spasi berlebih juga ditoleransi.
+ * Aturan (revisi setelah uji produksi 17 Nov 2026):
+ *   - Semua kata kunci TIDAK case-sensitive: `/libur`, `/LIBUR`, `Nomor 1`,
+ *     `NOMOR 1`, `Alasan :`, `ALASAN:` semuanya diterima.
+ *   - Awalan `/libur` WAJIB: pesan tanpa awalan dianggap obrolan biasa dan
+ *     tidak pernah diproses (lihat `hasPrefix()`).
  *   - `Alasan :` wajib, minimal 3 karakter.
  *   - Baris kosong diabaikan, tetapi baris asing menyebabkan penolakan.
  *   - Satu balasan hanya untuk SATU nomor.
  *
  * Urutan baris tidak dipaksakan: baris dikenali dari bentuknya masing-masing
- * agar admin yang menulis alasan lebih dulu (atau menyisipkan baris kosong)
- * tidak ditolak sia-sia.
+ * agar admin yang menulis alasan lebih dulu tidak ditolak sia-sia.
  */
 class WaReplyCommand
 {
+    public const PREFIX = '/libur';
+
     /**
      * Label status yang diterima (sudah dinormalisasi) → nilai
      * `attendances.attendance_status`.
@@ -40,9 +43,20 @@ class WaReplyCommand
 
     public const MIN_REASON_LENGTH = 3;
 
+    /**
+     * `/libur`, `/Libur`, `/libur@628123456789` — harus berdiri sendiri
+     * (bukan bagian dari kata lain seperti `/liburan`).
+     */
+    private const PREFIX_PATTERN = '/^\/libur(?:@[^\s]+)?(?=\s|$)/iu';
+
     public function parse(string $text): ParsedReply
     {
-        $lines = $this->lines($text);
+        // Awalan wajib: tanpa `/libur`, pesan bukan perintah apa pun isinya.
+        if (! $this->hasPrefix($text)) {
+            return ParsedReply::invalid('missing_prefix');
+        }
+
+        $lines = $this->stripPrefix($this->lines($text));
 
         if ($lines === []) {
             return ParsedReply::invalid('empty');
@@ -54,7 +68,7 @@ class WaReplyCommand
         $reason = null;
 
         foreach ($lines as $line) {
-            if (preg_match('/^nomor\s+(\d+)$/u', $line, $match) === 1) {
+            if (preg_match('/^nomor\s+(\d+)$/iu', $line, $match) === 1) {
                 if ($number !== null) {
                     return ParsedReply::invalid('duplicate_number');
                 }
@@ -116,25 +130,14 @@ class WaReplyCommand
     }
 
     /**
-     * Teks balasan ini "berpotensi" sebuah perintah? Dipakai agar bot tidak
-     * membalas obrolan biasa di grup.
+     * Apakah pesan dibuka dengan awalan `/libur`? Pesan tanpa awalan bukan
+     * perintah dan tidak boleh diproses maupun dibalas.
      */
-    public function looksLikeCommand(string $text): bool
+    public function hasPrefix(string $text): bool
     {
-        return preg_match('/^nomor\s+\d+/mi', $text) === 1
-            || preg_match('/^alasan\s*:/mi', $text) === 1
-            || $this->containsStatusLabel($text);
-    }
+        $lines = $this->lines($text);
 
-    public function containsStatusLabel(string $text): bool
-    {
-        foreach ($this->lines($text) as $line) {
-            if (isset(self::STATUS_MAP[$this->normalizeStatusLabel($line)])) {
-                return true;
-            }
-        }
-
-        return false;
+        return $lines !== [] && preg_match(self::PREFIX_PATTERN, $lines[0]) === 1;
     }
 
     /**
@@ -145,6 +148,32 @@ class WaReplyCommand
     public function statusLabels(): array
     {
         return array_values(array_map(fn (array $item) => $item['label'], self::STATUS_MAP));
+    }
+
+    /**
+     * Buang awalan `/libur` pada baris pertama. Sisa baris yang sama tetap
+     * dipakai, sehingga `/libur nomor 1` juga bekerja.
+     *
+     * @param  array<int, string>  $lines
+     * @return array<int, string>
+     */
+    private function stripPrefix(array $lines): array
+    {
+        if ($lines === [] || preg_match(self::PREFIX_PATTERN, $lines[0]) !== 1) {
+            return $lines;
+        }
+
+        $rest = trim((string) preg_replace(self::PREFIX_PATTERN, '', $lines[0], 1));
+
+        if ($rest === '') {
+            array_shift($lines);
+
+            return $lines;
+        }
+
+        $lines[0] = $rest;
+
+        return $lines;
     }
 
     /**

@@ -18,10 +18,18 @@ use Tests\TestCase;
  * Resolver & penyimpanan di-mock agar test ini hanya menguji "pipa" webhook
  * (keamanan, filter event, parsing, pengiriman balasan) dan tidak menyentuh
  * database pengembangan `sip`.
+ *
+ * Revisi setelah uji produksi (17 Nov 2026):
+ *   - `Nomor 1` (huruf besar) diterima.
+ *   - Pesan yang tidak berbentuk perintah diabaikan TANPA balasan.
+ *   - Awalan `/libur` → bot membalas bantuan bila format belum lengkap.
+ *   - Pengirim `@lid` bisa di-whitelist (baik via LID maupun nomor telepon).
  */
 class WhatsAppWebhookTest extends TestCase
 {
     private const SECRET = 'rahasia-webhook';
+
+    private const VALID_BODY = "/libur\nNomor 1\nDiliburkan Sekolah\nAlasan : Sedang ujian";
 
     protected function setUp(): void
     {
@@ -49,7 +57,7 @@ class WhatsAppWebhookTest extends TestCase
             'from' => '120363000000000000@g.us',
             'fromMe' => false,
             'participant' => '6289654157132@c.us',
-            'body' => "nomor 1\nDiliburkan Sekolah\nAlasan : Sedang ujian",
+            'body' => self::VALID_BODY,
             'replyTo' => ['body' => $this->quotedReminder()],
         ], $overrides);
 
@@ -93,7 +101,6 @@ class WhatsAppWebhookTest extends TestCase
         $target = $this->target();
 
         $this->mock(HolidayTargetResolver::class, function ($mock) use ($target) {
-            $mock->shouldReceive('reminderLines')->andReturn([]);
             $mock->shouldReceive('resolve')->andReturn(TargetResolution::found('reminder', $target, 1));
         });
 
@@ -199,7 +206,22 @@ class WhatsAppWebhookTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_group_chatter_is_not_answered(): void
+    /**
+     * Keluhan produksi #2: balasan bebas ke pesan pengingat tidak boleh
+     * menghasilkan balasan apa pun (termasuk pesan "tidak boleh").
+     */
+    public function test_free_text_reply_to_notification_is_silently_ignored(): void
+    {
+        Http::fake(['waha.test/*' => Http::response([], 201)]);
+
+        $this->postWebhook($this->payload([
+            'body' => 'terima kasih pak, besok saya cek',
+        ]))->assertStatus(200)->assertJson(['ignored' => 'not_a_command']);
+
+        Http::assertNothingSent();
+    }
+
+    public function test_group_chatter_is_silently_ignored(): void
     {
         Http::fake(['waha.test/*' => Http::response([], 201)]);
 
@@ -209,6 +231,43 @@ class WhatsAppWebhookTest extends TestCase
         ]))->assertStatus(200)->assertJson(['ignored' => 'not_a_command']);
 
         Http::assertNothingSent();
+    }
+
+    /**
+     * Tanpa awalan /libur, teks acak yang kebetulan mengandung kata status
+     * juga tidak boleh memicu apa pun.
+     */
+    public function test_partial_attempt_without_prefix_is_silently_ignored(): void
+    {
+        Http::fake(['waha.test/*' => Http::response([], 201)]);
+
+        $this->postWebhook($this->payload([
+            'body' => "Nomor 1\nDiliburkan Sekolah",
+        ]))->assertStatus(200)->assertJson(['ignored' => 'not_a_command']);
+
+        Http::assertNothingSent();
+    }
+
+    public function test_prefix_with_incomplete_format_gets_help(): void
+    {
+        Http::fake(['waha.test/*' => Http::response([], 201)]);
+
+        $this->postWebhook($this->payload([
+            'body' => "/libur\nNomor 1\nLibur Sekolah\nAlasan : Sedang ujian",
+        ]))->assertStatus(200)->assertJson(['status' => 'invalid_format']);
+
+        Http::assertSent(fn ($request) => str_contains((string) $request['text'], 'Format belum sesuai.'));
+    }
+
+    public function test_prefix_alone_gets_help(): void
+    {
+        Http::fake(['waha.test/*' => Http::response([], 201)]);
+
+        $this->postWebhook($this->payload(['body' => '/libur']))
+            ->assertStatus(200)
+            ->assertJson(['status' => 'invalid_format', 'detail' => 'empty']);
+
+        Http::assertSent(fn ($request) => str_contains((string) $request['text'], '/libur'));
     }
 
     public function test_unauthorized_sender_is_told_off(): void
@@ -224,6 +283,54 @@ class WhatsAppWebhookTest extends TestCase
                 && str_contains((string) $request['text'], 'tidak boleh mengubah status absensi')
                 && str_contains((string) $request['text'], '@6281111111111');
         });
+    }
+
+    /**
+     * Pengirim @lid tidak bisa ditampilkan sebagai nomor; jangan tampilkan ID
+     * mentah yang membingungkan.
+     */
+    public function test_unauthorized_lid_sender_is_not_shown_raw_id(): void
+    {
+        Http::fake(['waha.test/*' => Http::response([], 201)]);
+
+        $this->postWebhook($this->payload([
+            'participant' => '188643671077027@lid',
+        ]))->assertStatus(200)->assertJson(['status' => 'unauthorized']);
+
+        Http::assertSent(function ($request) {
+            $text = (string) $request['text'];
+
+            return str_contains($text, 'tidak boleh mengubah status absensi')
+                && ! str_contains($text, '@lid');
+        });
+    }
+
+    public function test_lid_sender_can_be_whitelisted_by_lid(): void
+    {
+        config(['notifications.reply.allowed_users' => ['188643671077027@lid']]);
+        $this->mockHappyPath();
+
+        Http::fake(['waha.test/*' => Http::response([], 201)]);
+
+        $this->postWebhook($this->payload(['participant' => '188643671077027@lid']))
+            ->assertStatus(200)
+            ->assertJson(['status' => 'flagged']);
+    }
+
+    /**
+     * Bila WAHA menyertakan padanan nomor telepon (PN) di field pengirim,
+     * whitelist nomor admin tetap bekerja walau `participant` berupa LID.
+     */
+    public function test_lid_sender_is_matched_through_phone_number_alias(): void
+    {
+        $this->mockHappyPath();
+
+        Http::fake(['waha.test/*' => Http::response([], 201)]);
+
+        $this->postWebhook($this->payload([
+            'participant' => '188643671077027@lid',
+            'participantAlt' => '6289654157132@c.us',
+        ]))->assertStatus(200)->assertJson(['status' => 'flagged']);
     }
 
     public function test_valid_reply_flags_the_session_and_confirms_in_group(): void
@@ -245,27 +352,45 @@ class WhatsAppWebhookTest extends TestCase
         });
     }
 
-    public function test_lowercase_status_is_accepted(): void
+    /**
+     * Keluhan produksi #1: `Nomor 1` harus diterima.
+     */
+    public function test_uppercase_keywords_are_accepted(): void
     {
         $this->mockHappyPath('create');
         Http::fake(['waha.test/*' => Http::response([], 201)]);
 
         $this->postWebhook($this->payload([
-            'body' => "nomor 1\ndiliburkan sekolah\nAlasan : Sedang ujian",
+            'body' => "/LIBUR\nNOMOR 1\nDILIBURKAN SEKOLAH\nALASAN : Sedang ujian",
         ]))->assertStatus(200)->assertJson(['status' => 'flagged']);
 
         Http::assertSent(fn ($request) => str_contains((string) $request['text'], 'Diliburkan Sekolah Karena'));
     }
 
-    public function test_invalid_format_gets_help_message(): void
+    public function test_lowercase_format_with_prefix_is_accepted(): void
+    {
+        $this->mockHappyPath('create');
+        Http::fake(['waha.test/*' => Http::response([], 201)]);
+
+        $this->postWebhook($this->payload([
+            'body' => "/libur\nnomor 1\ndiliburkan sekolah\nalasan : sedang ujian",
+        ]))->assertStatus(200)->assertJson(['status' => 'flagged']);
+
+        Http::assertSent(fn ($request) => str_contains((string) $request['text'], 'Diliburkan Sekolah Karena'));
+    }
+
+    /**
+     * Awalan /libur wajib: format lengkap tanpa awalan tetap diabaikan.
+     */
+    public function test_complete_format_without_prefix_is_silently_ignored(): void
     {
         Http::fake(['waha.test/*' => Http::response([], 201)]);
 
         $this->postWebhook($this->payload([
-            'body' => "nomor 1\nLibur Sekolah\nAlasan : Sedang ujian",
-        ]))->assertStatus(200)->assertJson(['status' => 'invalid_format']);
+            'body' => "Nomor 1\nDiliburkan Sekolah\nAlasan : Sedang ujian",
+        ]))->assertStatus(200)->assertJson(['ignored' => 'not_a_command']);
 
-        Http::assertSent(fn ($request) => str_contains((string) $request['text'], 'Format tidak dikenali.'));
+        Http::assertNothingSent();
     }
 
     public function test_reply_without_quote_is_rejected_with_instruction(): void
@@ -276,20 +401,19 @@ class WhatsAppWebhookTest extends TestCase
             ->assertStatus(200)
             ->assertJson(['status' => 'not_reply']);
 
-        Http::assertSent(fn ($request) => str_contains((string) $request['text'], 'Balas pesan'));
+        Http::assertSent(fn ($request) => str_contains((string) $request['text'], 'Balas (reply) pesan'));
     }
 
     public function test_number_out_of_range_is_reported(): void
     {
         $this->mock(HolidayTargetResolver::class, function ($mock) {
-            $mock->shouldReceive('reminderLines')->andReturn([]);
             $mock->shouldReceive('resolve')->andReturn(TargetResolution::failed('number_not_found', 9));
         });
 
         Http::fake(['waha.test/*' => Http::response([], 201)]);
 
         $this->postWebhook($this->payload([
-            'body' => "nomor 12\nDiliburkan Sekolah\nAlasan : Sedang ujian",
+            'body' => "/libur\nNomor 12\nDiliburkan Sekolah\nAlasan : Sedang ujian",
         ]))->assertStatus(200)->assertJson(['status' => 'resolve_failed']);
 
         Http::assertSent(fn ($request) => str_contains((string) $request['text'], 'Nomor 12 tidak ada pada pesan tersebut'));
@@ -300,7 +424,6 @@ class WhatsAppWebhookTest extends TestCase
         $target = $this->target();
 
         $this->mock(HolidayTargetResolver::class, function ($mock) use ($target) {
-            $mock->shouldReceive('reminderLines')->andReturn([]);
             $mock->shouldReceive('resolve')->andReturn(TargetResolution::found('reminder', $target, 1));
         });
 

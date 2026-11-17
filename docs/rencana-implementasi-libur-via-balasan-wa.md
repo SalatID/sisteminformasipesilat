@@ -16,10 +16,15 @@ membuka aplikasi untuk mencatat libur tersebut.
 Fitur ini membuat admin cukup **membalas pesan pengingat** di grup:
 
 ```
-nomor 1
+/libur
+Nomor 1
 Diliburkan Sekolah
 Alasan : Sedang ujian
 ```
+
+Awalan `/libur` **wajib**. Pesan yang tidak dibuka dengan `/libur` dianggap
+obrolan biasa: tidak diproses dan **tidak dibalas sama sekali**.
+**Semua kata kunci tidak case-sensitive** (`/LIBUR`, `NOMOR 1`, `ALASAN :` diterima).
 
 Bot akan:
 1. Membuat/mengubah baris absensi unit tersebut menjadi status libur + alasan.
@@ -86,13 +91,14 @@ Alasan : Sedang ujian
 **Contoh yang ditolak:** `Libur Sekolah`, `Diliburkan`, `Sekolah Libur`, `Pelatih` (tanpa
 kata "Diliburkan").
 
-**Aturan parsing:**
+**Aturan parsing (revisi setelah uji produksi 17 Nov 2026):**
 
 | Elemen | Aturan |
 |---|---|
-| `nomor N` | Regex `^nomor\s+(\d+)$` per baris, `nomor` huruf kecil, minimal satu spasi. |
+| Awalan `/libur` | **Wajib**. `^/libur(@…)?\b` pada baris pertama, case-insensitive. Pesan tanpa awalan = obrolan biasa: tidak diproses, tidak dibalas. Bila ada tetapi format belum lengkap → bot mengirim bantuan. |
+| `nomor N` | Regex `^nomor\s+(\d+)$` per baris, **case-insensitive** (`Nomor 1`, `NOMOR 1` diterima), minimal satu spasi (`Nomor1` ditolak). |
 | Status | Dicocokkan **case-insensitive** setelah normalisasi: trim, spasi ganda → satu spasi, lalu `mb_strtolower()`. `diliburkan sekolah` → `school_holiday`, `diliburkan pelatih` → `cancelled`. |
-| `Alasan :` | Regex `^Alasan\s*:\s*(.+)$` per baris, teks minimal 3 karakter, maksimal `NOTIF_REPLY_REASON_MAX` (default 255, batas kolom `reason`). Spasi di awal/akhir di-trim. |
+| `Alasan :` | Regex `^Alasan\s*:\s*(.+)$` per baris (label case-insensitive), teks minimal 3 karakter, maksimal `NOTIF_REPLY_REASON_MAX` (default 255, batas kolom `reason`). Spasi di awal/akhir di-trim. |
 | Baris kosong | Diabaikan (toleran terhadap enter berlebih). |
 | Baris lain | Ditolak dengan pesan bantuan format. |
 
@@ -437,7 +443,7 @@ UAT, bukan test otomatis — `RefreshDatabase` tetap tidak dipakai.
 
 | # | Pertanyaan | Usulan default | Keputusan final |
 |---|---|---|---|
-| Q1 | Format `nomor 1` — apakah cukup `1` saja juga diterima? | Tidak, harus `nomor 1` (sesuai keputusan K6). Menulis `Nomor 1`/`NOMOR 1` juga **ditolak** karena status saja yang case-insensitive | ✅ **Diterima apa adanya.** Hanya `nomor` huruf kecil; `Nomor 1` ditolak. Angka saja (`1`) juga ditolak |
+| Q1 | Format `nomor 1` — apakah cukup `1` saja juga diterima? | Tidak, harus `nomor 1` (sesuai keputusan K6). Menulis `Nomor 1`/`NOMOR 1` juga **ditolak** karena status saja yang case-insensitive | ⚠️ **Direvisi 17 Nov 2026 (uji produksi):** `Nomor 1`/`NOMOR 1` kini **diterima** (semua kata kunci case-insensitive). Angka saja (`1`) tetap ditolak, dan awalan `/libur` ditambahkan sebagai penanda perintah yang **wajib** |
 | Q2 | Bila 1 balasan ingin meliburkan beberapa nomor (`nomor 1,2`)? | Tahap 1: satu nomor per balasan. Multi bisa ditambah nanti | ✅ **Satu nomor per balasan** (keputusan pemilik proses 18 Nov 2026) |
 | Q3 | `report_maker_id` & `created_by` wajib (NOT NULL) — diisi apa? | `created_by` = UUID user super-admin pertama; `report_maker_id` = `null` **bila kolom diizinkan**; jika tidak, pakai UUID yang sama | ✅ **Keduanya = UUID user ber-role `super-admin`** pertama. `report_maker_id` ternyata NOT NULL, jadi tidak ada opsi `null` |
 | Q4 | Bila status berubah dari `training` → libur ditolak, apakah ada jalur "paksa" untuk admin? | Tidak ada di tahap 1 | ✅ Sesuai — tidak ada jalur paksa; ubah lewat menu absensi |
@@ -478,6 +484,7 @@ UAT, bukan test otomatis — `RefreshDatabase` tetap tidak dipakai.
 | 18 Nov 2026 | Dokumen awal dibuat dari diskusi: scope WhatsApp/NOWEB, format `nomor N` + status case-sensitive + `Alasan :`, whitelist di `.env`, kirim pesan baru (bukan edit). |
 | 18 Nov 2026 | Revisi: status kini **case-insensitive** (K3) — `Diliburkan Sekolah` / `DILIBURKAN SEKOLAH` / `Diliburkan sekolah` diterima. Ditambah aturan normalisasi spasi & contoh variasi diterima/ditolak, UAT U5/U5b/U5c, dan penegasan `nomor` tetap huruf kecil. |
 | 18 Nov 2026 | Keputusan final: satu nomor per balasan (Q2), `created_by`/`report_maker_id` = UUID super-admin (Q3), bentuk id pengirim `@c.us` (Q4). Fase 1–5 diimplementasikan — lihat bab 16. |
+| 17 Nov 2026 | **Revisi setelah uji produksi:** semua kata kunci case-insensitive (termasuk `NOMOR 1`), awalan `/libur` sebagai penanda perintah, pesan bukan perintah diabaikan tanpa balasan, whitelist `@lid` + alias nomor telepon — lihat bab 17. |
 
 ---
 
@@ -531,11 +538,11 @@ docs/evidence/fixtures/waha-reply-payload.json
 
 ```
 php artisan test
-Tests: 139 passed (460 assertions)
+Tests: 165 passed (543 assertions)
 ```
 
-Cakupan baru: 48 test parser + 9 test resolver + 12 test keputusan/identitas
-+ 17 test webhook.
+Cakupan baru: 30 test parser + 9 test resolver + 12 test keputusan/identitas
++ 24 test webhook.
 
 ### 16.4 Penyimpangan/disiplin tambahan terhadap rencana
 
@@ -543,7 +550,8 @@ Cakupan baru: 48 test parser + 9 test resolver + 12 test keputusan/identitas
 |---|---|---|---|
 | Urutan baris perintah | "urutan tetap" | urutan **tidak dipaksakan** (dikenali per bentuk), duplikat tetap ditolak | balasan chat sering diselingi baris kosong; tidak mengurangi keamanan |
 | `Alasan` | `^Alasan :` | label case-insensitive, spasi sebelum `:` opsional | label, bukan data; mengurangi penolakan yang tidak perlu |
-| `nomor` | huruf kecil | **tetap huruf kecil** (`Nomor 1` ditolak) | keputusan Q1 |
+| `nomor` | huruf kecil | ~~tetap huruf kecil~~ → **case-insensitive** (`Nomor 1` diterima) sejak revisi 17 Nov 2026 | keluhan uji produksi #1 |
+| Awalan perintah | tidak ada di rencana | `/libur` **wajib** sebagai penanda perintah; pesan tanpa awalan tidak diproses & tidak dibalas | keluhan uji produksi #2 |
 | Pencocokan unit | eksak | eksak dulu, lalu fallback `LIKE` terpendek | jaring pengaman bila teks pesan diedit manual |
 | Pengirim tanpa whitelist | balas penolakan | hanya dibalas bila pesan **terlihat seperti perintah** atau reply ke pesan bot | mencegah bot berisik di obrolan biasa |
 | Idempotensi | tidak ada di rencana | cache 10 menit per `payload.id` | WAHA mengulang webhook non-2xx |
@@ -559,4 +567,39 @@ Cakupan baru: 48 test parser + 9 test resolver + 12 test keputusan/identitas
 4. Jalankan UAT bab 5 dan centang hasilnya.
 5. **Tidak ada migrasi database** — kolom `attendance_status`, `reason`,
    `created_by`, `report_maker_id` sudah tersedia.
+
+---
+
+## 17. Revisi setelah uji produksi (17 Nov 2026)
+
+Dua kendala nyata dari lapangan:
+
+| # | Keluhan | Perilaku lama | Perilaku baru |
+|---|---|---|---|
+| 1 | `Nomor 1` dianggap salah format | `nomor` wajib huruf kecil | Semua kata kunci **case-insensitive**: `/Libur`, `NOMOR 1`, `ALASAN :` diterima |
+| 2 | Balasan bebas ke pesan bot dibalas "Anda … tidak boleh mengubah status absensi" | Setiap balasan ke pesan bot diproses, termasuk yang bukan perintah | Pesan yang **tidak berbentuk perintah diabaikan tanpa balasan**. Balasan "tidak boleh" hanya dikirim bila format perintah valid |
+
+Tambahan yang menyertainya:
+
+- **Awalan `/libur` WAJIB** (case-insensitive). Fungsinya:
+  - Bot hanya "berbicara" bila admin memang menulis perintah.
+  - Pesan tanpa `/libur` = obrolan biasa: **tidak diproses dan tidak dibalas**, walau isinya format lengkap.
+  - Bila `/libur` ada tetapi format belum lengkap/salah → bot membalas bantuan format, karena admin jelas sedang mencoba.
+  - Bentuk yang diterima: `/libur` di baris sendiri, `/libur Nomor 1` (satu baris), `/libur@6289654157132`. Bentuk `/liburan` atau "tolong /libur …" **bukan** perintah.
+- **Whitelist `@lid`.** WAHA NOWEB kadang melaporkan pengirim sebagai `188643671077027@lid`, bukan nomor telepon. Perbaikan:
+  - Whitelist menerima nilai `@lid` apa adanya.
+  - Bila payload menyertakan padanan nomor (`participantAlt`, `participantPn`, `senderPn`, `_data.key.*`), nomor telepon ikut dicocokkan.
+  - Hanya field **pengirim** yang dibaca — bukan pesan yang dikutip — agar orang lain tidak bisa menumpang identitas admin.
+- **Pesan penolakan** tidak lagi menampilkan ID mentah: memakai nama pengirim (`pushName`) bila ada, atau "Anda tidak boleh mengubah status absensi".
+- **Perintah `/libur` tanpa quote** dijawab: "Balas (reply) pesan *Pengingat Absensi Latihan* yang ingin diubah, bukan pesan lain."
+
+Perubahan kode: `WaReplyCommand` (prefix wajib + case-insensitive), `WhatsAppWebhookController`
+(gerbang "diam"), `ActorIdentity` (`candidates`/`anyAllowed`/`preferred`),
+`ReplyResponder` (teks bantuan, penolakan, `missingQuote`), `HolidayReplyPreviewCommand`
+(menampilkan "BUKAN PERINTAH — bot akan diam" untuk pesan tanpa awalan).
+
+Test: **165 lulus (543 assertions)** — termasuk kasus awalan wajib, `/libur`
+huruf besar, perilaku "diam", whitelist `@lid`, dan `@lid` + alias nomor telepon.
+Delapan test `NotificationRunGuardTest` juga dikunci ke jam 10:00 agar tidak
+gagal bila suite dijalankan di luar jendela 07:00–21:59.
 

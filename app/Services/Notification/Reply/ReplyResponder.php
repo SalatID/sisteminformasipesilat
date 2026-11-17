@@ -48,19 +48,20 @@ class ReplyResponder
     public function unauthorized(?string $actorId, ?string $pushName = null): array
     {
         $mention = ActorIdentity::mentionText($actorId);
-        $label = $mention ?? ($pushName !== null && $pushName !== '' ? $pushName : (string) $actorId);
+        $label = $mention ?? ($pushName !== null && trim($pushName) !== '' ? trim($pushName) : null);
 
         return [
-            'text' => 'Anda '.$label.' tidak boleh mengubah status absensi',
+            'text' => 'Anda '.($label !== null ? $label.' ' : '').'tidak boleh mengubah status absensi',
             'mentions' => $mention !== null ? [(string) $actorId] : [],
         ];
     }
 
     public function formatHelp(): string
     {
-        return "Format tidak dikenali.\n\n".
+        return "Format belum sesuai.\n\n".
             "Contoh balasan:\n".
-            "nomor 1\n".
+            WaReplyCommand::PREFIX."\n".
+            "Nomor 1\n".
             "Diliburkan Sekolah\n".
             "Alasan : Sedang ujian\n\n".
             "Status yang tersedia:\n".
@@ -71,6 +72,16 @@ class ReplyResponder
     {
         return 'Balas pesan *Pengingat Absensi Latihan* yang ingin diubah, '.
             'lalu tulis nomor baris, status libur, dan alasannya.';
+    }
+
+    /**
+     * Petunjuk bila admin sudah menulis perintah tetapi belum membalas pesan
+     * pengingat.
+     */
+    public function missingQuote(): string
+    {
+        return 'Balas (reply) pesan *Pengingat Absensi Latihan* yang ingin diubah, '.
+            'bukan pesan lain.';
     }
 
     public function numberNotFound(int $number, int $totalLines): string
@@ -158,6 +169,7 @@ class ReplyResponder
     public function forParseError(ParsedReply $reply): string
     {
         return match ($reply->error) {
+            'missing_prefix' => $this->formatHelp(),
             'missing_number' => $this->missingNumber(),
             'missing_status' => $this->missingStatus(),
             'missing_reason' => $this->missingReason(),

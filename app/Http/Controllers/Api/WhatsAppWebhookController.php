@@ -19,10 +19,15 @@ use Throwable;
  * Menerima event `message` dari WAHA lalu memproses balasan admin yang
  * menandai sesi latihan sebagai libur.
  *
- * Alur (lihat docs/rencana-implementasi-libur-via-balasan-wa.md):
- *   secret → HMAC → event `message` → bukan pesan bot → whitelist →
- *   parse perintah → cocokkan nomor baris dengan pesan yang dikutip →
- *   simpan → balas di grup.
+ * Alur (revisi setelah uji produksi):
+ *   secret → HMAC → event `message` → bukan pesan bot → punya awalan /libur?
+ *   (tidak = DIAM) → parse perintah → (tidak valid = kirim bantuan) →
+ *   whitelist → cocokkan nomor baris dengan pesan yang dikutip → simpan →
+ *   balas di grup.
+ *
+ * Prinsip: bot hanya bicara bila admin menulis perintah `/libur`. Obrolan
+ * biasa, termasuk balasan bebas ke pesan pengingat, diabaikan tanpa balasan
+ * apa pun.
  *
  * Controller ini tidak pernah melempar error ke WAHA: WAHA akan mengulang
  * (retry) setiap respons non-2xx, dan pengulangan itu tidak diinginkan untuk
@@ -73,6 +78,14 @@ class WhatsAppWebhookController extends Controller
             return $this->ignored('empty_body');
         }
 
+        // Tanpa awalan /libur, pesan apa pun (obrolan, balasan bebas ke pesan
+        // bot, format nyaris benar) dianggap pesan biasa: diabaikan diam-diam.
+        if (! $this->command->hasPrefix($body)) {
+            return $this->ignored('not_a_command');
+        }
+
+        $parsed = $this->command->parse($body);
+
         if (! $this->isIdempotentFirstSeen((string) ($message['id'] ?? ''))) {
             return $this->ignored('duplicate');
         }
@@ -83,42 +96,35 @@ class WhatsAppWebhookController extends Controller
             return $this->ignored('missing_chat');
         }
 
-        $actorId = (string) ($message['participant'] ?? $message['from'] ?? '');
-        $pushName = isset($message['_data']['notifyName']) ? (string) $message['_data']['notifyName'] : null;
-        $quotedText = (string) ($message['replyTo']['body'] ?? '');
+        if (! $parsed->ok) {
+            // Admin menulis /libur tetapi isinya belum lengkap → bantu perbaiki.
+            $this->send($chatId, $this->responder->forParseError($parsed));
 
-        $isReplyToBot = $this->resolver->reminderLines($quotedText) !== []
-            || (bool) preg_match('/^\*Absensi Latihan\*/mu', $quotedText);
-
-        // Obrolan biasa di grup: jangan diganggu.
-        if (! $isReplyToBot && ! $this->command->looksLikeCommand($body)) {
-            return $this->ignored('not_a_command');
+            return $this->handled('invalid_format', $parsed->error);
         }
 
-        if (! ActorIdentity::isAllowed($actorId, $this->allowedUsers())) {
+        $pushName = $this->pushName($message);
+        $candidates = ActorIdentity::candidates($message);
+
+        if (! ActorIdentity::anyAllowed($candidates, $this->allowedUsers())) {
             Log::channel('cron')->warning('Libur via WhatsApp ditolak: pengirim tidak berwenang', [
-                'actor' => $actorId,
                 'chat' => $chatId,
+                'candidates' => $candidates,
+                'push_name' => $pushName,
             ]);
 
-            $reply = $this->responder->unauthorized($actorId, $pushName);
+            $reply = $this->responder->unauthorized(ActorIdentity::preferred($candidates), $pushName);
             $this->send($chatId, $reply['text'], $reply['mentions']);
 
             return $this->handled('unauthorized');
         }
 
+        $quotedText = (string) ($message['replyTo']['body'] ?? '');
+
         if ($quotedText === '') {
-            $this->send($chatId, $this->responder->notReplyingToNotification());
+            $this->send($chatId, $this->responder->missingQuote());
 
             return $this->handled('not_reply');
-        }
-
-        $parsed = $this->command->parse($body);
-
-        if (! $parsed->ok) {
-            $this->send($chatId, $this->responder->forParseError($parsed));
-
-            return $this->handled('invalid_format', $parsed->error);
         }
 
         $resolution = $this->resolver->resolve($quotedText, (int) $parsed->number);
@@ -133,7 +139,7 @@ class WhatsAppWebhookController extends Controller
             $resolution->target,
             (string) $parsed->status,
             (string) $parsed->reason,
-            $actorId,
+            (string) (ActorIdentity::preferred($candidates) ?? ''),
         );
 
         if (! $outcome->ok) {
@@ -159,6 +165,22 @@ class WhatsAppWebhookController extends Controller
     private function allowedUsers(): array
     {
         return (array) config('notifications.reply.allowed_users', []);
+    }
+
+    /**
+     * @param  array<string, mixed>  $message
+     */
+    private function pushName(array $message): ?string
+    {
+        foreach (['_data.notifyName', '_data.pushName', 'notifyName', 'pushName'] as $path) {
+            $value = data_get($message, $path);
+
+            if (is_string($value) && trim($value) !== '') {
+                return trim($value);
+            }
+        }
+
+        return null;
     }
 
     private function validSignature(Request $request): bool
