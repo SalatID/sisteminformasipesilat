@@ -7,12 +7,23 @@ use Illuminate\Support\Facades\Cache;
 /**
  * Guard agar siklus notifikasi terjadwal maksimal sekali per interval
  * (default 3 jam), berapa pun frekuensi cron pemanggilnya.
+ *
+ * Sejak 17 Nov 2026 guard dipisah per jenis pekerjaan:
+ *   - 'reminder' : berbasis interval (NOTIF_INTERVAL_HOURS, default 3 jam)
+ *   - 'report'   : tanpa interval & tanpa jendela jam (jalan tiap menit),
+ *                  hanya dilindungi lock anti-overlap.
  */
 class NotificationRunGuard
 {
-    private const CACHE_KEY = 'attendance:notify:last_run';
+    public const SCOPE_ALL = 'all';
 
-    private const LOCK_KEY = 'attendance:notify:lock';
+    public const SCOPE_REPORT = 'report';
+
+    public const SCOPE_REMINDER = 'reminder';
+
+    private const CACHE_KEY_PREFIX = 'attendance:notify:last_run';
+
+    private const LOCK_KEY_PREFIX = 'attendance:notify:lock';
 
     public function intervalHours(): int
     {
@@ -21,7 +32,11 @@ class NotificationRunGuard
 
     /**
      * Jendela pengiriman yang diizinkan (07:00–21:59). Di luar jendela
-     * pengiriman ditunda untuk menjaga pola manusiawi (anti-bot).
+     * pengingat ditunda untuk menjaga pola manusiawi (anti-bot).
+     *
+     * Laporan absensi TIDAK dibatasi jendela ini (keputusan pemilik proses,
+     * 17 Nov 2026): begitu ada baris dengan is_notif_send=false, langsung
+     * dikirim kapan pun.
      */
     public function withinActiveWindow(?int $hour = null): bool
     {
@@ -31,35 +46,51 @@ class NotificationRunGuard
     }
 
     /**
-     * Apakah siklus berikutnya boleh jalan saat ini.
+     * Apakah scope ini dibatasi interval? Hanya pengingat.
      */
-    public function canRun(bool $force = false): bool
+    public function usesInterval(string $scope): bool
     {
-        if ($force || $this->intervalHours() === 0) {
+        return $scope !== self::SCOPE_REPORT;
+    }
+
+    /**
+     * Apakah scope ini dibatasi jendela jam? Hanya pengingat.
+     */
+    public function usesWindow(string $scope): bool
+    {
+        return $scope !== self::SCOPE_REPORT;
+    }
+
+    /**
+     * Apakah siklus berikutnya boleh jalan saat ini (scope apa pun).
+     */
+    public function canRun(bool $force = false, string $scope = self::SCOPE_ALL): bool
+    {
+        if ($force || !$this->usesInterval($scope) || $this->intervalHours() === 0) {
             return true;
         }
 
-        return $this->minutesSinceLastRun() >= $this->intervalHours() * 60;
+        return $this->minutesSinceLastRun($scope) >= $this->intervalHours() * 60;
     }
 
     /**
      * Sisa menit sampai siklus berikutnya (0 bila boleh jalan).
      */
-    public function minutesUntilNextRun(): int
+    public function minutesUntilNextRun(string $scope = self::SCOPE_ALL): int
     {
-        if ($this->intervalHours() === 0) {
+        if (!$this->usesInterval($scope) || $this->intervalHours() === 0) {
             return 0;
         }
 
-        return max(0, (int) ($this->intervalHours() * 60 - $this->minutesSinceLastRun()));
+        return max(0, (int) ($this->intervalHours() * 60 - $this->minutesSinceLastRun($scope)));
     }
 
     /**
      * Menit sejak siklus terakhir. Negatif bila jam sistem mundur.
      */
-    private function minutesSinceLastRun(): float
+    private function minutesSinceLastRun(string $scope = self::SCOPE_ALL): float
     {
-        $lastRun = Cache::get(self::CACHE_KEY);
+        $lastRun = Cache::get($this->cacheKey($scope));
 
         if ($lastRun === null) {
             return PHP_FLOAT_MAX;
@@ -73,9 +104,9 @@ class NotificationRunGuard
     /**
      * Tandai siklus sudah berjalan (dipanggil setelah siklus selesai).
      */
-    public function markRun(): void
+    public function markRun(string $scope = self::SCOPE_ALL): void
     {
-        Cache::forever(self::CACHE_KEY, now()->toIso8601String());
+        Cache::forever($this->cacheKey($scope), now()->toIso8601String());
     }
 
     /**
@@ -85,25 +116,25 @@ class NotificationRunGuard
      * @param  callable(): mixed  $callback
      * @return array{executed: bool, reason: ?string, result: mixed}
      */
-    public function runOnce(callable $callback, bool $force = false): array
+    public function runOnce(?callable $callback = null, bool $force = false, string $scope = self::SCOPE_ALL): array
     {
-        if (!$force && !$this->withinActiveWindow()) {
+        if (!$force && $this->usesWindow($scope) && !$this->withinActiveWindow()) {
             return ['executed' => false, 'reason' => 'outside_window', 'result' => null];
         }
 
-        if (!$this->canRun($force)) {
+        if (!$this->canRun($force, $scope)) {
             return ['executed' => false, 'reason' => 'interval', 'result' => null];
         }
 
-        $lock = Cache::lock(self::LOCK_KEY, 600);
+        $lock = Cache::lock($this->lockKey($scope), 600);
 
         if (!$lock->get()) {
             return ['executed' => false, 'reason' => 'locked', 'result' => null];
         }
 
         try {
-            $result = $callback();
-            $this->markRun();
+            $result = $callback === null ? null : $callback();
+            $this->markRun($scope);
 
             return ['executed' => true, 'reason' => null, 'result' => $result];
         } finally {
@@ -114,8 +145,18 @@ class NotificationRunGuard
     /**
      * Reset guard (untuk testing/keperluan operasional).
      */
-    public function reset(): void
+    public function reset(string $scope = self::SCOPE_ALL): void
     {
-        Cache::forget(self::CACHE_KEY);
+        Cache::forget($this->cacheKey($scope));
+    }
+
+    private function cacheKey(string $scope): string
+    {
+        return self::CACHE_KEY_PREFIX . ':' . $scope;
+    }
+
+    private function lockKey(string $scope): string
+    {
+        return self::LOCK_KEY_PREFIX . ':' . $scope;
     }
 }

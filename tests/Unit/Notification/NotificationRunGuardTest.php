@@ -101,12 +101,90 @@ class NotificationRunGuardTest extends TestCase
     {
         $guard = new NotificationRunGuard();
 
-        $lock = Cache::lock('attendance:notify:lock', 60);
+        $lock = Cache::lock('attendance:notify:lock:all', 60);
         $this->assertTrue($lock->get());
 
         $result = $guard->runOnce(fn () => true);
         $this->assertFalse($result['executed']);
         $this->assertSame('locked', $result['reason']);
+
+        $lock->release();
+    }
+
+    // ------------------------------------------------ guard terpisah per jenis
+    public function test_report_scope_ignores_interval(): void
+    {
+        $guard = new NotificationRunGuard();
+        $executed = 0;
+        $cb = function () use (&$executed) {
+            return ++$executed;
+        };
+
+        // 3 pemanggilan berturut-turut tanpa jeda waktu
+        $guard->runOnce($cb, false, NotificationRunGuard::SCOPE_REPORT);
+        $guard->runOnce($cb, false, NotificationRunGuard::SCOPE_REPORT);
+        $guard->runOnce($cb, false, NotificationRunGuard::SCOPE_REPORT);
+
+        $this->assertSame(3, $executed, 'Laporan harus jalan tiap kali dipanggil (tiap menit)');
+    }
+
+    public function test_reminder_scope_still_blocked_by_interval(): void
+    {
+        $guard = new NotificationRunGuard();
+        $executed = 0;
+        $cb = function () use (&$executed) {
+            return ++$executed;
+        };
+
+        $guard->runOnce($cb, false, NotificationRunGuard::SCOPE_REMINDER);
+        $guard->runOnce($cb, false, NotificationRunGuard::SCOPE_REMINDER);
+
+        $this->assertSame(1, $executed, 'Pengingat tetap maksimal 1x per interval');
+
+        $this->travel(3)->hours();
+        $guard->runOnce($cb, false, NotificationRunGuard::SCOPE_REMINDER);
+
+        $this->assertSame(2, $executed);
+    }
+
+    public function test_report_scope_runs_outside_active_window(): void
+    {
+        $guard = new NotificationRunGuard();
+
+        $this->travelTo(\Carbon\Carbon::parse('2026-11-17 02:30:00'));
+
+        $report = $guard->runOnce(fn () => 'ok', false, NotificationRunGuard::SCOPE_REPORT);
+        $this->assertTrue($report['executed'], 'Laporan boleh terkirim di luar jendela');
+
+        $reminder = $guard->runOnce(fn () => 'ok', false, NotificationRunGuard::SCOPE_REMINDER);
+        $this->assertFalse($reminder['executed']);
+        $this->assertSame('outside_window', $reminder['reason']);
+    }
+
+    public function test_scopes_do_not_block_each_other(): void
+    {
+        $guard = new NotificationRunGuard();
+
+        $report = $guard->runOnce(fn () => 'r', false, NotificationRunGuard::SCOPE_REPORT);
+        $reminder = $guard->runOnce(fn () => 'm', false, NotificationRunGuard::SCOPE_REMINDER);
+
+        $this->assertTrue($report['executed']);
+        $this->assertTrue($reminder['executed'], 'Laporan yang baru jalan tidak boleh memblokir pengingat');
+    }
+
+    public function test_report_lock_is_separate_from_reminder_lock(): void
+    {
+        $guard = new NotificationRunGuard();
+
+        $lock = Cache::lock('attendance:notify:lock:report', 60);
+        $this->assertTrue($lock->get());
+
+        $report = $guard->runOnce(fn () => 'r', false, NotificationRunGuard::SCOPE_REPORT);
+        $reminder = $guard->runOnce(fn () => 'm', false, NotificationRunGuard::SCOPE_REMINDER);
+
+        $this->assertFalse($report['executed']);
+        $this->assertSame('locked', $report['reason']);
+        $this->assertTrue($reminder['executed']);
 
         $lock->release();
     }

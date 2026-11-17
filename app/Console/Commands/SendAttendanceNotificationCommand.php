@@ -63,43 +63,82 @@ class SendAttendanceNotificationCommand extends Command
             return $this->sendSingle($attendanceId, $reportDispatcher, $dryRun);
         }
 
-        $outcome = $guard->runOnce(function () use ($type, $dryRun, $manager, $reportDispatcher) {
-            $result = ['reports' => 0, 'reminders' => 0];
+        $outcome = $this->runScheduled($type, $dryRun, $force, $manager, $reportDispatcher, $guard);
+        $result = ['reports' => 0, 'reminders' => 0];
 
-            if ($type === 'all' || $type === 'report') {
-                $result['reports'] = $this->sendReports($reportDispatcher, $dryRun);
+        foreach ($outcome as $scope => $step) {
+            if (isset($step['result']) && is_array($step['result'])) {
+                $result = array_merge($result, $step['result']);
+            }
+        }
+
+        if (!array_filter(array_column($outcome, 'executed'))) {
+            $reasons = [];
+
+            foreach ($outcome as $scope => $step) {
+                if ($step['executed']) {
+                    continue;
+                }
+
+                $reasons[] = $scope . ': ' . match ($step['reason']) {
+                    'outside_window' => 'di luar jendela pengiriman (07:00–21:59)',
+                    'interval' => 'guard interval, sisa ' . $guard->minutesUntilNextRun($scope) . ' menit',
+                    'locked' => 'proses lain sedang berjalan',
+                    default => (string) $step['reason'],
+                };
             }
 
-            if ($type === 'all' || $type === 'reminder') {
-                $result['reminders'] = $this->sendConsolidatedReminder($manager, $dryRun);
-            }
-
-            return $result;
-        }, $force);
-
-        if (!$outcome['executed']) {
-            $reason = match ($outcome['reason']) {
-                'outside_window' => 'di luar jendela pengiriman (07:00–21:59)',
-                'interval' => 'guard interval: sisa ' . $guard->minutesUntilNextRun() . ' menit',
-                'locked' => 'proses lain sedang berjalan',
-                default => (string) $outcome['reason'],
-            };
-
-            $message = "Siklus notifikasi dilewati ({$reason}).";
+            $message = 'Siklus notifikasi dilewati (' . implode('; ', $reasons) . ').';
             $this->warn($message);
-            Log::channel('cron')->info("attendance:notify skipped: {$reason}");
+            Log::channel('cron')->info("attendance:notify skipped: {$message}");
 
             return Command::SUCCESS;
         }
 
-        $this->info("Selesai: {$outcome['result']['reports']} laporan, {$outcome['result']['reminders']} pesan pengingat.");
-        Log::channel('cron')->info('attendance:notify selesai', $outcome['result']);
+        $this->info("Selesai: {$result['reports']} laporan, {$result['reminders']} pesan pengingat.");
+        Log::channel('cron')->info('attendance:notify selesai', $result);
 
         if ($this->shouldSendEndMarker($dryRun)) {
             $this->sendEndMarker($manager);
         }
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Jalankan bagian yang dijadwalkan dengan guard terpisah per jenis:
+     * laporan tiap menit (tanpa interval & jendela jam), pengingat tiap
+     * interval tetap (default 3 jam) dalam jendela 07:00–21:59.
+     *
+     * @return array<string, array{executed: bool, reason: ?string, result: mixed}>
+     */
+    private function runScheduled(
+        string $type,
+        bool $dryRun,
+        bool $force,
+        NotificationManager $manager,
+        AttendanceReportDispatcher $reportDispatcher,
+        NotificationRunGuard $guard,
+    ): array {
+        $outcome = [];
+
+        if ($type === 'all' || $type === 'report') {
+            $outcome[NotificationRunGuard::SCOPE_REPORT] = $guard->runOnce(
+                fn () => ['reports' => $this->sendReports($reportDispatcher, $dryRun), 'reminders' => 0],
+                $force,
+                NotificationRunGuard::SCOPE_REPORT,
+            );
+        }
+
+        if ($type === 'all' || $type === 'reminder') {
+            $outcome[NotificationRunGuard::SCOPE_REMINDER] = $guard->runOnce(
+                fn () => ['reports' => 0, 'reminders' => $this->sendConsolidatedReminder($manager, $dryRun)],
+                $force,
+                NotificationRunGuard::SCOPE_REMINDER,
+            );
+        }
+
+        return $outcome;
     }
 
     private function sendSingle(string $attendanceId, AttendanceReportDispatcher $dispatcher, bool $dryRun): int

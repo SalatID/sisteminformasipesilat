@@ -78,12 +78,42 @@ class CommandTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_command_is_scheduled_every_three_hours(): void
+    public function test_report_runs_every_minute_and_reminder_every_three_hours(): void
     {
+        config(['notifications.interval_hours' => 3]);
+
         $events = collect(app(Schedule::class)->events())
             ->filter(fn ($e) => str_contains($e->command ?? '', 'attendance:notify'));
 
-        $this->assertCount(1, $events);
-        $this->assertSame('0 */3 * * *', $events->first()->expression);
+        $this->assertCount(2, $events, 'Laporan & pengingat harus dijadwalkan terpisah');
+
+        $report = $events->first(fn ($e) => str_contains($e->command, '--type=report'));
+        $reminder = $events->first(fn ($e) => str_contains($e->command, '--type=reminder'));
+
+        $this->assertNotNull($report, 'Jadwal laporan tidak ditemukan');
+        $this->assertNotNull($reminder, 'Jadwal pengingat tidak ditemukan');
+
+        $this->assertSame('* * * * *', $report->expression, 'Laporan harus jalan tiap menit');
+        $this->assertSame('0 */3 * * *', $reminder->expression, 'Pengingat harus jalan tiap 3 jam');
+    }
+
+    public function test_reminder_schedule_follows_interval_config(): void
+    {
+        config(['notifications.interval_hours' => 4]);
+
+        // Kernel di-boot ulang agar schedule() membaca config terbaru.
+        $kernel = new \App\Console\Kernel(app(), app('events'));
+        app()->instance(\Illuminate\Contracts\Console\Kernel::class, $kernel);
+
+        $schedule = new \Illuminate\Console\Scheduling\Schedule();
+        $method = new \ReflectionMethod($kernel, 'schedule');
+        $method->setAccessible(true);
+        $method->invoke($kernel, $schedule);
+
+        $reminder = collect($schedule->events())
+            ->first(fn ($e) => str_contains($e->command ?? '', '--type=reminder'));
+
+        $this->assertNotNull($reminder);
+        $this->assertSame('0 */4 * * *', $reminder->expression);
     }
 }
