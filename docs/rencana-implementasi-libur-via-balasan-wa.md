@@ -26,11 +26,25 @@ Awalan `/libur` **wajib**. Pesan yang tidak dibuka dengan `/libur` dianggap
 obrolan biasa: tidak diproses dan **tidak dibalas sama sekali**.
 **Semua kata kunci tidak case-sensitive** (`/LIBUR`, `NOMOR 1`, `ALASAN :` diterima).
 
+Satu pesan boleh memuat **beberapa nomor** — tulis sebagai blok berurutan
+(maksimal 10 nomor), dipisahkan baris kosong atau langsung:
+
+```
+/libur
+Nomor 1
+Diliburkan Sekolah
+Alasan : ujian
+
+Nomor 2
+Diliburkan Pelatih
+Alasan : hujan
+```
+
 Bot akan:
 1. Membuat/mengubah baris absensi unit tersebut menjadi status libur + alasan.
 2. Membedakan **Diliburkan Sekolah** (`school_holiday`) dan **Diliburkan Pelatih**
    (`cancelled`).
-3. Membalas di grup:
+3. Membalas di grup (satu pesan untuk semua nomor):
 
 ```
 sudah saya update,
@@ -100,6 +114,7 @@ kata "Diliburkan").
 | Status | Dicocokkan **case-insensitive** setelah normalisasi: trim, spasi ganda → satu spasi, lalu `mb_strtolower()`. `diliburkan sekolah` → `school_holiday`, `diliburkan pelatih` → `cancelled`. |
 | `Alasan :` | Regex `^Alasan\s*:\s*(.+)$` per baris (label case-insensitive), teks minimal 3 karakter, maksimal `NOTIF_REPLY_REASON_MAX` (default 255, batas kolom `reason`). Spasi di awal/akhir di-trim. |
 | Baris kosong | Diabaikan (toleran terhadap enter berlebih). |
+| Beberapa nomor | Blok baru dimulai setiap baris `nomor N`. Maksimal `MAX_BLOCKS` = 10 nomor per pesan; lebih dari itu ditolak dengan pesan "Terlalu banyak nomor". Satu nomor tidak boleh muncul dua kali dalam satu pesan. |
 | Baris lain | Ditolak dengan pesan bantuan format. |
 
 ---
@@ -444,7 +459,7 @@ UAT, bukan test otomatis — `RefreshDatabase` tetap tidak dipakai.
 | # | Pertanyaan | Usulan default | Keputusan final |
 |---|---|---|---|
 | Q1 | Format `nomor 1` — apakah cukup `1` saja juga diterima? | Tidak, harus `nomor 1` (sesuai keputusan K6). Menulis `Nomor 1`/`NOMOR 1` juga **ditolak** karena status saja yang case-insensitive | ⚠️ **Direvisi 17 Nov 2026 (uji produksi):** `Nomor 1`/`NOMOR 1` kini **diterima** (semua kata kunci case-insensitive). Angka saja (`1`) tetap ditolak, dan awalan `/libur` ditambahkan sebagai penanda perintah yang **wajib** |
-| Q2 | Bila 1 balasan ingin meliburkan beberapa nomor (`nomor 1,2`)? | Tahap 1: satu nomor per balasan. Multi bisa ditambah nanti | ✅ **Satu nomor per balasan** (keputusan pemilik proses 18 Nov 2026) |
+| Q2 | Bila 1 balasan ingin meliburkan beberapa nomor (`nomor 1,2`)? | Tahap 1: satu nomor per balasan. Multi bisa ditambah nanti | ⚠️ **Direvisi 18 Nov 2026:** kini **beberapa nomor dalam satu pesan**, ditulis sebagai blok berurutan (bukan `nomor 1,2`). Lihat bab 17. |
 | Q3 | `report_maker_id` & `created_by` wajib (NOT NULL) — diisi apa? | `created_by` = UUID user super-admin pertama; `report_maker_id` = `null` **bila kolom diizinkan**; jika tidak, pakai UUID yang sama | ✅ **Keduanya = UUID user ber-role `super-admin`** pertama. `report_maker_id` ternyata NOT NULL, jadi tidak ada opsi `null` |
 | Q4 | Bila status berubah dari `training` → libur ditolak, apakah ada jalur "paksa" untuk admin? | Tidak ada di tahap 1 | ✅ Sesuai — tidak ada jalur paksa; ubah lewat menu absensi |
 | Q5 | Anti-loop: bot membalas pesan yang berisi kata "nomor"? | Bot mengabaikan `fromMe=true`, dan hanya memproses bila replyTo adalah pesan bot berjudul `*Pengingat Absensi Latihan*` | ⚠️ **Diperluas.** `fromMe=true` tetap diabaikan, tetapi pesan yang *terlihat seperti perintah* (`nomor N` / label status / `Alasan :`) juga diproses walau bukan reply — supaya admin tetap dapat balasan penolakan yang jelas. Obrolan biasa tetap diabaikan |
@@ -469,7 +484,7 @@ UAT, bukan test otomatis — `RefreshDatabase` tetap tidak dipakai.
 ## 14. Di luar scope tahap ini
 
 - Telegram
-- Multi-nomor dalam satu balasan (`nomor 1,2,5`)
+- ~~Multi-nomor dalam satu balasan~~ → **sudah didukung** sejak 18 Nov 2026 (format blok berurutan, bukan `nomor 1,2,5`)
 - Menu admin untuk mengelola daftar whitelist (db) & riwayat perubahan
 - Edit pesan notifikasi lama
 - Notifikasi "libur" ke PJ unit
@@ -602,4 +617,77 @@ Test: **165 lulus (543 assertions)** — termasuk kasus awalan wajib, `/libur`
 huruf besar, perilaku "diam", whitelist `@lid`, dan `@lid` + alias nomor telepon.
 Delapan test `NotificationRunGuardTest` juga dikunci ke jam 10:00 agar tidak
 gagal bila suite dijalankan di luar jendela 07:00–21:59.
+
+---
+
+## 18. Satu pesan untuk beberapa nomor (18 Nov 2026)
+
+Permintaan pemilik proses: satu balasan bisa meliburkan beberapa unit sekaligus.
+
+### Format
+
+```
+/libur
+Nomor 1
+Diliburkan Sekolah
+Alasan : ujian
+
+Nomor 2
+Diliburkan Pelatih
+Alasan : hujan
+```
+
+- Blok baru dimulai setiap baris `nomor N`; baris kosong di antaranya **opsional**.
+- Maksimal **10 nomor** per pesan (`WaReplyCommand::MAX_BLOCKS`).
+- Satu nomor tidak boleh muncul dua kali.
+- `nomor 1,2` (satu baris, dipisah koma) **tidak** didukung.
+- Awalan `/libur` tetap wajib dan hanya ditulis sekali di awal.
+
+### Perilaku
+
+| Situasi | Hasil |
+|---|---|
+| Semua nomor berhasil | Satu balasan berisi daftar bernomor sesuai nomor input |
+| Sebagian gagal | Nomor yang berhasil tetap disimpan; kegagalan dilaporkan di bagian `Gagal:` |
+| Semua gagal (multi) | `{"ok":true,"status":"all_failed"}` + satu balasan `Belum bisa saya update:` |
+| Satu nomor gagal | Status webhook **tidak berubah**: `resolve_failed` / `flag_rejected` |
+| Ada blok tidak valid | Seluruh pesan ditolak (tidak ada penulisan sebagian), balasan `Blok ke-N: …` |
+
+Contoh balasan sukses gabungan:
+
+```
+sudah saya update,
+1. SMP/SMA/SMK Cengkareng 1, Selasa, 17 November 2026, Diliburkan Sekolah Karena ujian
+2. SMA IT AL MAKA, Kamis, 12 November 2026, Diliburkan Pelatih Karena hujan
+```
+
+Contoh sebagian gagal:
+
+```
+sudah saya update,
+1. SMP/SMA/SMK Cengkareng 1, Selasa, 17 November 2026, Diliburkan Sekolah Karena ujian
+
+Gagal:
+- Nomor 2: Nomor 2 tidak ada pada pesan tersebut. Pesan itu hanya memuat 1 baris.
+```
+
+### Mengapa tidak "semua atau tidak sama sekali"
+
+Kegagalan yang wajar (nomor tidak ada, sesi sudah ada laporan absensi) tidak
+boleh membatalkan nomor lain yang sudah valid. Admin melihat ringkasan lengkap
+dalam satu balasan dan bisa mengirim ulang hanya nomor yang gagal.
+
+### Perubahan kode
+
+- `ParsedReplyBatch` (baru): wadah hasil parsing banyak blok + info blok gagal.
+- `WaReplyCommand`: `parseBatch()`, `splitBlocks()`, `parseBlock()`, `MAX_BLOCKS`.
+  `parse()` tetap ada untuk pemakaian satu blok (dipakai test lama).
+- `WhatsAppWebhookController`: loop per nomor, satu balasan gabungan, status webhook
+  lama dipertahankan untuk pesan satu nomor.
+- `ReplyResponder`: `results()` (balasan gabungan), `tooManyBlocks()`,
+  `forParseError()` menerima nomor blok.
+- `HolidayReplyPreviewCommand`: menampilkan setiap blok + balasan gabungan.
+
+Test: **175 lulus (589 assertions)**, termasuk 6 test parser multi-blok dan
+4 test webhook multi-nomor (sukses, sebagian gagal, semua gagal, blok tidak valid).
 

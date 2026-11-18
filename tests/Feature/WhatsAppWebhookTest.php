@@ -470,4 +470,113 @@ class WhatsAppWebhookTest extends TestCase
 
         $this->postWebhook($this->payload())->assertStatus(200)->assertJson(['status' => 'flagged']);
     }
+
+    // ------------------------------------------------ banyak nomor (multi-unit)
+
+    private function targetFor(int $number, string $name, string $date): HolidayTarget
+    {
+        $unit = new Unit;
+        $unit->setRawAttributes([
+            'id' => sprintf('11111111-1111-1111-1111-%012d', $number),
+            'name' => $name,
+            'is_active' => 1,
+        ], true);
+
+        return new HolidayTarget($number, $unit, Carbon::parse($date), '15:30', '17:30');
+    }
+
+    public function test_multiple_units_are_flagged_with_one_reply(): void
+    {
+        $first = $this->targetFor(1, 'SMP/SMA/SMK Cengkareng 1', '2026-11-17');
+        $second = $this->targetFor(2, 'SMA IT AL MAKA', '2026-11-12');
+
+        $this->mock(HolidayTargetResolver::class, function ($mock) use ($first, $second) {
+            $mock->shouldReceive('resolve')->andReturnUsing(
+                fn (string $text, int $number) => TargetResolution::found('reminder', $number === 2 ? $second : $first, 2),
+            );
+        });
+
+        $this->mock(HolidayFlagService::class, function ($mock) {
+            $mock->shouldReceive('flag')->andReturn(FlagOutcome::done('create'));
+        });
+
+        Http::fake(['waha.test/*' => Http::response([], 201)]);
+
+        $this->postWebhook($this->payload([
+            'body' => "/libur\nNomor 1\nDiliburkan Sekolah\nAlasan : ujian\n\nNomor 2\nDiliburkan Pelatih\nAlasan : hujan",
+        ]))->assertStatus(200)->assertJson(['status' => 'flagged']);
+
+        $this->assertCount(1, $this->sentTexts(), 'Semua nomor harus dijawab dalam satu pesan.');
+
+        $text = $this->sentTexts()[0];
+
+        $this->assertStringContainsString('sudah saya update,', $text);
+        $this->assertStringContainsString('1. SMP/SMA/SMK Cengkareng 1', $text);
+        $this->assertStringContainsString('Diliburkan Sekolah Karena ujian', $text);
+        $this->assertStringContainsString('2. SMA IT AL MAKA', $text);
+        $this->assertStringContainsString('Diliburkan Pelatih Karena hujan', $text);
+    }
+
+    public function test_partial_failure_is_reported_together_with_success(): void
+    {
+        $first = $this->targetFor(1, 'SMP/SMA/SMK Cengkareng 1', '2026-11-17');
+
+        $this->mock(HolidayTargetResolver::class, function ($mock) use ($first) {
+            $mock->shouldReceive('resolve')->andReturnUsing(
+                fn (string $text, int $number) => $number === 2
+                    ? TargetResolution::failed('number_not_found', 1)
+                    : TargetResolution::found('reminder', $first, 2),
+            );
+        });
+
+        $this->mock(HolidayFlagService::class, function ($mock) {
+            $mock->shouldReceive('flag')->andReturn(FlagOutcome::done('create'));
+        });
+
+        Http::fake(['waha.test/*' => Http::response([], 201)]);
+
+        $this->postWebhook($this->payload([
+            'body' => "/libur\nNomor 1\nDiliburkan Sekolah\nAlasan : ujian\n\nNomor 2\nDiliburkan Pelatih\nAlasan : hujan",
+        ]))->assertStatus(200)->assertJson(['status' => 'flagged']);
+
+        $this->assertCount(1, $this->sentTexts());
+
+        $text = $this->sentTexts()[0];
+
+        $this->assertStringContainsString('1. SMP/SMA/SMK Cengkareng 1', $text);
+        $this->assertStringContainsString('Gagal:', $text);
+        $this->assertStringContainsString('- Nomor 2: Nomor 2 tidak ada pada pesan tersebut.', $text);
+    }
+
+    public function test_all_numbers_failing_returns_all_failed(): void
+    {
+        $this->mock(HolidayTargetResolver::class, function ($mock) {
+            $mock->shouldReceive('resolve')->andReturn(TargetResolution::failed('number_not_found', 1));
+        });
+
+        Http::fake(['waha.test/*' => Http::response([], 201)]);
+
+        $this->postWebhook($this->payload([
+            'body' => "/libur\nNomor 1\nDiliburkan Sekolah\nAlasan : ujian\n\nNomor 2\nDiliburkan Pelatih\nAlasan : hujan",
+        ]))->assertStatus(200)->assertJson(['status' => 'all_failed']);
+
+        $this->assertCount(1, $this->sentTexts());
+
+        $text = $this->sentTexts()[0];
+
+        $this->assertStringContainsString('Belum bisa saya update:', $text);
+        $this->assertStringContainsString('- Nomor 1:', $text);
+        $this->assertStringContainsString('- Nomor 2:', $text);
+    }
+
+    public function test_invalid_second_block_gets_help_with_block_number(): void
+    {
+        Http::fake(['waha.test/*' => Http::response([], 201)]);
+
+        $this->postWebhook($this->payload([
+            'body' => "/libur\nNomor 1\nDiliburkan Sekolah\nAlasan : ujian\n\nNomor 2\nDiliburkan Pelatih",
+        ]))->assertStatus(200)->assertJson(['status' => 'invalid_format']);
+
+        Http::assertSent(fn ($request) => str_contains((string) $request['text'], 'Blok ke-2:'));
+    }
 }

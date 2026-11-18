@@ -52,6 +52,23 @@ Diliburkan Sekolah
 Alasan : Sedang ujian
 ```
 
+Satu pesan boleh memuat beberapa nomor (maks. 10), ditulis sebagai blok berurutan:
+
+```
+/libur
+Nomor 1
+Diliburkan Sekolah
+Alasan : ujian
+
+Nomor 2
+Diliburkan Pelatih
+Alasan : hujan
+```
+
+Blok baru dimulai setiap baris `Nomor N`; baris kosong di antaranya opsional.
+Bila salah satu blok tidak valid, **seluruh** pesan ditolak dan bot membalas
+`Blok ke-N: ...` (tidak ada nomor yang tersimpan sebagian).
+
 Semua kata kunci tidak case-sensitive (`/LIBUR`, `NOMOR 1`, `ALASAN :`).
 Awalan `/libur` **wajib**: pesan tanpa awalan dianggap obrolan biasa dan
 **diabaikan tanpa balasan** (bot tidak lagi membalas "tidak boleh" untuk
@@ -138,8 +155,9 @@ SMP/SMA/SMK Cengkareng 1, Selasa, 17 November 2026, Diliburkan Sekolah Karena Se
 | P3 | `--text-file=balasan-nomor-12.txt` | `Nomor 12 tidak ada pada pesan tersebut. ... hanya memuat 9 baris.` | OK |
 | P4 | `--text="Diliburkan Sekolah"` tanpa awalan | **BUKAN PERINTAH — bot akan diam** | OK |
 | P5 | `--text-file=balasan-bebas.txt` | **BUKAN PERINTAH — bot akan diam** | OK |
-| P6 | /libur + Nomor 9 | Unit pada pesan tersebut tidak ditemukan (lihat catatan di bawah) | OK |
-| P7 | format lengkap **tanpa** /libur | **BUKAN PERINTAH — tidak ada awalan /libur, bot akan diam** | OK |
+| P6 | `/libur` + `Nomor 9` (`balasan-nomor-9.txt`) | Unit pada pesan tersebut tidak ditemukan (lihat catatan di bawah) | OK |
+| P7 | format lengkap **tanpa** `/libur` | **BUKAN PERINTAH — tidak ada awalan /libur, bot akan diam** | OK |
+| P8 | `--text-file=balasan-multi.txt` (`/libur`, `Nomor 1` & `Nomor 3`) | Dua blok ditampilkan (Cengkareng 1 & SD KARAWACI 08) + satu balasan gabungan bernomor | OK |
 
 > Catatan data 18 Nov 2026: unit **MI Assanusiah** dan **RA Al Hadi** pada
 > contoh lama pemilik proses sudah tidak ada di tabel `units`, sehingga baris
@@ -174,6 +192,7 @@ whitelist, balasan harus berupa konfirmasi, bukan penolakan.
 | W7 | `body` diubah jadi teks bebas (`terima kasih pak`) | `ignored: not_a_command` — **tidak ada pesan sama sekali** | |
 | W8 | `body` = `/libur` + format salah | `status: invalid_format` + pesan bantuan | |
 | W9 | `participant` = `xxx@lid` yang ada di whitelist | `status: flagged` | |
+| W10 | `...waha-reply-payload-multi.json` (Nomor 1 & 2) | `status: flagged` + **satu** pesan berisi 2 nomor (atau `all_failed` bila nomor 2 tidak ada di DB uji) | |
 
 > **Uji W1–W6 menulis data sungguhan** ke tabel `attendances` (kecuali W2–W6).
 > Lakukan di **grup & database staging**, atau siapkan unit uji khusus.
@@ -201,6 +220,7 @@ WAHA_WEBHOOK_HMAC_KEY=local-test-hmac
 .\docs\evidence\test-webhook.ps1 -Payload docs/evidence/fixtures/waha-reply-payload-teks-bebas.json
 .\docs\evidence\test-webhook.ps1 -Payload docs/evidence/fixtures/waha-reply-payload-nomor-12.json
 .\docs\evidence\test-webhook.ps1 -Payload docs/evidence/fixtures/waha-reply-payload-unauthorized.json
+.\docs\evidence\test-webhook.ps1 -Payload docs/evidence/fixtures/waha-reply-payload-multi.json
 # tambahkan -Fresh agar payload.id diacak (bisa diulang tanpa kena idempotensi 10 menit)
 ```
 
@@ -208,7 +228,8 @@ Hasil yang sudah diverifikasi 17 Nov 2026 (dengan `WA_NOTIF_FLAG_HOLIDAY_USERS` 
 
 | Payload | Respons | Menulis DB? |
 |---|---|---|
-| `...teks-bebas.json` | `{"ok":true,"ignored":"not_a_command"}` — tanpa pesan balasan | tidak |`n| format lengkap tanpa `/libur` | `{"ok":true,"ignored":"not_a_command"}` — tanpa pesan balasan | tidak |
+| `...teks-bebas.json` | `{"ok":true,"ignored":"not_a_command"}` — tanpa pesan balasan | tidak |
+| format lengkap tanpa `/libur` | `{"ok":true,"ignored":"not_a_command"}` — tanpa pesan balasan | tidak |
 | `...nomor-12.json` | `{"ok":true,"status":"resolve_failed","detail":"number_not_found"}` | tidak |
 | `...unauthorized.json` | `{"ok":true,"status":"unauthorized"}` | tidak |
 | `waha-reply-payload.json` | `{"ok":true,"status":"flagged","detail":"create"}` | **ya** (1 baris `attendances`) |
@@ -253,6 +274,9 @@ Prasyarat: `NOTIF_TEST_MODE=false`, `WAHA_CHAT_ID` = grup uji.
 | U12 | Reply nomor yang sama dengan alasan berbeda | Status/alasan diperbarui, konfirmasi normal | |
 | U13 | Admin mengirim `/libur` saja (tanpa isi) | Bot mengirim contoh format | |
 | U14 | Admin (terdaftar) mengirim dari nomor yang muncul sebagai `@lid` | Perintah **tetap diterima**; jika belum, tambahkan nilai `@lid` ke `WA_NOTIF_FLAG_HOLIDAY_USERS` | |
+| U15 | Reply `/libur` + `Nomor 1` (Sekolah/ujian) + `Nomor 2` (Pelatih/hujan) | Satu balasan berisi dua baris hasil; kedua baris absensi berubah | |
+| U16 | Reply multi dengan satu nomor tidak ada (mis. `Nomor 1` + `Nomor 99`) | Nomor 1 tetap tersimpan; balasan memuat bagian `Gagal:` dengan `- Nomor 99: ...` | |
+| U17 | Reply multi dengan blok kedua tanpa `Alasan :` | **Tidak ada** yang disimpan; bot membalas `Blok ke-2: Alasan wajib diisi...` | |
 
 ---
 

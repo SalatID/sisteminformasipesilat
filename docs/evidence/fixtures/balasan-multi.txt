@@ -1,0 +1,8 @@
+/libur
+Nomor 1
+Diliburkan Sekolah
+Alasan : ujian
+
+Nomor 3
+Diliburkan Pelatih
+Alasan : hujan

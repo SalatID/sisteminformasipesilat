@@ -59,13 +59,84 @@ class ReplyResponder
     public function formatHelp(): string
     {
         return "Format belum sesuai.\n\n".
-            "Contoh balasan:\n".
+            "Contoh balasan (boleh beberapa nomor):\n".
             WaReplyCommand::PREFIX."\n".
             "Nomor 1\n".
             "Diliburkan Sekolah\n".
             "Alasan : Sedang ujian\n\n".
+            "Nomor 2\n".
+            "Diliburkan Pelatih\n".
+            "Alasan : Hujan\n\n".
             "Status yang tersedia:\n".
             self::STATUS_HELP;
+    }
+
+    /**
+     * Balasan untuk satu pesan yang memuat satu atau beberapa perintah.
+     *
+     * Satu perintah saja memakai format lama persis (agar balasan yang sudah
+     * dikenal admin tidak berubah). Lebih dari satu perintah dijawab dengan
+     * daftar bernomor, dan kegagalan sebagian dilaporkan pada bagian "Gagal".
+     *
+     * @param  array<int, array{number: int, target: HolidayTarget, statusLabel: string, reason: string, truncated: bool, unchanged: bool}>  $succeeded
+     * @param  array<int, array{number: int, message: string}>  $failed
+     */
+    public function results(array $succeeded, array $failed): string
+    {
+        if (count($succeeded) === 1 && $failed === []) {
+            $item = $succeeded[0];
+
+            return $this->success(
+                $item['target'],
+                $item['statusLabel'],
+                $item['reason'],
+                $item['truncated'],
+                $item['unchanged'],
+            );
+        }
+
+        $lines = [];
+
+        if ($succeeded === []) {
+            $lines[] = 'Belum bisa saya update:';
+        } else {
+            $allUnchanged = array_filter($succeeded, fn (array $item) => ! $item['unchanged']) === [];
+            $lines[] = $allUnchanged ? 'sudah saya update sebelumnya,' : 'sudah saya update,';
+
+            foreach ($succeeded as $item) {
+                $reason = $item['truncated'] ? $item['reason'].' (dipotong)' : $item['reason'];
+
+                $lines[] = sprintf(
+                    '%d. %s, %s, %s Karena %s',
+                    $item['number'],
+                    $item['target']->unitName(),
+                    $item['target']->dateLabel(),
+                    $item['statusLabel'],
+                    $reason,
+                );
+            }
+        }
+
+        if ($failed !== []) {
+            if ($succeeded !== []) {
+                $lines[] = '';
+                $lines[] = 'Gagal:';
+            }
+
+            foreach ($failed as $item) {
+                $lines[] = '- Nomor '.$item['number'].': '.$this->oneLine($item['message']);
+            }
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * Ratakan pesan multi-baris agar tetap rapi di dalam daftar.
+     */
+    private function oneLine(string $message): string
+    {
+        return trim((string) preg_replace('/\s+/u', ' ', $message));
     }
 
     public function notReplyingToNotification(): string
@@ -165,10 +236,13 @@ class ReplyResponder
 
     /**
      * Petakan kode error hasil parsing ke pesan bot.
+     *
+     * @param  int  $block  blok ke-berapa yang gagal (0 = satu-satunya blok)
+     * @param  int  $blocks  total blok dalam pesan; prefiks hanya dipakai bila > 1
      */
-    public function forParseError(ParsedReply $reply): string
+    public function forParseError(ParsedReply $reply, int $block = 0, int $blocks = 1): string
     {
-        return match ($reply->error) {
+        $message = match ($reply->error) {
             'missing_prefix' => $this->formatHelp(),
             'missing_number' => $this->missingNumber(),
             'missing_status' => $this->missingStatus(),
@@ -178,10 +252,23 @@ class ReplyResponder
             'duplicate_number' => $this->duplicate('nomor'),
             'duplicate_status' => $this->duplicate('status'),
             'duplicate_reason' => $this->duplicate('alasan'),
+            'too_many_blocks' => $this->tooManyBlocks(),
             'unknown_line' => $this->unknownLine((string) ($reply->context['line'] ?? '')),
             'empty' => $this->formatHelp(),
             default => $this->formatHelp(),
         };
+
+        if ($blocks > 1 && $block > 0) {
+            return 'Blok ke-'.$block.': '.$message;
+        }
+
+        return $message;
+    }
+
+    public function tooManyBlocks(): string
+    {
+        return 'Terlalu banyak nomor dalam satu pesan (maksimal '.WaReplyCommand::MAX_BLOCKS.'). '.
+            'Kirim sebagian dulu, lalu sisanya pada balasan berikutnya.';
     }
 
     /**

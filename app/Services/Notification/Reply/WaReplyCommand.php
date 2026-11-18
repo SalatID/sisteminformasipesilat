@@ -7,12 +7,16 @@ use Illuminate\Support\Facades\Log;
 /**
  * Mem-parse balasan admin di grup WhatsApp menjadi perintah penandaan libur.
  *
- * Format baku (4 baris):
+ * Format baku (satu atau beberapa blok):
  *
  *   /libur
  *   Nomor 1
  *   Diliburkan Sekolah
  *   Alasan : Sedang ujian
+ *
+ *   Nomor 2
+ *   Diliburkan Pelatih
+ *   Alasan : Hujan
  *
  * Aturan (revisi setelah uji produksi 17 Nov 2026):
  *   - Semua kata kunci TIDAK case-sensitive: `/libur`, `/LIBUR`, `Nomor 1`,
@@ -21,7 +25,9 @@ use Illuminate\Support\Facades\Log;
  *     tidak pernah diproses (lihat `hasPrefix()`).
  *   - `Alasan :` wajib, minimal 3 karakter.
  *   - Baris kosong diabaikan, tetapi baris asing menyebabkan penolakan.
- *   - Satu balasan hanya untuk SATU nomor.
+ *   - Satu pesan boleh memuat beberapa nomor (maks. `MAX_BLOCKS`). Blok baru
+ *     dimulai setiap kali muncul baris `nomor N`; baris kosong di antaranya
+ *     opsional. Satu nomor tidak boleh muncul dua kali.
  *
  * Urutan baris tidak dipaksakan: baris dikenali dari bentuknya masing-masing
  * agar admin yang menulis alasan lebih dulu tidak ditolak sia-sia.
@@ -44,11 +50,22 @@ class WaReplyCommand
     public const MIN_REASON_LENGTH = 3;
 
     /**
+     * Batas jumlah nomor dalam satu pesan. Menjaga balasan tetap ringkas dan
+     * mencegah satu pesan menyentuh terlalu banyak baris absensi sekaligus.
+     */
+    public const MAX_BLOCKS = 10;
+
+    /**
      * `/libur`, `/Libur`, `/libur@628123456789` — harus berdiri sendiri
      * (bukan bagian dari kata lain seperti `/liburan`).
      */
     private const PREFIX_PATTERN = '/^\/libur(?:@[^\s]+)?(?=\s|$)/iu';
 
+    /**
+     * Parse satu blok perintah (kompatibilitas: satu nomor per balasan).
+     *
+     * Untuk alur bot yang mendukung banyak nomor gunakan {@see parseBatch()}.
+     */
     public function parse(string $text): ParsedReply
     {
         // Awalan wajib: tanpa `/libur`, pesan bukan perintah apa pun isinya.
@@ -62,6 +79,106 @@ class WaReplyCommand
             return ParsedReply::invalid('empty');
         }
 
+        return $this->parseBlock($lines);
+    }
+
+    /**
+     * Parse pesan yang boleh memuat beberapa perintah sekaligus:
+     *
+     *   /libur
+     *   Nomor 1
+     *   Diliburkan Sekolah
+     *   Alasan : ujian
+     *
+     *   Nomor 2
+     *   Diliburkan Pelatih
+     *   Alasan : hujan
+     *
+     * Blok baru dimulai setiap kali muncul baris `nomor N`. Bila salah satu
+     * blok tidak valid, seluruh pesan ditolak (tidak ada penulisan sebagian)
+     * agar admin bisa memperbaiki tanpa menebak blok mana yang tersimpan.
+     */
+    public function parseBatch(string $text): ParsedReplyBatch
+    {
+        if (! $this->hasPrefix($text)) {
+            return ParsedReplyBatch::invalid('missing_prefix');
+        }
+
+        $lines = $this->stripPrefix($this->lines($text));
+
+        if ($lines === []) {
+            return ParsedReplyBatch::invalid('empty');
+        }
+
+        $blocks = $this->splitBlocks($lines);
+        $total = count($blocks);
+
+        if ($total > self::MAX_BLOCKS) {
+            return ParsedReplyBatch::invalid('too_many_blocks', ['blocks' => $total, 'max' => self::MAX_BLOCKS]);
+        }
+
+        $items = [];
+        $seen = [];
+
+        foreach ($blocks as $index => $blockLines) {
+            $blockNumber = $index + 1;
+            $parsed = $this->parseBlock($blockLines);
+
+            if (! $parsed->ok) {
+                return ParsedReplyBatch::invalid($parsed->error, $parsed->context + [
+                    'block' => $blockNumber,
+                    'blocks' => $total,
+                ]);
+            }
+
+            if (isset($seen[$parsed->number])) {
+                return ParsedReplyBatch::invalid('duplicate_number', [
+                    'block' => $blockNumber,
+                    'blocks' => $total,
+                    'number' => $parsed->number,
+                ]);
+            }
+
+            $seen[$parsed->number] = true;
+            $items[] = $parsed;
+        }
+
+        return ParsedReplyBatch::valid($items);
+    }
+
+    /**
+     * Pecah baris menjadi blok: setiap baris `nomor N` yang valid memulai blok
+     * baru. Baris kosong sudah dibuang oleh `lines()`.
+     *
+     * @param  array<int, string>  $lines
+     * @return array<int, array<int, string>>
+     */
+    private function splitBlocks(array $lines): array
+    {
+        $blocks = [];
+        $current = [];
+
+        foreach ($lines as $line) {
+            if ($current !== [] && preg_match('/^nomor\s+\d+$/iu', $line) === 1) {
+                $blocks[] = $current;
+                $current = [];
+            }
+
+            $current[] = $line;
+        }
+
+        if ($current !== []) {
+            $blocks[] = $current;
+        }
+
+        return $blocks;
+    }
+
+    /**
+     * @param  array<int, string>  $lines
+     */
+    private function parseBlock(array $lines): ParsedReply
+    {
         $number = null;
         $status = null;
         $statusLabel = null;

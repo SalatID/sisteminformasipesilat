@@ -84,7 +84,7 @@ class WhatsAppWebhookController extends Controller
             return $this->ignored('not_a_command');
         }
 
-        $parsed = $this->command->parse($body);
+        $batch = $this->command->parseBatch($body);
 
         if (! $this->isIdempotentFirstSeen((string) ($message['id'] ?? ''))) {
             return $this->ignored('duplicate');
@@ -96,11 +96,15 @@ class WhatsAppWebhookController extends Controller
             return $this->ignored('missing_chat');
         }
 
-        if (! $parsed->ok) {
+        if (! $batch->ok) {
             // Admin menulis /libur tetapi isinya belum lengkap → bantu perbaiki.
-            $this->send($chatId, $this->responder->forParseError($parsed));
+            $this->send($chatId, $this->responder->forParseError(
+                $batch->errorReply(),
+                $batch->blockNumber(),
+                $batch->blockCount(),
+            ));
 
-            return $this->handled('invalid_format', $parsed->error);
+            return $this->handled('invalid_format', $batch->error);
         }
 
         $pushName = $this->pushName($message);
@@ -127,36 +131,72 @@ class WhatsAppWebhookController extends Controller
             return $this->handled('not_reply');
         }
 
-        $resolution = $this->resolver->resolve($quotedText, (int) $parsed->number);
+        $actorId = (string) (ActorIdentity::preferred($candidates) ?? '');
+        $succeeded = [];
+        $failed = [];
+        $lastAction = null;
 
-        if (! $resolution->ok || $resolution->target === null) {
-            $this->send($chatId, $this->responder->forResolveError($resolution, (int) $parsed->number));
+        // Setiap nomor diproses sendiri-sendiri: satu nomor gagal tidak
+        // membatalkan nomor lain. Semua hasil dilaporkan dalam SATU balasan.
+        foreach ($batch->items as $parsed) {
+            $number = (int) $parsed->number;
+            $resolution = $this->resolver->resolve($quotedText, $number);
 
-            return $this->handled('resolve_failed', $resolution->error);
+            if (! $resolution->ok || $resolution->target === null) {
+                $failed[] = [
+                    'number' => $number,
+                    'message' => $this->responder->forResolveError($resolution, $number),
+                    'status' => 'resolve_failed',
+                    'code' => (string) $resolution->error,
+                ];
+
+                continue;
+            }
+
+            $outcome = $this->flagService->flag(
+                $resolution->target,
+                (string) $parsed->status,
+                (string) $parsed->reason,
+                $actorId,
+            );
+
+            if (! $outcome->ok) {
+                $failed[] = [
+                    'number' => $number,
+                    'message' => $this->responder->forFlagError($outcome, $resolution->target),
+                    'status' => 'flag_rejected',
+                    'code' => (string) $outcome->error,
+                ];
+
+                continue;
+            }
+
+            $succeeded[] = [
+                'number' => $number,
+                'target' => $resolution->target,
+                'statusLabel' => (string) $parsed->statusLabel,
+                'reason' => (string) $parsed->reason,
+                'truncated' => $parsed->truncated,
+                'unchanged' => $outcome->action === 'unchanged',
+            ];
+
+            $lastAction = (string) $outcome->action;
         }
 
-        $outcome = $this->flagService->flag(
-            $resolution->target,
-            (string) $parsed->status,
-            (string) $parsed->reason,
-            (string) (ActorIdentity::preferred($candidates) ?? ''),
-        );
+        $this->send($chatId, $this->responder->results($succeeded, $failed));
 
-        if (! $outcome->ok) {
-            $this->send($chatId, $this->responder->forFlagError($outcome, $resolution->target));
+        if ($succeeded === []) {
+            // Satu nomor tetap memakai status lama (kontrak webhook tidak berubah).
+            if ($batch->count() === 1) {
+                return $this->handled($failed[0]['status'], $failed[0]['code']);
+            }
 
-            return $this->handled('flag_rejected', $outcome->error);
+            return $this->handled('all_failed', $batch->count().' perintah');
         }
 
-        $this->send($chatId, $this->responder->success(
-            $resolution->target,
-            (string) $parsed->statusLabel,
-            (string) $parsed->reason,
-            $parsed->truncated,
-            $outcome->action === 'unchanged',
-        ));
+        $detail = $batch->count() === 1 ? (string) $lastAction : $batch->count().' perintah';
 
-        return $this->handled('flagged', $outcome->action);
+        return $this->handled('flagged', $detail);
     }
 
     /**

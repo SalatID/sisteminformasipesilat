@@ -324,4 +324,79 @@ class WaReplyCommandTest extends TestCase
     {
         $this->assertSame(['Diliburkan Sekolah', 'Diliburkan Pelatih'], $this->command->statusLabels());
     }
+
+    // ------------------------------------------------ banyak nomor (multi-unit)
+
+    public function test_parses_multiple_blocks_in_one_message(): void
+    {
+        $batch = $this->command->parseBatch(
+            "/libur\nNomor 1\nDiliburkan Sekolah\nAlasan : ujian\n\nNomor 2\nDiliburkan Pelatih\nAlasan : hujan"
+        );
+
+        $this->assertTrue($batch->ok);
+        $this->assertSame(2, $batch->count());
+        $this->assertSame(1, $batch->items[0]->number);
+        $this->assertSame('school_holiday', $batch->items[0]->status);
+        $this->assertSame('ujian', $batch->items[0]->reason);
+        $this->assertSame(2, $batch->items[1]->number);
+        $this->assertSame('cancelled', $batch->items[1]->status);
+        $this->assertSame('hujan', $batch->items[1]->reason);
+    }
+
+    public function test_blocks_do_not_require_blank_lines(): void
+    {
+        $batch = $this->command->parseBatch(
+            "/libur\nNomor 1\nDiliburkan Sekolah\nAlasan : ujian\nNomor 2\nDiliburkan Pelatih\nAlasan : hujan\nNomor 3\nDiliburkan Sekolah\nAlasan : rapat"
+        );
+
+        $this->assertTrue($batch->ok);
+        $this->assertSame(3, $batch->count());
+        $this->assertSame([1, 2, 3], array_map(fn ($item) => $item->number, $batch->items));
+    }
+
+    public function test_duplicate_number_across_blocks_is_rejected(): void
+    {
+        $batch = $this->command->parseBatch(
+            "/libur\nNomor 1\nDiliburkan Sekolah\nAlasan : ujian\n\nNomor 1\nDiliburkan Pelatih\nAlasan : hujan"
+        );
+
+        $this->assertFalse($batch->ok);
+        $this->assertSame('duplicate_number', $batch->error);
+        $this->assertSame(2, $batch->blockNumber());
+    }
+
+    public function test_error_in_second_block_reports_block_number(): void
+    {
+        $batch = $this->command->parseBatch(
+            "/libur\nNomor 1\nDiliburkan Sekolah\nAlasan : ujian\n\nNomor 2\nDiliburkan Pelatih"
+        );
+
+        $this->assertFalse($batch->ok);
+        $this->assertSame('missing_reason', $batch->error);
+        $this->assertSame(2, $batch->blockNumber());
+        $this->assertSame(2, $batch->blockCount());
+    }
+
+    public function test_too_many_blocks_is_rejected(): void
+    {
+        $text = "/libur\n";
+
+        for ($i = 1; $i <= WaReplyCommand::MAX_BLOCKS + 1; $i++) {
+            $text .= "Nomor {$i}\nDiliburkan Sekolah\nAlasan : ujian\n";
+        }
+
+        $batch = $this->command->parseBatch($text);
+
+        $this->assertFalse($batch->ok);
+        $this->assertSame('too_many_blocks', $batch->error);
+    }
+
+    public function test_single_block_batch_has_block_count_one(): void
+    {
+        $batch = $this->command->parseBatch("/libur\nNomor 1\nDiliburkan Sekolah");
+
+        $this->assertFalse($batch->ok);
+        $this->assertSame('missing_reason', $batch->error);
+        $this->assertSame(1, $batch->blockCount());
+    }
 }
