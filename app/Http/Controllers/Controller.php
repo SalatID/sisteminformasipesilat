@@ -215,7 +215,7 @@ class Controller extends BaseController
                 "icon"=>"fas fa-cogs",
                 "name"=>"Master Data",
                 "src"=>"#",
-                "permision"=>["training_center_list","unit_list"],
+                "permision"=>["training_center_list","unit_list","notif-jadwal_list"],
                 "children"=>[
                     [
                         "icon"=>"fas fa-dumbbell",
