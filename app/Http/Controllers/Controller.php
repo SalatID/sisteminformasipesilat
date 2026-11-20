@@ -229,6 +229,12 @@ class Controller extends BaseController
                         "permision"=>["unit_list"],
                         "src"=>"unit.index"
                     ],
+                    [
+                        "icon"=>"fas fa-calendar-alt",
+                        "name"=>"Jadwal Notifikasi",
+                        "permision"=>["notif-jadwal_list"],
+                        "src"=>"scheduled-notification.index"
+                    ],
                 ],
             ],
         ];

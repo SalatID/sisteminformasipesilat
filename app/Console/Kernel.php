@@ -62,6 +62,31 @@ class Kernel extends ConsoleKernel
             ->cron('0 */' . $interval . ' * * *')
             ->name('attendance:notify --type=reminder')
             ->withoutOverlapping();
+
+        // ── 3. Notifikasi terjadwal: planner harian + runner tiap menit
+        $scheduleTimezone = (string) config('notifications.schedules.timezone', config('app.timezone', 'Asia/Jakarta'));
+
+        InProcessCommand::artisan(
+            $schedule,
+            'notification:plan',
+            [],
+            storage_path('logs/cron/schedule-notification-plan.log'),
+        )
+            ->dailyAt('00:05')
+            ->timezone($scheduleTimezone)
+            ->name('notification:plan')
+            ->withoutOverlapping();
+
+        InProcessCommand::artisan(
+            $schedule,
+            'notification:run',
+            [],
+            storage_path('logs/cron/schedule-notification.log'),
+        )
+            ->everyMinute()
+            ->timezone($scheduleTimezone)
+            ->name('notification:run')
+            ->withoutOverlapping();
     }
 
     /**

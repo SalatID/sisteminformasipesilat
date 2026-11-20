@@ -1,0 +1,315 @@
+﻿== php artisan test (full suite) ==
+
+  [30;43;1m WARN [39;49;22m Your XML configuration validates against a deprecated schema. Migrate your XML configuration using "--migrate-configuration"!
+
+   PASS  Tests\Unit\ExampleTest
+  Γ£ô that true is true                                                                                            0.01s  
+
+   PASS  Tests\Unit\Notification\ChannelTest
+  Γ£ô telegram success                                                                                             0.47s  
+  Γ£ô whatsapp success sends mentions                                                                              0.04s  
+  Γ£ô whatsapp without mentions omits field                                                                        0.04s  
+  Γ£ô telegram failure http 400                                                                                    0.05s  
+  Γ£ô whatsapp failure http 500                                                                                    0.04s  
+  Γ£ô timeout is captured as failure                                                                               0.05s  
+  Γ£ô inactive provider is not called                                                                              0.04s  
+  Γ£ô whatsapp failure does not break telegram                                                                     0.04s  
+  Γ£ô test mode redirects to test chat with prefix                                                                 0.05s  
+
+   PASS  Tests\Unit\Notification\CommandTest
+  Γ£ô signature keeps backward compatible argument and new options                                                 0.13s  
+  Γ£ô invalid type fails                                                                                           0.06s  
+  Γ£ô dry run sends zero requests                                                                                  0.51s  
+  Γ£ô unknown attendance id returns failure                                                                        0.06s  
+  Γ£ô no active provider sends nothing                                                                             0.04s  
+  Γ£ô report runs every minute and reminder every three hours                                                      0.05s  
+  Γ£ô reminder schedule follows interval config                                                                    0.05s  
+  Γ£ô schedule never uses subprocess                                                                               0.04s  
+
+   PASS  Tests\Unit\Notification\HolidayDecisionTest
+  Γ£ô creates when no attendance exists                                                                            0.06s  
+  Γ£ô rejects when unit is inactive                                                                                0.05s  
+  Γ£ô rejects when training report already exists                                                                  0.05s  
+  Γ£ô unchanged when status and reason are identical                                                               0.04s  
+  Γ£ô updates when status differs                                                                                  0.04s  
+  Γ£ô updates when reason differs                                                                                  0.05s  
+  Γ£ô updates other holiday statuses                                                                               0.04s  
+  Γ£ô actor identity normalizes phone formats                                                                      0.05s  
+  Γ£ô actor identity keeps lid as is                                                                               0.04s  
+  Γ£ô allow list accepts equivalent formats                                                                        0.04s  
+  Γ£ô mention text only for phone numbers                                                                          0.04s  
+
+   PASS  Tests\Unit\Notification\HolidayTargetResolverTest
+  Γ£ô number one maps to cengkareng 1 on 17 november                                                               0.05s  
+  Γ£ô number nine maps to the last line                                                                            0.04s  
+  Γ£ô number three keeps its own date                                                                              0.04s  
+  Γ£ô number out of range is reported with line count                                                              0.04s  
+  Γ£ô zero and negative numbers are not found                                                                      0.05s  
+  Γ£ô unknown unit is reported                                                                                     0.04s  
+  Γ£ô report message only accepts number one                                                                       0.04s  
+  Γ£ô plain chat text is not a notification                                                                        0.04s  
+  Γ£ô empty quote is not a notification                                                                            0.04s  
+
+   PASS  Tests\Unit\Notification\MessageBuilderTest
+  Γ£ô empty reminder returns null                                                                                  0.05s  
+  Γ£ô n units produce exactly one message with data set "3 unit"                                                   0.05s  
+  Γ£ô n units produce exactly one message with data set "30 unit"                                                  0.09s  
+  Γ£ô units with valid phone are mentioned                                                                         0.05s  
+  Γ£ô unit without phone falls back to plain name                                                                  0.05s  
+  Γ£ô mention disabled shows plain names                                                                           0.05s  
+  Γ£ô mention flag from config is respected at runtime                                                             0.05s  
+  Γ£ô channel without mention support gets plain names                                                             0.05s  
+  Γ£ô mention budget is enforced                                                                                   0.07s  
+  Γ£ô reminder uses canonical bold format                                                                          0.06s  
+  Γ£ô reminder line matches requested format                                                                       0.05s  
+  Γ£ô reminder shows newest sessions first                                                                         0.06s  
+  Γ£ô reminder limits lines and summarizes the rest                                                                0.08s  
+  Γ£ô reminder without limit shows every session                                                                   0.14s  
+  Γ£ô attendance report contains all 13 fields                                                                     0.09s  
+  Γ£ô report without ts does not error                                                                             0.08s  
+  Γ£ô photo links are limited to four                                                                              0.08s  
+  Γ£ô long message is chunked under limit                                                                          1.04s  
+  Γ£ô telegram text never contains at phone number                                                                 0.13s  
+  Γ£ô report telegram variant has no at phone number                                                               0.14s  
+
+   PASS  Tests\Unit\Notification\MissingAttendanceCollectorTest
+  Γ£ô day of weeks maps english day names                                                                          0.24s  
+  Γ£ô day of weeks maps indonesian day names                                                                       0.16s  
+  Γ£ô day of weeks handles multiple days with spaces                                                               0.16s  
+  Γ£ô day of weeks ignores empty and unknown values                                                                0.14s  
+  Γ£ô day of weeks removes duplicates                                                                              0.14s  
+  Γ£ô thirty day window produces expected tuesday sessions                                                         0.13s  
+
+   PASS  Tests\Unit\Notification\NotificationRunGuardTest
+  Γ£ô first run is allowed                                                                                         0.18s  
+  Γ£ô max one cycle per three hours                                                                                0.16s  
+  Γ£ô force bypasses interval                                                                                      0.17s  
+  Γ£ô allowed again after interval elapsed                                                                         0.14s  
+  Γ£ô minutes until next run                                                                                       0.15s  
+  Γ£ô interval zero disables guard                                                                                 0.12s  
+  Γ£ô outside window is skipped                                                                                    0.13s  
+  Γ£ô lock prevents concurrent run                                                                                 0.14s  
+  Γ£ô report scope ignores interval                                                                                0.14s  
+  Γ£ô reminder scope still blocked by interval                                                                     0.15s  
+  Γ£ô report scope runs outside active window                                                                      0.15s  
+  Γ£ô scopes do not block each other                                                                               0.13s  
+  Γ£ô report lock is separate from reminder lock                                                                   0.12s  
+
+   PASS  Tests\Unit\Notification\ReminderLineParserTest
+  Γ£ô detects reminder and report titles                                                                           0.13s  
+  Γ£ô parses all nine real reminder lines                                                                          0.11s  
+  Γ£ô first line maps to cengkareng 1 on 17 november 2026                                                          0.12s  
+  Γ£ô last line maps to mi asanusiah on 26 october 2026                                                            0.10s  
+  Γ£ô unit names with slash are kept intact                                                                        0.10s  
+  Γ£ô pj name containing hyphen does not break the line                                                            0.08s  
+  Γ£ô summary line is not parsed as a unit                                                                         0.09s  
+  Γ£ô parses report unit and date                                                                                  0.14s  
+  Γ£ô report without unit returns null                                                                             0.13s  
+  Γ£ô reminder with hyphen separator is supported                                                                  0.10s  
+  Γ£ô reminder without pj is supported                                                                             0.10s  
+  Γ£ô parse date supports indonesian and english months                                                            0.11s  
+  Γ£ô parse date returns null for garbage                                                                          0.12s  
+  Γ£ô random chat text is not a notification                                                                       0.10s  
+
+   PASS  Tests\Unit\Notification\ReportRetryTest
+  Γ£ô failed provider is not marked as sent                                                                        0.13s  
+  Γ£ô failed provider is retried alone on next run                                                                 0.12s  
+  Γ£ô already sent attendance is skipped                                                                           0.11s  
+  Γ£ô single provider mode marks sent immediately                                                                  0.13s  
+  Γ£ô all providers failing leaves unsent                                                                          0.12s  
+
+   PASS  Tests\Unit\Notification\Schedule\CancelScheduleParserTest
+  Γ£ô has prefix is case insensitive                                                                               0.01s  
+  Γ£ô parse without code uses reply
+  Γ£ô parse with code and reason
+  Γ£ô single line with code and reason
+  Γ£ô all uppercase variation is accepted
+  Γ£ô lowercase code is normalized
+  Γ£ô mixed case code is normalized
+  Γ£ô missing reason is rejected
+  Γ£ô reason too short is rejected
+  Γ£ô reason too long is rejected
+  Γ£ô duplicate reason is rejected
+  Γ£ô unknown line after reason is rejected
+  Γ£ô reason line after code without label is accepted
+  Γ£ô empty lines are ignored
+  Γ£ô missing prefix is rejected
+
+   PASS  Tests\Unit\Notification\Schedule\MessageTemplateTest
+  Γ£ô render replaces all supported variables                                                                      0.03s  
+  Γ£ô values use indonesian day and month names                                                                    0.01s  
+  Γ£ô unknown variables are detected
+  Γ£ô known variables are accepted
+  Γ£ô empty reason renders empty string
+
+   PASS  Tests\Unit\Notification\Schedule\OccurrenceCalculatorTest
+  Γ£ô once only returns the start date                                                                             0.01s  
+  Γ£ô daily returns every day in range
+  Γ£ô weekly supports multiple days
+  Γ£ô monthly by date
+  Γ£ô monthly by week
+  Γ£ô week five means last occurrence event when month has four
+  Γ£ô week five means last occurrence when month has five
+  Γ£ô start and end date limit occurrences
+  Γ£ô impossible date is skipped
+  Γ£ô occurrences use jakarta timezone
+
+   PASS  Tests\Unit\Notification\WaReplyCommandTest
+  Γ£ô parses the documented format with prefix                                                                     0.10s  
+  Γ£ô prefix is case insensitive                                                                                   0.09s  
+  Γ£ô prefix may share the line with nomor                                                                         0.08s  
+  Γ£ô prefix with bot suffix is accepted                                                                           0.09s  
+  Γ£ô format without prefix is not a command                                                                       0.09s  
+  Γ£ô has prefix only detects standalone libur                                                                     0.07s  
+  Γ£ô prefix alone is incomplete not silent                                                                        0.10s  
+  Γ£ô parses diliburkan pelatih                                                                                    0.10s  
+  Γ£ô status is case insensitive                                                                                   0.11s  
+  Γ£ô diliburkan pelatih is case insensitive                                                                       0.09s  
+  Γ£ô status without diliburkan prefix is rejected                                                                 0.09s  
+  Γ£ô nomor keyword is case insensitive                                                                            0.10s  
+  Γ£ô nomor without space is rejected                                                                              0.11s  
+  Γ£ô reason label is case insensitive and spaces optional                                                         0.10s  
+  Γ£ô line order is tolerant and blank lines ignored                                                               0.11s  
+  Γ£ô crlf line endings are supported                                                                              0.12s  
+  Γ£ô missing number                                                                                               0.10s  
+  Γ£ô missing status                                                                                               0.13s  
+  Γ£ô missing reason                                                                                               0.13s  
+  Γ£ô reason too short                                                                                             0.12s  
+  Γ£ô reason is truncated to column limit                                                                          0.14s  
+  Γ£ô number must be positive                                                                                      0.15s  
+  Γ£ô number not an integer is rejected                                                                            0.12s  
+  Γ£ô only one number per reply                                                                                    0.14s  
+  Γ£ô duplicate status is rejected                                                                                 0.16s  
+  Γ£ô duplicate reason is rejected                                                                                 0.15s  
+  Γ£ô empty reply                                                                                                  0.15s  
+  Γ£ô prefix alone is reported as empty                                                                            0.13s  
+  Γ£ô unknown line is reported with context                                                                        0.14s  
+  Γ£ô free text is not a command without prefix                                                                    0.13s  
+  Γ£ô partial attempt without prefix is not a command                                                              0.14s  
+  Γ£ô status labels are exposed for help text                                                                      0.13s  
+  Γ£ô parses multiple blocks in one message                                                                        0.11s  
+  Γ£ô blocks do not require blank lines                                                                            0.11s  
+  Γ£ô duplicate number across blocks is rejected                                                                   0.13s  
+  Γ£ô error in second block reports block number                                                                   0.13s  
+  Γ£ô too many blocks is rejected                                                                                  0.11s  
+  Γ£ô single block batch has block count one                                                                       0.11s  
+
+   PASS  Tests\Unit\Support\PhoneNormalizerTest
+  Γ£ô normalizes to 62 format with data set "format lokal 0"                                                       0.08s  
+  Γ£ô normalizes to 62 format with data set "format internasional +62"
+  Γ£ô normalizes to 62 format with data set "format 62 polos"
+  Γ£ô normalizes to 62 format with data set "dengan spasi & strip"
+  Γ£ô normalizes to 62 format with data set "spasi di tepi"
+  Γ£ô rejects invalid numbers with data set "huruf"
+  Γ£ô rejects invalid numbers with data set "terlalu pendek"
+  Γ£ô rejects invalid numbers with data set "lokal terlalu pendek"
+  Γ£ô rejects invalid numbers with data set "bukan indonesia"
+  Γ£ô empty input is allowed and normalizes to null
+  Γ£ô canonical 62 number is stable
+
+   PASS  Tests\Feature\CancelScheduleWebhookTest
+  Γ£ô reply cancels run and sends holiday announcement                                                             1.61s  
+  Γ£ô code cancels run                                                                                             1.40s  
+  Γ£ô uppercase command is accepted                                                                                1.64s  
+  Γ£ô schedule only code lists nearest occurrences                                                                 1.27s  
+  Γ£ô unknown code replies with help                                                                               1.10s  
+  Γ£ô non whitelisted sender is rejected                                                                           1.04s  
+  Γ£ô already cancelled run is idempotent                                                                          1.06s  
+  Γ£ô past run is rejected                                                                                         1.13s  
+  Γ£ô inactive schedule is rejected                                                                                1.05s  
+  Γ£ô missing reason gets help                                                                                     1.03s  
+  Γ£ô reply to unknown bot message asks for quote                                                                  0.89s  
+  Γ£ô code and reply pointing to different runs are rejected                                                       0.81s  
+  Γ£ô duplicate webhook delivery is processed once                                                                 0.86s  
+  Γ£ô same day run can be cancelled after its time                                                                 0.69s  
+  Γ£ô announcement failure still cancels the run                                                                   0.65s  
+  Γ£ô holiday reply command still works regression                                                                 0.56s  
+  Γ£ô free text is still ignored                                                                                   0.80s  
+
+   PASS  Tests\Feature\ExampleTest
+  Γ£ô the application returns a successful response                                                                0.12s  
+
+   PASS  Tests\Feature\ScheduledNotificationCrudTest
+  Γ£ô index lists schedules                                                                                        0.81s  
+  Γ£ô index filters by search and status                                                                           0.78s  
+  Γ£ô create form renders                                                                                          0.70s  
+  Γ£ô edit form renders existing values                                                                            0.64s  
+  Γ£ô store creates schedule with generated code and planned runs                                                  0.70s  
+  Γ£ô store trims duplicate days and uppercases nothing                                                            0.65s  
+  Γ£ô store rejects invalid chat id                                                                                0.64s  
+  Γ£ô store rejects unknown template variable                                                                      0.58s  
+  Γ£ô store requires days for weekly                                                                               0.56s  
+  Γ£ô store requires dates for monthly date mode                                                                   0.52s  
+  Γ£ô store monthly week mode creates runs                                                                         0.57s  
+  Γ£ô update keeps code and refreshes runs                                                                         0.65s  
+  Γ£ô toggle deactivates cancels pending and reactivates plans                                                     0.72s  
+  Γ£ô destroy soft deletes and cancels pending                                                                     0.61s  
+  Γ£ô preview renders variables                                                                                    0.55s  
+  Γ£ô preview reports unknown variables                                                                            0.87s  
+  Γ£ô test button sends message to chat                                                                            0.74s  
+  Γ£ô test button reports failure                                                                                  0.75s  
+  Γ£ô cancel run from ui cancels and announces                                                                     0.71s  
+  Γ£ô cancel run requires reason                                                                                   0.59s  
+  Γ£ô reannounce resends holiday message                                                                           0.61s  
+  Γ£ô retry run resends failed run                                                                                 0.56s  
+  Γ£ô cancel run rejects unknown run                                                                               0.53s  
+  Γ£ô unknown schedule redirects with error                                                                        0.53s  
+
+   PASS  Tests\Feature\ScheduledNotificationTest
+  Γ£ô planner creates weekly runs for the horizon                                                                  0.64s  
+  Γ£ô planner is idempotent                                                                                        0.63s  
+  Γ£ô refresh removes pending runs that no longer match                                                            0.62s  
+  Γ£ô deactivating schedule cancels pending runs                                                                   0.62s  
+  Γ£ô runner sends due run exactly once                                                                            0.58s  
+  Γ£ô runner marks run outside grace as missed                                                                     0.58s  
+  Γ£ô runner retries then marks failed after max attempts                                                          0.79s  
+  Γ£ô runner uses test chat when test mode is on                                                                   1.01s  
+  Γ£ô dry run does not call waha                                                                                   0.97s  
+  Γ£ô runner cancels run for inactive schedule                                                                     0.86s  
+
+   PASS  Tests\Feature\WhatsAppWebhookTest
+  Γ£ô wrong secret is rejected without calling waha                                                                0.09s  
+  Γ£ô missing webhook secret config rejects everything                                                             0.08s  
+  Γ£ô invalid hmac is rejected                                                                                     0.08s  
+  Γ£ô valid hmac is accepted                                                                                       0.12s  
+  Γ£ô bot own message is ignored                                                                                   0.10s  
+  Γ£ô other events are ignored                                                                                     0.09s  
+  Γ£ô free text reply to notification is silently ignored                                                          0.08s  
+  Γ£ô group chatter is silently ignored                                                                            0.08s  
+  Γ£ô partial attempt without prefix is silently ignored                                                           0.06s  
+  Γ£ô prefix with incomplete format gets help                                                                      0.06s  
+  Γ£ô prefix alone gets help                                                                                       0.06s  
+  Γ£ô unauthorized sender is told off                                                                              0.07s  
+  Γ£ô unauthorized lid sender is not shown raw id                                                                  0.07s  
+  Γ£ô lid sender can be whitelisted by lid                                                                         0.08s  
+  Γ£ô lid sender is matched through phone number alias                                                             0.07s  
+  Γ£ô valid reply flags the session and confirms in group                                                          0.08s  
+  Γ£ô uppercase keywords are accepted                                                                              0.08s  
+  Γ£ô lowercase format with prefix is accepted                                                                     0.06s  
+  Γ£ô complete format without prefix is silently ignored                                                           0.07s  
+  Γ£ô reply without quote is rejected with instruction                                                             0.06s  
+  Γ£ô number out of range is reported                                                                              0.06s  
+  Γ£ô already reported session is refused                                                                          0.07s  
+  Γ£ô duplicate webhook delivery is processed once                                                                 0.08s  
+  Γ£ô reply disabled ignores everything                                                                            0.07s  
+  Γ£ô waha failure does not break the webhook response                                                             0.09s  
+  Γ£ô multiple units are flagged with one reply                                                                    0.08s  
+  Γ£ô partial failure is reported together with success                                                            0.07s  
+  Γ£ô all numbers failing returns all failed                                                                       0.07s  
+  Γ£ô invalid second block gets help with block number                                                             0.07s  
+
+  Tests:    256 passed (854 assertions)
+  Duration: 57.95s
+
+
+== grup test fitur notifikasi terjadwal ==
+--- tests/Unit/Notification/Schedule ---
+Tests:    30 passed (59 assertions)
+--- tests/Feature/ScheduledNotificationTest.php ---
+Tests:    10 passed (41 assertions)
+--- tests/Feature/CancelScheduleWebhookTest.php ---
+Tests:    17 passed (75 assertions)
+--- tests/Feature/ScheduledNotificationCrudTest.php ---
+Tests:    24 passed (90 assertions)
+--- tests/Feature/WhatsAppWebhookTest.php ---
+Tests:    29 passed (93 assertions)

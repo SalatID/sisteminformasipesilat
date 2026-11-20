@@ -107,7 +107,12 @@ class WhatsAppChannel implements NotificationChannel
                 return ChannelResult::success(
                     $this->name(),
                     $response->status(),
-                    (string) ($response->json('id._serialized') ?? $response->json('id') ?? '')
+                    (string) (
+                        $response->json('key.id')
+                        ?? $response->json('id._serialized')
+                        ?? $response->json('id')
+                        ?? ''
+                    )
                 );
             }
 

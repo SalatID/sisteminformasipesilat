@@ -144,6 +144,52 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Notifikasi Terjadwal (WhatsApp)
+    |--------------------------------------------------------------------------
+    |
+    | Fitur pesan latihan/libur yang dikirim otomatis sesuai jadwal.
+    | Planner membuat kemunculan HORIZON_DAYS hari ke depan; runner berjalan
+    | tiap menit dengan grace window, retry, dan lock sendiri.
+    |
+    | Detail: docs/rencana-implementasi-notifikasi-terjadwal.md
+    |
+    */
+
+    'schedules' => [
+        'enabled' => (bool) env('NOTIF_SCHEDULE_ENABLED', true),
+        'timezone' => env('NOTIF_SCHEDULE_TIMEZONE', env('APP_TIMEZONE', 'Asia/Jakarta')),
+        'horizon_days' => (int) env('NOTIF_SCHEDULE_HORIZON_DAYS', 60),
+        'grace_minutes' => (int) env('NOTIF_SCHEDULE_GRACE_MINUTES', 30),
+        'max_attempts' => (int) env('NOTIF_SCHEDULE_MAX_ATTEMPTS', 3),
+        'retry_delay_minutes' => (int) env('NOTIF_SCHEDULE_RETRY_DELAY_MINUTES', 5),
+        'message_max' => (int) env('NOTIF_SCHEDULE_MESSAGE_MAX', 4096),
+        'runner_limit' => (int) env('NOTIF_SCHEDULE_RUNNER_LIMIT', 100),
+
+        // Template default bila jadwal tidak mengisi pesan libur.
+        'default_holiday_message' => "*Latihan Libur*\n\n{nama_jadwal}\n{hari}, {tanggal}\n\nAlasan: {alasan}\n\nMohon maaf atas ketidaknyamanannya.",
+
+        // Template default bila jadwal tidak mengisi pesan latihan.
+        'default_training_message' => "*Pengingat Latihan*\n\n{nama_jadwal}\n{hari}, {tanggal}\n\nMohon hadir tepat waktu.",
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Pembatalan Jadwal via WhatsApp (/cancel-schedule)
+    |--------------------------------------------------------------------------
+    |
+    | Memakai whitelist yang sama dengan /libur (WA_NOTIF_FLAG_HOLIDAY_USERS).
+    |
+    */
+
+    'cancel_schedule' => [
+        'enabled' => (bool) env('NOTIF_CANCEL_SCHEDULE_ENABLED', true),
+        'reason_min' => (int) env('NOTIF_CANCEL_SCHEDULE_REASON_MIN', 3),
+        'reason_max' => (int) env('NOTIF_CANCEL_SCHEDULE_REASON_MAX', 255),
+        'schedule_only_preview' => (int) env('NOTIF_CANCEL_SCHEDULE_PREVIEW', 3),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Jeda antar pesan (detik)
     |--------------------------------------------------------------------------
     |

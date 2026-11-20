@@ -1,0 +1,8 @@
+
+== migrate up (DB bersih, tabel users+spatie minimal dibuat manual) ==
+2026_11_20_000001_create_scheduled_notifications_table ........... DONE
+2026_11_20_000002_create_scheduled_notification_runs_table ...... DONE
+2026_11_20_000003_create_scheduled_notification_permissions ..... DONE
+
+Catatan: migration permission_tables bawaan repo gagal di DB kosong
+(PermissionRegistrar::$pivotPermission) - masalah lama, di luar fitur ini.

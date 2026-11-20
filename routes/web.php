@@ -15,6 +15,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UnitController;
 // use App\Http\Controllers\PesilatController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\ScheduledNotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -126,6 +127,16 @@ Route::group(['middleware' => ['auth']], function () {
     
     // Training Center Management Routes
     Route::resource('training-center', TrainingCenterController::class);
+
+    // Jadwal Notifikasi WhatsApp Routes
+    Route::resource('scheduled-notification', ScheduledNotificationController::class);
+    Route::post('/scheduled-notification/{id}/toggle', [ScheduledNotificationController::class, 'toggle'])->name('scheduled-notification.toggle');
+    Route::post('/scheduled-notification/{id}/test', [ScheduledNotificationController::class, 'test'])->name('scheduled-notification.test');
+    Route::post('/scheduled-notification/{id}/replan', [ScheduledNotificationController::class, 'replan'])->name('scheduled-notification.replan');
+    Route::post('/scheduled-notification/{id}/cancel-run', [ScheduledNotificationController::class, 'cancelRun'])->name('scheduled-notification.cancel-run');
+    Route::post('/scheduled-notification/{id}/run/{runId}/reannounce', [ScheduledNotificationController::class, 'reannounce'])->name('scheduled-notification.reannounce');
+    Route::post('/scheduled-notification/{id}/run/{runId}/retry', [ScheduledNotificationController::class, 'retryRun'])->name('scheduled-notification.retry');
+    Route::post('/scheduled-notification-preview', [ScheduledNotificationController::class, 'preview'])->name('scheduled-notification.preview');
     
     // Unit Management Routes
     Route::resource('unit', UnitController::class);

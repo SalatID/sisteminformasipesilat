@@ -9,6 +9,12 @@ use App\Services\Notification\Reply\HolidayFlagService;
 use App\Services\Notification\Reply\HolidayTargetResolver;
 use App\Services\Notification\Reply\ReplyResponder;
 use App\Services\Notification\Reply\WaReplyCommand;
+use App\Services\Notification\Schedule\CancelOutcome;
+use App\Services\Notification\Schedule\CancelResolution;
+use App\Services\Notification\Schedule\CancelResponder;
+use App\Services\Notification\Schedule\CancelScheduleCommand;
+use App\Services\Notification\Schedule\CancelScheduleParser;
+use App\Services\Notification\Schedule\CancelScheduleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -41,6 +47,9 @@ class WhatsAppWebhookController extends Controller
         private readonly HolidayTargetResolver $resolver,
         private readonly HolidayFlagService $flagService,
         private readonly ReplyResponder $responder,
+        private readonly CancelScheduleParser $cancelParser,
+        private readonly CancelScheduleService $cancelService,
+        private readonly CancelResponder $cancelResponder,
     ) {}
 
     public function __invoke(Request $request, string $secret): JsonResponse
@@ -78,12 +87,25 @@ class WhatsAppWebhookController extends Controller
             return $this->ignored('empty_body');
         }
 
-        // Tanpa awalan /libur, pesan apa pun (obrolan, balasan bebas ke pesan
+        // Tanpa awalan perintah, pesan apa pun (obrolan, balasan bebas ke pesan
         // bot, format nyaris benar) dianggap pesan biasa: diabaikan diam-diam.
+        // Urutan: /cancel-schedule lebih dulu, lalu /libur (perilaku lama).
+        if ($this->cancelParser->hasPrefix($body)) {
+            return $this->handleCancelSchedule($message, $body);
+        }
+
         if (! $this->command->hasPrefix($body)) {
             return $this->ignored('not_a_command');
         }
 
+        return $this->handleHolidayReply($message, $body);
+    }
+
+    /**
+     * @param  array<string, mixed>  $message
+     */
+    private function handleHolidayReply(array $message, string $body): JsonResponse
+    {
         $batch = $this->command->parseBatch($body);
 
         if (! $this->isIdempotentFirstSeen((string) ($message['id'] ?? ''))) {
@@ -197,6 +219,104 @@ class WhatsAppWebhookController extends Controller
         $detail = $batch->count() === 1 ? (string) $lastAction : $batch->count().' perintah';
 
         return $this->handled('flagged', $detail);
+    }
+
+    /**
+     * Pembatalan satu kemunculan jadwal (/cancel-schedule).
+     *
+     * @param  array<string, mixed>  $message
+     */
+    private function handleCancelSchedule(array $message, string $body): JsonResponse
+    {
+        if (! (bool) config('notifications.cancel_schedule.enabled', true)) {
+            return $this->ignored('cancel_schedule_disabled');
+        }
+
+        $command = $this->cancelParser->parse($body);
+
+        if (! $this->isIdempotentFirstSeen((string) ($message['id'] ?? ''))) {
+            return $this->ignored('duplicate');
+        }
+
+        $chatId = (string) ($message['from'] ?? '');
+
+        if ($chatId === '') {
+            return $this->ignored('missing_chat');
+        }
+
+        // Format belum lengkap: bantu perbaiki sebelum cek whitelist, sama
+        // seperti alur /libur.
+        if (! $command->ok) {
+            $this->send($chatId, $this->cancelResponder->forParseError($command));
+
+            return $this->handled('invalid_format', $command->error);
+        }
+
+        $pushName = $this->pushName($message);
+        $candidates = ActorIdentity::candidates($message);
+
+        if (! ActorIdentity::anyAllowed($candidates, $this->allowedUsers())) {
+            Log::channel('cron')->warning('Batal jadwal via WhatsApp ditolak: pengirim tidak berwenang', [
+                'chat' => $chatId,
+                'candidates' => $candidates,
+                'push_name' => $pushName,
+            ]);
+
+            $reply = $this->responder->unauthorized(ActorIdentity::preferred($candidates), $pushName);
+            $this->send($chatId, $reply['text'], $reply['mentions']);
+
+            return $this->handled('unauthorized');
+        }
+
+        $replyToId = (string) data_get($message, 'replyTo.id', '');
+        $resolution = $this->cancelService->validate(
+            $this->cancelService->resolve($command->target, $replyToId !== '' ? $replyToId : null),
+        );
+
+        if ($resolution->status === 'schedule_only') {
+            $this->send($chatId, $this->cancelResponder->scheduleOnly(
+                $command->target,
+                $resolution->runs,
+            ));
+
+            return $this->handled('schedule_only', $command->target);
+        }
+
+        if (! $resolution->isOk()) {
+            $this->send($chatId, $this->cancelResponder->forResolution($resolution));
+
+            return $this->handled('cancel_rejected', $resolution->status);
+        }
+
+        $actorId = (string) (ActorIdentity::preferred($candidates) ?? '');
+
+        try {
+            $outcome = $this->cancelService->cancel(
+                $resolution->run,
+                (string) $command->reason,
+                'webhook',
+                $actorId,
+            );
+        } catch (Throwable $e) {
+            Log::channel('cron')->error('Batal jadwal gagal (exception)', ['error' => $e->getMessage()]);
+            $this->send($chatId, $this->cancelResponder->systemError());
+
+            return $this->handled('error');
+        }
+
+        if (! $outcome->isCancelled()) {
+            $this->send($chatId, $this->cancelResponder->forOutcome($outcome));
+
+            return $this->handled('cancel_rejected', $outcome->status);
+        }
+
+        $this->send($chatId, $this->cancelResponder->success(
+            $outcome->run,
+            (string) $command->reason,
+            $outcome->announcementSent,
+        ));
+
+        return $this->handled('cancelled', $outcome->run->public_code);
     }
 
     /**
